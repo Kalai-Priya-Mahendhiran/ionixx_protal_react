@@ -1,4 +1,5 @@
 ﻿import { Control, UseFormWatch } from "react-hook-form";
+import type { ProfileFormData } from "@/lib/schemas";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -12,8 +13,8 @@ import { CreditCard, Lock, Shield, Building2 } from "lucide-react";
 
 interface BankSectionProps {
   isEditing: boolean;
-  control: Control<any>;
-  watch: UseFormWatch<any>;
+  control: Control<ProfileFormData>;
+  watch: UseFormWatch<ProfileFormData>;
 }
 
 export function BankSection({ isEditing, control, watch }: BankSectionProps) {
@@ -47,7 +48,6 @@ export function BankSection({ isEditing, control, watch }: BankSectionProps) {
             <DisplayField 
               label="Account Number" 
               value={formData.accountNumber} 
-              isSensitive 
               icon={<Lock className="w-4 h-4" />}
             />
             <DisplayField 
@@ -98,7 +98,7 @@ export function BankSection({ isEditing, control, watch }: BankSectionProps) {
                 <FormControl>
                   <Input 
                     {...field} 
-                    type="password"
+                    type="text"
                     placeholder="Enter account number" 
                     className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 font-mono" 
                   />
@@ -145,11 +145,13 @@ export function BankSection({ isEditing, control, watch }: BankSectionProps) {
             name="ifscCode"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-700">IFSC Code</FormLabel>
+                <FormLabel className="text-slate-700">IFSC Code
+                  <span className="text-red-500">*</span>
+                  <span className="text-xs text-slate-400">(11-character bank branch code)</span>
+                  </FormLabel>
                 <FormControl>
                   <Input {...field} placeholder="e.g., SBIN0001234" className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 font-mono uppercase" />
                 </FormControl>
-                <p className="text-xs text-slate-400 mt-1">11-character bank branch code</p>
                 <FormMessage />
               </FormItem>
             )}
@@ -159,7 +161,7 @@ export function BankSection({ isEditing, control, watch }: BankSectionProps) {
             name="branchName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-700">Branch Name</FormLabel>
+                <FormLabel className="text-slate-700">Branch Name <span className="text-red-500">*</span></FormLabel>
                 <FormControl>
                   <Input {...field} placeholder="e.g., Main Branch, City" className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                 </FormControl>
@@ -172,11 +174,12 @@ export function BankSection({ isEditing, control, watch }: BankSectionProps) {
             name="swiftCode"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-slate-700">SWIFT Code</FormLabel>
+                <FormLabel className="text-slate-700">SWIFT Code
+                  <span className="text-xs text-slate-400">(for international transfers)</span>
+                </FormLabel>
                 <FormControl>
                   <Input {...field} placeholder="e.g., SBININBB123" className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 font-mono uppercase" />
                 </FormControl>
-                <p className="text-xs text-slate-400 mt-1">For international transfers</p>
                 <FormMessage />
               </FormItem>
             )}
@@ -186,4 +189,3 @@ export function BankSection({ isEditing, control, watch }: BankSectionProps) {
     </Card>
   );
 }
-

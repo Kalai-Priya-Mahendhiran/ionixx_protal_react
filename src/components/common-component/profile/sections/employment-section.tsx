@@ -1,4 +1,5 @@
 ﻿import { Control, UseFormWatch, UseFieldArrayReturn } from "react-hook-form";
+import type { ProfileFormData } from "@/lib/schemas";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,11 @@ import { Briefcase, Plus, X, Calendar, MapPin, Building2, DollarSign, Clock, Ale
 
 interface EmploymentSectionProps {
   isEditing: boolean;
-  control: Control<any>;
-  watch: UseFormWatch<any>;
-  employmentFields: UseFieldArrayReturn<any>['fields'];
-  appendEmployment: UseFieldArrayReturn<any>['append'];
-  removeEmployment: UseFieldArrayReturn<any>['remove'];
+  control: Control<ProfileFormData>;
+  watch: UseFormWatch<ProfileFormData>;
+  employmentFields: UseFieldArrayReturn<ProfileFormData, "previousEmployments">['fields'];
+  appendEmployment: UseFieldArrayReturn<ProfileFormData, "previousEmployments">['append'];
+  removeEmployment: UseFieldArrayReturn<ProfileFormData, "previousEmployments">['remove'];
 }
 
 export function EmploymentSection({ 
@@ -265,7 +266,7 @@ export function EmploymentSection({
                     name={`previousEmployments.${index}.companyLocation`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700">Company Location</FormLabel>
+                        <FormLabel className="text-slate-700">Company Location <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
                           <Input {...field} placeholder="e.g., San Francisco, CA" className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                         </FormControl>
@@ -291,7 +292,7 @@ export function EmploymentSection({
                     name={`previousEmployments.${index}.department`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700">Department/Team</FormLabel>
+                        <FormLabel className="text-slate-700">Department/Team <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
                           <Input {...field} placeholder="e.g., Engineering" className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                         </FormControl>
@@ -304,7 +305,7 @@ export function EmploymentSection({
                     name={`previousEmployments.${index}.employmentType`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700">Employment Type</FormLabel>
+                        <FormLabel className="text-slate-700">Employment Type <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
                           <select {...field} className="w-full h-10 px-3 py-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="">Select Type</option>
@@ -369,7 +370,7 @@ export function EmploymentSection({
                     name={`previousEmployments.${index}.lastSalary`}
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-slate-700">Last Drawn CTC/Salary</FormLabel>
+                        <FormLabel className="text-slate-700">Last Drawn CTC/Salary <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
                           <Input {...field} placeholder="e.g., 50,000" className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                         </FormControl>
@@ -489,4 +490,3 @@ export function EmploymentSection({
     </Card>
   );
 }
-

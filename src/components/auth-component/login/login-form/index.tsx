@@ -18,11 +18,13 @@ import { useLogin } from "@/services/apis/auth/useLogin";
 import { ROUTES } from "@/lib/constants";
 import { useAuth } from "@/context/auth-context";
 import { DEMO_ACCOUNTS, ROLE_LABELS } from "@/lib/mock-users";
+import { Eye, EyeOff } from "lucide-react";
 
 const LoginForm = () => {
   const navigate = useNavigate();
   const { login: authLogin } = useAuth();
   const [loading, setLoading] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const { mutate: login } = useLogin({
     onAuthenticated: authLogin,
@@ -100,12 +102,27 @@ const LoginForm = () => {
                   Password
                 </FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
-                    className="w-full h-12 px-4 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3FCCE8] focus:border-transparent transition-all duration-200"
-                    placeholder="Enter your password"
-                    {...field}
-                  />
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      className="w-full h-12 px-4 pr-12 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3FCCE8] focus:border-transparent transition-all duration-200"
+                      placeholder="Enter your password"
+                      {...field}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((visible) => !visible)}
+                      className="absolute inset-y-0 right-0 flex items-center px-4 text-gray-500 hover:text-gray-700"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-pressed={showPassword}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" aria-hidden="true" />
+                      ) : (
+                        <Eye className="h-5 w-5" aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>

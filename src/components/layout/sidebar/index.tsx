@@ -137,7 +137,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       {/* Sidebar Footer */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700">
         <div className="text-xs text-gray-400 text-center">
-          <p>© 2025 Ionixx Technologies</p>
+          <p>© 2026 Ionixx Technologies</p>
           <p>Version 1.0.0</p>
         </div>
       </div>

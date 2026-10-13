@@ -12,8 +12,9 @@ export const forgotPasswordSchema = z.object({
 // Personal Information Schema
 export const personalInfoSchema = z.object({
   employeeId: z.string()
+    .trim()
     .min(1, "Employee ID is required")
-    .regex(/^EMP\d{5,8}$/, "Employee ID must start with EMP followed by 5-8 digits (e.g., EMP00123)"),
+    .max(50, "Employee ID must be less than 50 characters"),
   firstName: z.string()
     .min(1, "First name is required")
     .max(50, "First name must be less than 50 characters"),
@@ -147,15 +148,13 @@ export const educationSchema = z.object({
       .min(1, "Institution name is required")
       .max(200, "Institution name must be less than 200 characters"),
     location: z.string()
-      .max(100, "Location must be less than 100 characters")
-      .optional()
-      .or(z.literal("")),
-    startDate: z.string().optional(),
-    endDate: z.string().optional(),
+      .min(1, "Location is required")
+      .max(100, "Location must be less than 100 characters"),
+    startDate: z.string().min(1, "Start date is required"),
+    endDate: z.string().min(1, "End date is required"),
     percentage: z.string()
-      .regex(/^\d{1,3}(\.\d{1,2})?%?$/, "Invalid percentage format (e.g., 85% or 85.5)")
-      .optional()
-      .or(z.literal("")),
+      .min(1, "Percentage is required")
+      .regex(/^\d{1,3}(\.\d{1,2})?%?$/, "Invalid percentage format (e.g., 85% or 85.5)"),
     gpa: z.string()
       .regex(/^\d{1,2}(\.\d{1,2})?\/\d{1,2}(\.\d{1,2})?$/, "Invalid GPA format (e.g., 3.5/4.0 or 8.5/10)")
       .optional()
@@ -176,11 +175,9 @@ export const educationSchema = z.object({
       .max(200, "Organization name must be less than 200 characters"),
     issueDate: z.string().optional(),
     expiryDate: z.string().optional(),
-    certificateId: z.string()
-      .max(50, "Certificate ID must be less than 50 characters")
-      .optional()
-      .or(z.literal("")),
-    uploadCertificate: z.string().optional(),
+    uploadCertificate: z.string()
+      .min(1, "Certificate upload is required")
+      .regex(/^data:(application\/pdf|image\/[a-z0-9.+-]+);base64,/i, "Upload a PDF or image file"),
   })),
 });
 
@@ -191,24 +188,26 @@ export const employmentSchema = z.object({
       .min(1, "Company name is required")
       .max(200, "Company name must be less than 200 characters"),
     companyLocation: z.string()
-      .max(100, "Company location must be less than 100 characters")
-      .optional()
-      .or(z.literal("")),
+      .trim()
+      .min(1, "Company location is required")
+      .max(300, "Company location must be less than 300 characters"),
     designation: z.string()
       .min(1, "Designation is required")
       .max(100, "Designation must be less than 100 characters"),
     department: z.string()
-      .max(100, "Department must be less than 100 characters")
-      .optional()
-      .or(z.literal("")),
+      .trim()
+      .min(1, "Department/Team is required")
+      .max(100, "Department must be less than 100 characters"),
     startDate: z.string().min(1, "Start date is required"),
     endDate: z.string().optional(),
     isCurrent: z.boolean().optional(),
-    employmentType: z.enum(["Full-time", "Part-time", "Contract", "Internship", "Freelance"]).optional(),
+    employmentType: z.enum(["Full-time", "Part-time", "Contract", "Internship", "Freelance"], {
+      required_error: "Employment type is required",
+    }),
     lastSalary: z.string()
-      .regex(/^\d+(,\d{3})*(\.\d{2})?$/, "Invalid salary format (e.g., 50,000 or 50000.00)")
-      .optional()
-      .or(z.literal("")),
+      .trim()
+      .min(1, "Last drawn CTC/Salary is required")
+      .regex(/^\d+(,\d{3})*(\.\d{2})?$/, "Invalid salary format (e.g., 50,000 or 50000.00)"),
     noticePeriod: z.string()
       .max(50, "Notice period must be less than 50 characters")
       .optional()
@@ -245,14 +244,13 @@ export const bankDetailsSchema = z.object({
     .min(1, "Bank name is required")
     .max(100, "Bank name must be less than 100 characters"),
   ifscCode: z.string()
-    .regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, "Invalid IFSC code format (e.g., SBIN0001234)")
-    .optional()
-    .or(z.literal("")),
+    .min(1, "IFSC code is required")
+    .regex(/^[A-Z]{4}0[A-Z0-9]{6}$/, "Invalid IFSC code format (e.g., SBIN0001234)"),
   accountType: z.enum(["Savings", "Current", "Salary", "Fixed Deposit", "Recurring Deposit"]),
   branchName: z.string()
-    .max(100, "Branch name must be less than 100 characters")
-    .optional()
-    .or(z.literal("")),
+    .trim()
+    .min(1, "Branch name is required")
+    .max(100, "Branch name must be less than 100 characters"),
   swiftCode: z.string()
     .regex(/^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/, "Invalid SWIFT code format (e.g., SBININBB123)")
     .optional()
@@ -288,6 +286,8 @@ export const profileSchema = personalInfoSchema
   .extend({
     uploadedDocuments: z.array(fileUploadSchema).optional(),
   });
+
+export type ProfileFormData = z.infer<typeof profileSchema>;
 
 export const leaveRequestSchema = z.object({
   leaveType: z.string().min(1, "Leave type is required"),

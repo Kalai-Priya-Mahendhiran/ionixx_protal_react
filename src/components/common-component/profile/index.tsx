@@ -19,8 +19,7 @@ import {
 } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
 import { sampleUsers } from '@/lib/sample-data';
-import { profileSchema } from '@/lib/schemas';
-import { z } from 'zod';
+import { profileSchema, type ProfileFormData } from '@/lib/schemas';
 import {
   PersonalSection,
   EducationSection,
@@ -28,8 +27,6 @@ import {
   BankSection,
   ConsentSection
 } from './sections';
-
-type ProfileFormData = z.infer<typeof profileSchema>;
 
 // Navigation items for quick scroll
 const navigationItems = [
@@ -45,6 +42,8 @@ export default function Profile() {
   const currentUser = sampleUsers[0];
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingCertificateUploads, setPendingCertificateUploads] = useState(0);
+  const [submitError, setSubmitError] = useState('');
   const [activeSection, setActiveSection] = useState('personal');
 
   const form = useForm<ProfileFormData>({
@@ -98,7 +97,7 @@ export default function Profile() {
           location: 'Stanford, CA, USA',
           startDate: '2016-09-01',
           endDate: '2018-06-15',
-          percentage: '',
+          percentage: '90%',
           gpa: '3.9/4.0',
           mode: 'Full-time' as const,
           documentUpload: '',
@@ -125,7 +124,6 @@ export default function Profile() {
           issuingOrganization: 'Amazon Web Services',
           issueDate: '2023-01-15',
           expiryDate: '2026-01-15',
-          certificateId: 'AWS-PSA-12345',
           uploadCertificate: '',
         }
       ],
@@ -208,6 +206,11 @@ export default function Profile() {
   });
 
   const onSubmit = async (data: ProfileFormData) => {
+    if (pendingCertificateUploads > 0) {
+      setSubmitError('Please wait for the certificate upload to finish before saving.');
+      return;
+    }
+    setSubmitError('');
     setIsSubmitting(true);
     try {
       console.log('Profile data:', data);
@@ -219,6 +222,15 @@ export default function Profile() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const onInvalidSubmit = () => {
+    setSubmitError('Some required fields are missing or invalid. Review the highlighted fields before saving.');
+    requestAnimationFrame(() => {
+      const firstInvalidField = document.querySelector<HTMLElement>('[aria-invalid="true"]');
+      firstInvalidField?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstInvalidField?.focus({ preventScroll: true });
+    });
   };
 
   const handleCancel = useCallback(() => {
@@ -314,8 +326,8 @@ export default function Profile() {
                       Cancel
                     </Button>
                     <Button
-                      onClick={form.handleSubmit(onSubmit)}
-                      disabled={isSubmitting}
+                      onClick={form.handleSubmit(onSubmit, onInvalidSubmit)}
+                      disabled={isSubmitting || pendingCertificateUploads > 0}
                       className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-lg shadow-indigo-500/25 px-6"
                     >
                       {isSubmitting ? (
@@ -361,7 +373,12 @@ export default function Profile() {
 
         {/* Form Content */}
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pb-12">
+          {submitError && (
+            <p role="alert" className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {submitError}
+            </p>
+          )}
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-8 pb-12">
             {/* Personal Information Section */}
             <section id="personal">
               <PersonalSection
@@ -385,6 +402,8 @@ export default function Profile() {
                 appendCertification={appendCertification}
                 removeQualification={removeQualification}
                 removeCertification={removeCertification}
+                onCertificateUploadStart={() => setPendingCertificateUploads((count) => count + 1)}
+                onCertificateUploadEnd={() => setPendingCertificateUploads((count) => Math.max(0, count - 1))}
               />
             </section>
 

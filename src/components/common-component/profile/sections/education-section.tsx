@@ -1,8 +1,10 @@
-﻿import { Control, UseFormWatch, UseFieldArrayReturn } from "react-hook-form";
+import { Control, UseFormWatch, UseFieldArrayReturn } from "react-hook-form";
+import type { ProfileFormData } from "@/lib/schemas";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { FileUpload } from "@/components/ui/file-upload";
 import { Badge } from "@/components/ui/badge";
 import { 
   DisplayField, 
@@ -16,14 +18,16 @@ import { GraduationCap, Award, Plus, X, Calendar, MapPin, Building2 } from "luci
 
 interface EducationSectionProps {
   isEditing: boolean;
-  control: Control<any>;
-  watch: UseFormWatch<any>;
-  qualificationFields: UseFieldArrayReturn<any>['fields'];
-  certificationFields: UseFieldArrayReturn<any>['fields'];
-  appendQualification: UseFieldArrayReturn<any>['append'];
-  appendCertification: UseFieldArrayReturn<any>['append'];
-  removeQualification: UseFieldArrayReturn<any>['remove'];
-  removeCertification: UseFieldArrayReturn<any>['remove'];
+  control: Control<ProfileFormData>;
+  watch: UseFormWatch<ProfileFormData>;
+  qualificationFields: UseFieldArrayReturn<ProfileFormData, "qualifications">['fields'];
+  certificationFields: UseFieldArrayReturn<ProfileFormData, "certifications">['fields'];
+  appendQualification: UseFieldArrayReturn<ProfileFormData, "qualifications">['append'];
+  appendCertification: UseFieldArrayReturn<ProfileFormData, "certifications">['append'];
+  removeQualification: UseFieldArrayReturn<ProfileFormData, "qualifications">['remove'];
+  removeCertification: UseFieldArrayReturn<ProfileFormData, "certifications">['remove'];
+  onCertificateUploadStart: () => void;
+  onCertificateUploadEnd: () => void;
 }
 
 export function EducationSection({ 
@@ -35,7 +39,9 @@ export function EducationSection({
   appendQualification,
   appendCertification,
   removeQualification,
-  removeCertification
+  removeCertification,
+  onCertificateUploadStart,
+  onCertificateUploadEnd,
 }: EducationSectionProps) {
   const formData = watch();
 
@@ -115,7 +121,7 @@ export function EducationSection({
                     ] : []}
                     accentColor="violet"
                   >
-                    <DisplayGrid columns={3}>
+                    <DisplayGrid columns={2}>
                       <DisplayField 
                         label="Issue Date" 
                         value={cert.issueDate ? new Date(cert.issueDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : null} 
@@ -124,8 +130,16 @@ export function EducationSection({
                         label="Expiry Date" 
                         value={cert.expiryDate ? new Date(cert.expiryDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : null} 
                       />
-                      <DisplayField label="Certificate ID" value={cert.certificateId} />
                     </DisplayGrid>
+                    {cert.uploadCertificate && (
+                      <a
+                        href={cert.uploadCertificate}
+                        download="certificate"
+                        className="mt-3 inline-block text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                      >
+                        Download Certificate
+                      </a>
+                    )}
                   </EntryCard>
                 ))}
               </div>
@@ -287,7 +301,7 @@ export function EducationSection({
                       name={`qualifications.${index}.location`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-slate-700">Location (City, Country)</FormLabel>
+                          <FormLabel className="text-slate-700">Location (City, Country) <span className="text-red-500">*</span></FormLabel>
                           <FormControl>
                             <Input {...field} placeholder="e.g., Boston, USA" className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                           </FormControl>
@@ -319,7 +333,7 @@ export function EducationSection({
                       name={`qualifications.${index}.startDate`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-slate-700">Start Date</FormLabel>
+                          <FormLabel className="text-slate-700">Start Date <span className="text-red-500">*</span></FormLabel>
                           <FormControl>
                             <Input type="date" {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                           </FormControl>
@@ -332,7 +346,7 @@ export function EducationSection({
                       name={`qualifications.${index}.endDate`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-slate-700">End Date / Graduation</FormLabel>
+                          <FormLabel className="text-slate-700">End Date / Graduation <span className="text-red-500">*</span></FormLabel>
                           <FormControl>
                             <Input type="date" {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                           </FormControl>
@@ -346,7 +360,7 @@ export function EducationSection({
                         name={`qualifications.${index}.percentage`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-slate-700">Percentage</FormLabel>
+                            <FormLabel className="text-slate-700">Percentage <span className="text-red-500">*</span></FormLabel>
                             <FormControl>
                               <Input {...field} placeholder="e.g., 85%" className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                             </FormControl>
@@ -403,7 +417,6 @@ export function EducationSection({
                 issuingOrganization: '',
                 issueDate: '',
                 expiryDate: '',
-                certificateId: '',
                 uploadCertificate: '',
               })}
               variant="outline"
@@ -422,7 +435,7 @@ export function EducationSection({
           ) : (
             <div className="space-y-6">
               {certificationFields.map((field, index) => (
-                <div key={field.id} className="bg-slate-50/50 border border-slate-200 rounded-xl p-6 border-l-4 border-l-violet-500">
+                <div key={field.id} className="min-w-0 bg-slate-50/50 border border-slate-200 rounded-xl p-6 border-l-4 border-l-violet-500">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-2">
                       <span className="w-8 h-8 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center text-sm font-semibold">
@@ -496,16 +509,31 @@ export function EducationSection({
                     />
                     <FormField
                       control={control}
-                      name={`certifications.${index}.certificateId`}
-                      render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                          <FormLabel className="text-slate-700">Certificate ID / License Number</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="Enter certificate ID or license number" className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 font-mono" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      name={`certifications.${index}.uploadCertificate`}
+                      render={({ field }) => {
+                        return (
+                          <FormItem className="min-w-0 md:col-span-2">
+                            <FormLabel className="text-slate-700">
+                              Certificate Upload <span className="text-red-500">*</span>
+                            </FormLabel>
+                            <FormControl>
+                              <FileUpload
+                                accept="application/pdf,image/*"
+                                acceptedTypesLabel="PDF or image files"
+                                aria-label="Upload certificate"
+                                name={field.name}
+                                inputRef={field.ref}
+                                onBlur={field.onBlur}
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                onUploadStart={onCertificateUploadStart}
+                                onUploadEnd={onCertificateUploadEnd}
+                              />
+                            </FormControl>
+                            <FormMessage className="break-words" />
+                          </FormItem>
+                        );
+                      }}
                     />
                   </div>
                 </div>
@@ -517,4 +545,3 @@ export function EducationSection({
     </Card>
   );
 }
-

@@ -1,4 +1,5 @@
 ﻿import { Control, UseFormWatch } from "react-hook-form";
+import type { ProfileFormData } from "@/lib/schemas";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -26,8 +27,8 @@ import {
 
 interface PersonalSectionProps {
   isEditing: boolean;
-  control: Control<any>;
-  watch: UseFormWatch<any>;
+  control: Control<ProfileFormData>;
+  watch: UseFormWatch<ProfileFormData>;
   user: any;
   onPhotoUpload: (file: File) => void;
 }
@@ -239,6 +240,7 @@ export function PersonalSection({ isEditing, control, watch, user, onPhotoUpload
             <FormField
               control={control}
               name="employeeId"
+              disabled
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-slate-700">Employee ID <span className="text-red-500">*</span></FormLabel>
@@ -252,6 +254,7 @@ export function PersonalSection({ isEditing, control, watch, user, onPhotoUpload
             <FormField
               control={control}
               name="firstName"
+              disabled
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-slate-700">First Name <span className="text-red-500">*</span></FormLabel>
@@ -265,6 +268,7 @@ export function PersonalSection({ isEditing, control, watch, user, onPhotoUpload
             <FormField
               control={control}
               name="middleName"
+              disabled
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-slate-700">Middle Name</FormLabel>
@@ -278,6 +282,7 @@ export function PersonalSection({ isEditing, control, watch, user, onPhotoUpload
             <FormField
               control={control}
               name="lastName"
+              disabled
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-slate-700">Last Name <span className="text-red-500">*</span></FormLabel>
@@ -705,4 +710,3 @@ export function PersonalSection({ isEditing, control, watch, user, onPhotoUpload
     </Card>
   );
 }
-

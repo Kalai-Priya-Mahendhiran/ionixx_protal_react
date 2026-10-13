@@ -660,7 +660,7 @@ function AddEmployeeModal({
               <input
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value)}
-                placeholder="EMP00109"
+                placeholder="HR-assigned ID"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
               />
             </FormField>

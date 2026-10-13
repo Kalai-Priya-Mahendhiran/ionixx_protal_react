@@ -1,4 +1,5 @@
 ﻿import { Control, UseFormWatch } from "react-hook-form";
+import type { ProfileFormData } from "@/lib/schemas";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,8 +12,8 @@ import { CheckCircle, FileCheck, Shield, Pen, Save, Loader2 } from "lucide-react
 
 interface ConsentSectionProps {
   isEditing: boolean;
-  control: Control<any>;
-  watch: UseFormWatch<any>;
+  control: Control<ProfileFormData>;
+  watch: UseFormWatch<ProfileFormData>;
   isSubmitting: boolean;
 }
 
