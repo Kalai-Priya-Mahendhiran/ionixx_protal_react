@@ -15,18 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { teamMembers, type TeamMember } from "@/lib/team-data";
-
-const statusBadgeColor: Record<TeamMember["status"], string> = {
-  active: "bg-green-100 text-green-800",
-  "on-leave": "bg-orange-100 text-orange-800",
-  remote: "bg-blue-100 text-blue-800",
-};
-
-const statusLabel: Record<TeamMember["status"], string> = {
-  active: "In office",
-  "on-leave": "On leave",
-  remote: "Remote",
-};
+import { TEAM_MEMBER_STATUS_COLORS, TEAM_MEMBER_STATUS_LABELS } from "@/lib/constants";
 
 export default function TeamOverview() {
   const [search, setSearch] = useState("");
@@ -136,7 +125,7 @@ export default function TeamOverview() {
                           <p className="font-semibold text-gray-900 truncate">{m.name}</p>
                           <p className="text-xs text-gray-500 truncate">{m.designation}</p>
                         </div>
-                        <Badge className={statusBadgeColor[m.status]}>{statusLabel[m.status]}</Badge>
+                        <Badge className={TEAM_MEMBER_STATUS_COLORS[m.status]}>{TEAM_MEMBER_STATUS_LABELS[m.status]}</Badge>
                       </div>
                       <div className="mt-3 flex items-center text-xs text-gray-500 gap-2">
                         <Building className="h-3.5 w-3.5" />
@@ -204,7 +193,7 @@ function ProfileDrawer({ member, onClose }: { member: TeamMember; onClose: () =>
               <h2 className="text-xl font-bold">{member.name}</h2>
               <p className="text-sm text-white/90">{member.designation}</p>
               <Badge className="mt-2 bg-white/20 text-white border-white/30">
-                {statusLabel[member.status]}
+                {TEAM_MEMBER_STATUS_LABELS[member.status]}
               </Badge>
             </div>
           </div>

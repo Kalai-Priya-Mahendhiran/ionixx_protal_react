@@ -23,14 +23,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PERMISSION_MODULES, PERMISSION_LEVEL_STYLES, PERMISSION_LEVEL_LABELS, PERMISSION_LEVELS } from "@/lib/constants";
 
 type PermissionLevel = "none" | "read" | "write" | "admin";
-
-interface Module {
-  key: string;
-  label: string;
-  description: string;
-}
 
 interface Role {
   id: string;
@@ -42,19 +37,6 @@ interface Role {
   updatedOn: string;
 }
 
-const MODULES: Module[] = [
-  { key: "users", label: "User Management", description: "Create, edit, suspend portal users" },
-  { key: "roles", label: "Roles & Permissions", description: "Manage RBAC policies" },
-  { key: "hr", label: "HR Operations", description: "Employee, recruitment, training, compliance" },
-  { key: "payroll", label: "Payroll & Compensation", description: "Salary structure, payouts" },
-  { key: "leave", label: "Leave & Attendance", description: "Leave approvals, attendance review" },
-  { key: "performance", label: "Performance Reviews", description: "Goals, ratings, feedback" },
-  { key: "analytics", label: "Analytics & KPIs", description: "Executive dashboards and reports" },
-  { key: "system", label: "System Configuration", description: "Modules, workflows, defaults" },
-  { key: "logs", label: "Logs & Monitoring", description: "Audit trail, system health" },
-  { key: "integrations", label: "Integrations", description: "ERP, payroll, IAM connectors" },
-];
-
 const seedRoles: Role[] = [
   {
     id: "ROL-001",
@@ -64,7 +46,7 @@ const seedRoles: Role[] = [
     isSystem: true,
     updatedOn: "2024-01-10",
     permissions: Object.fromEntries(
-      MODULES.map((m) => [m.key, "admin"])
+      PERMISSION_MODULES.map((m) => [m.key, "admin"])
     ) as Record<string, PermissionLevel>,
   },
   {
@@ -169,22 +151,6 @@ const seedRoles: Role[] = [
   },
 ];
 
-const levelStyle: Record<PermissionLevel, string> = {
-  none: "bg-gray-100 text-gray-500",
-  read: "bg-blue-100 text-blue-700",
-  write: "bg-emerald-100 text-emerald-700",
-  admin: "bg-violet-100 text-violet-700",
-};
-
-const levelLabel: Record<PermissionLevel, string> = {
-  none: "No access",
-  read: "Read",
-  write: "Write",
-  admin: "Admin",
-};
-
-const LEVELS: PermissionLevel[] = ["none", "read", "write", "admin"];
-
 export default function RolesPermissions() {
   const [roles, setRoles] = useState<Role[]>(seedRoles);
   const [search, setSearch] = useState("");
@@ -244,7 +210,7 @@ export default function RolesPermissions() {
       isSystem: false,
       updatedOn: new Date().toISOString().slice(0, 10),
       permissions: Object.fromEntries(
-        MODULES.map((m) => [m.key, "none"])
+        PERMISSION_MODULES.map((m) => [m.key, "none"])
       ) as Record<string, PermissionLevel>,
     };
     setRoles((prev) => [...prev, newRole]);
@@ -447,7 +413,7 @@ export default function RolesPermissions() {
                     </tr>
                   </thead>
                   <tbody>
-                    {MODULES.map((m) => {
+                    {PERMISSION_MODULES.map((m) => {
                       const level = selected.permissions[m.key] ?? "none";
                       return (
                         <tr key={m.key} className="border-b border-gray-100">
@@ -458,16 +424,16 @@ export default function RolesPermissions() {
                             </p>
                           </td>
                           <td className="py-3 px-2 align-top">
-                            <Badge className={levelStyle[level]}>
+                            <Badge className={PERMISSION_LEVEL_STYLES[level]}>
                               {level === "admin" && (
                                 <Check className="h-3 w-3 mr-1" />
                               )}
-                              {levelLabel[level]}
+                              {PERMISSION_LEVEL_LABELS[level]}
                             </Badge>
                           </td>
                           <td className="py-3 px-2 text-right align-top">
                             <div className="inline-flex rounded-md border border-gray-200 overflow-hidden">
-                              {LEVELS.map((lv) => (
+                              {PERMISSION_LEVELS.map((lv) => (
                                 <button
                                   key={lv}
                                   disabled={selected.isSystem}
@@ -480,7 +446,7 @@ export default function RolesPermissions() {
                                       : "bg-white text-gray-600 hover:bg-gray-50"
                                   } ${selected.isSystem ? "opacity-60 cursor-not-allowed" : ""}`}
                                 >
-                                  {levelLabel[lv]}
+                                  {PERMISSION_LEVEL_LABELS[lv]}
                                 </button>
                               ))}
                             </div>

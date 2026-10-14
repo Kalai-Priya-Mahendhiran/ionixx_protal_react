@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { approvalRequests as seedRequests, type ApprovalRequest } from "@/lib/team-data";
+import { APPROVAL_TYPE_LABELS, APPROVAL_TYPE_COLORS } from "@/lib/constants";
 
 type Tab = "pending" | "approved" | "rejected";
 
@@ -24,20 +25,6 @@ const typeIcon: Record<ApprovalRequest["type"], React.ReactNode> = {
   "time-off": <Clock className="h-4 w-4" />,
   wfh: <Home className="h-4 w-4" />,
   expense: <Receipt className="h-4 w-4" />,
-};
-
-const typeLabel: Record<ApprovalRequest["type"], string> = {
-  leave: "Leave",
-  "time-off": "Time off",
-  wfh: "Work from home",
-  expense: "Expense",
-};
-
-const typeColor: Record<ApprovalRequest["type"], string> = {
-  leave: "bg-blue-100 text-blue-800",
-  "time-off": "bg-purple-100 text-purple-800",
-  wfh: "bg-teal-100 text-teal-800",
-  expense: "bg-amber-100 text-amber-800",
 };
 
 export default function Approvals() {
@@ -246,10 +233,10 @@ function RequestRow({
             <p className="font-semibold text-gray-900">{request.employeeName}</p>
             <span className="text-xs text-gray-500">Â·</span>
             <span className="text-xs text-gray-500">{request.id}</span>
-            <Badge className={typeColor[request.type]}>
+            <Badge className={APPROVAL_TYPE_COLORS[request.type]}>
               <span className="flex items-center gap-1">
                 {typeIcon[request.type]}
-                <span>{request.subType ?? typeLabel[request.type]}</span>
+                <span>{request.subType ?? APPROVAL_TYPE_LABELS[request.type]}</span>
               </span>
             </Badge>
           </div>

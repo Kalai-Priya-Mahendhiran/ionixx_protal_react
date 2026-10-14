@@ -1,0 +1,166 @@
+import type { TimeEntry } from '@/types';
+import type { TaskRecord } from '@/components/employee-component/time-tracker/sections/task-form';
+
+export const sampleTimeEntries: TimeEntry[] = [
+  {
+    id: '1',
+    userId: '1',
+    project: 'Employee Portal',
+    module: 'Dashboard',
+    task: 'Coding',
+    date: '2024-01-15',
+    startTime: '09:00',
+    endTime: '17:00',
+    description: 'Working on dashboard components',
+    totalHours: 8,
+    status: 'approved',
+  },
+  {
+    id: '2',
+    userId: '1',
+    project: 'Employee Portal',
+    module: 'Authentication',
+    task: 'Coding',
+    date: '2024-01-16',
+    startTime: '09:15',
+    endTime: '17:30',
+    description: 'Integrating authentication APIs',
+    totalHours: 8.25,
+    status: 'submitted',
+  },
+];
+
+export const PROJECTS = ['Employee Portal', 'Mobile App', 'API Development'];
+export const MODULES = ['Dashboard', 'Employee Management', 'Authentication', 'Time Tracking', 'Reporting', 'General'];
+export const TASK_TYPES = [
+  'Analysis',
+  'API Document',
+  'API Document Review',
+  'API Documentation',
+  'API Testing',
+  'Blog Writing',
+  'Bug Analysis',
+  'Bug Fix',
+  'Bug Fixation',
+  'Coding',
+  'Code Review',
+  'Daily Meeting',
+  'Deployment',
+  'Documentation',
+  'Editing & Review',
+] as const;
+
+export const TASK_STATUS_OPTIONS: { value: TaskRecord['status']; label: string }[] = [
+  { value: 'not-started', label: 'Not started' },
+  { value: 'started', label: 'Started' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'hold', label: 'Hold' },
+];
+
+export const sampleProductivity = 85;
+
+export const sampleWeeklyTimeDistribution = [
+  { project: 'Employee Portal', hours: 24.5, percentage: 65, bgColor: 'bg-blue-50', dotColor: 'bg-blue-500' },
+  { project: 'Mobile App', hours: 8.5, percentage: 23, bgColor: 'bg-green-50', dotColor: 'bg-green-500' },
+  { project: 'API Development', hours: 4.0, percentage: 12, bgColor: 'bg-purple-50', dotColor: 'bg-purple-500' },
+];
+
+// 10 Oct is over the 8h daily limit, so its tasks show as overrunning
+export const sampleTodaysTasks: TaskRecord[] = [
+  {
+    id: 'task-1',
+    date: '2026-10-10',
+    status: 'completed',
+    project: 'Employee Portal',
+    module: 'Dashboard',
+    task: 'Coding',
+    description: 'Built the attendance summary widgets on the dashboard',
+    estimateHours: 5,
+    actualHours: 5.5,
+    completedDate: '2026-10-10',
+  },
+  {
+    id: 'task-2',
+    date: '2026-10-10',
+    status: 'completed',
+    project: 'Employee Portal',
+    module: 'Authentication',
+    task: 'Code Review',
+    description: 'Reviewed the login and password reset pull requests',
+    estimateHours: 3,
+    actualHours: 4,
+    completedDate: '2026-10-10',
+  },
+  {
+    id: 'task-3',
+    date: '2026-10-11',
+    status: 'started',
+    project: 'Mobile App',
+    module: 'Time Tracking',
+    task: 'Coding',
+    description: 'Timer screen for the mobile app',
+    estimateHours: 6,
+    actualHours: undefined,
+    completedDate: '',
+  },
+  {
+    id: 'task-4',
+    date: '2026-10-11',
+    status: 'not-started',
+    project: 'Mobile App',
+    module: 'Reporting',
+    task: 'API Testing',
+    description: 'Test the weekly report endpoints',
+    estimateHours: 2,
+    actualHours: undefined,
+    completedDate: '',
+  },
+  {
+    id: 'task-5',
+    date: '2026-10-12',
+    status: 'hold',
+    project: 'API Development',
+    module: 'Employee Management',
+    task: 'API Documentation',
+    description: 'Document the employee profile APIs (waiting on schema sign-off)',
+    estimateHours: 3,
+    actualHours: undefined,
+    completedDate: '',
+  },
+  {
+    id: 'task-6',
+    date: '2026-10-12',
+    status: 'completed',
+    project: 'API Development',
+    module: 'General',
+    task: 'Bug Fix',
+    description: 'Fixed timezone handling in the leave balance API',
+    estimateHours: 2,
+    actualHours: 1.5,
+    completedDate: '2026-10-12',
+  },
+  {
+    id: 'task-7',
+    date: '2026-10-13',
+    status: 'started',
+    project: 'Employee Portal',
+    module: 'Reporting',
+    task: 'Analysis',
+    description: 'Analyse requirements for the monthly attendance report',
+    estimateHours: 4,
+    actualHours: undefined,
+    completedDate: '',
+  },
+  {
+    id: 'task-8',
+    date: '2026-10-13',
+    status: 'not-started',
+    project: 'Employee Portal',
+    module: 'Dashboard',
+    task: 'Deployment',
+    description: 'Deploy the dashboard changes to staging',
+    estimateHours: 1,
+    actualHours: undefined,
+    completedDate: '',
+  },
+];

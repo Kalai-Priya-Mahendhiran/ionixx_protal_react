@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { COMPLIANCE_DOC_STATUS_COLORS, COMPLIANCE_DOC_STATUS_LABELS, COMPLIANCE_EMPLOYEE_STATUS_COLORS, COMPLIANCE_EMPLOYEE_STATUS_LABELS, COMPLIANCE_AUDIT_TYPE_COLORS } from "@/lib/constants";
 
 type Tab = "documents" | "status" | "audit";
 
@@ -254,40 +255,6 @@ const seedAuditLogs: AuditLog[] = [
     type: "upload",
   },
 ];
-
-const docStatusColor: Record<DocStatus, string> = {
-  valid: "bg-green-100 text-green-800",
-  expiring: "bg-amber-100 text-amber-800",
-  expired: "bg-red-100 text-red-800",
-  missing: "bg-gray-200 text-gray-700",
-};
-
-const docStatusLabel: Record<DocStatus, string> = {
-  valid: "Valid",
-  expiring: "Expiring soon",
-  expired: "Expired",
-  missing: "Missing",
-};
-
-const empStatusColor: Record<EmployeeCompliance["status"], string> = {
-  compliant: "bg-green-100 text-green-800",
-  partial: "bg-amber-100 text-amber-800",
-  "non-compliant": "bg-red-100 text-red-800",
-};
-
-const empStatusLabel: Record<EmployeeCompliance["status"], string> = {
-  compliant: "Compliant",
-  partial: "Partial",
-  "non-compliant": "Non-compliant",
-};
-
-const auditTypeColor: Record<AuditLog["type"], string> = {
-  upload: "bg-blue-100 text-blue-800",
-  update: "bg-purple-100 text-purple-800",
-  review: "bg-teal-100 text-teal-800",
-  delete: "bg-red-100 text-red-800",
-  assign: "bg-indigo-100 text-indigo-800",
-};
 
 export default function Compliance() {
   const [documents, setDocuments] = useState<ComplianceDocument[]>(seedDocuments);
@@ -546,8 +513,8 @@ function DocumentsView({
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <Badge className={docStatusColor[d.status]}>
-                  {docStatusLabel[d.status]}
+                <Badge className={COMPLIANCE_DOC_STATUS_COLORS[d.status]}>
+                  {COMPLIANCE_DOC_STATUS_LABELS[d.status]}
                 </Badge>
                 <Button size="sm" variant="outline">
                   <Download className="h-3.5 w-3.5 mr-1" />
@@ -643,8 +610,8 @@ function StatusView({ records }: { records: EmployeeCompliance[] }) {
                   )}
                 </td>
                 <td className="py-3 px-2">
-                  <Badge className={empStatusColor[r.status]}>
-                    {empStatusLabel[r.status]}
+                  <Badge className={COMPLIANCE_EMPLOYEE_STATUS_COLORS[r.status]}>
+                    {COMPLIANCE_EMPLOYEE_STATUS_LABELS[r.status]}
                   </Badge>
                 </td>
               </tr>
@@ -684,7 +651,7 @@ function AuditView({ logs }: { logs: AuditLog[] }) {
               <p className="text-sm text-gray-900">
                 <span className="font-medium">{log.actor}</span> {log.action}
               </p>
-              <Badge className={auditTypeColor[log.type]}>{log.type}</Badge>
+              <Badge className={COMPLIANCE_AUDIT_TYPE_COLORS[log.type]}>{log.type}</Badge>
             </div>
             <p className="text-sm text-gray-600 mt-0.5">{log.target}</p>
             <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">

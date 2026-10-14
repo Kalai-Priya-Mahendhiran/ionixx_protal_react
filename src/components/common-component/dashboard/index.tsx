@@ -28,7 +28,7 @@ import {
   Gift
 } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
-import { sampleEvents, sampleNotifications, quickStats, recentActivities, celebrationCards } from '@/lib/sample-data';
+import { sampleEvents, sampleNotifications, quickStats, recentActivities, celebrationCards } from '@/lib/sample-data/dashboard-sample-data';
 import { formatTime, getGreeting, getGreetingIcon } from '@/lib/constants';
 
 export default function Dashboard() {

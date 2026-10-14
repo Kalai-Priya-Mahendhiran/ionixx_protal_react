@@ -1,0 +1,41 @@
+import type { Task } from '@/types';
+
+export const sampleTasks: Task[] = [
+  {
+    id: '1',
+    title: 'Update Documentation',
+    description: 'Update the API documentation for the new features',
+    assignee: '1',
+    assigner: '2',
+    priority: 'medium',
+    status: 'completed',
+    dueDate: '2024-01-20',
+    createdDate: '2024-01-15',
+    completedDate: '2024-01-19',
+    progress: 100,
+  },
+  {
+    id: '2',
+    title: 'Code Review',
+    description: 'Review the pull request for the authentication module',
+    assignee: '1',
+    assigner: '2',
+    priority: 'high',
+    status: 'in-progress',
+    dueDate: '2024-01-25',
+    createdDate: '2024-01-18',
+    progress: 60,
+  },
+  {
+    id: '3',
+    title: 'Bug Fix',
+    description: 'Fix the login issue on mobile devices',
+    assignee: '1',
+    assigner: '2',
+    priority: 'urgent',
+    status: 'pending',
+    dueDate: '2024-01-22',
+    createdDate: '2024-01-20',
+    progress: 0,
+  },
+];

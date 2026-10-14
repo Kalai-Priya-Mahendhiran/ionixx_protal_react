@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { KPI_STATUS_CONFIG } from "@/lib/constants";
 
 type Status = "on-track" | "at-risk" | "off-track";
 type Category = "all" | "people" | "performance" | "financial" | "operations";
@@ -290,27 +291,6 @@ const categoryConfig: Record<Exclude<Category, "all">, { label: string; icon: Re
     label: "Operations",
     icon: <Activity className="h-4 w-4" />,
     tone: "bg-purple-100 text-purple-700",
-  },
-};
-
-const statusConfig: Record<Status, { label: string; tone: string; ring: string; bar: string }> = {
-  "on-track": {
-    label: "On track",
-    tone: "bg-green-100 text-green-700",
-    ring: "stroke-green-500",
-    bar: "bg-green-500",
-  },
-  "at-risk": {
-    label: "At risk",
-    tone: "bg-amber-100 text-amber-700",
-    ring: "stroke-amber-500",
-    bar: "bg-amber-500",
-  },
-  "off-track": {
-    label: "Off track",
-    tone: "bg-red-100 text-red-700",
-    ring: "stroke-red-500",
-    bar: "bg-red-500",
   },
 };
 
@@ -591,7 +571,7 @@ function SummaryCard({
 }
 
 function KpiTile({ kpi, onClick }: { kpi: Kpi; onClick: () => void }) {
-  const cfg = statusConfig[kpi.status];
+  const cfg = KPI_STATUS_CONFIG[kpi.status];
   const catCfg = categoryConfig[kpi.category];
   const progress = kpi.higherIsBetter
     ? Math.min(100, (kpi.current / kpi.target) * 100)
@@ -705,7 +685,7 @@ function HealthBar({
 }
 
 function KpiDrilldown({ kpi, onClose }: { kpi: Kpi; onClose: () => void }) {
-  const cfg = statusConfig[kpi.status];
+  const cfg = KPI_STATUS_CONFIG[kpi.status];
   const catCfg = categoryConfig[kpi.category];
   const progress = kpi.higherIsBetter
     ? Math.min(100, (kpi.current / kpi.target) * 100)
@@ -773,7 +753,7 @@ function KpiDrilldown({ kpi, onClose }: { kpi: Kpi; onClose: () => void }) {
             </p>
             <ul className="space-y-2">
               {kpi.drilldown.map((d) => {
-                const dcfg = statusConfig[d.status];
+                const dcfg = KPI_STATUS_CONFIG[d.status];
                 return (
                   <li
                     key={d.label}

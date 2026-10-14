@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { CANDIDATE_STAGE_ORDER, CANDIDATE_STAGE_LABELS, CANDIDATE_STAGE_COLORS, JOB_POSTING_STATUS_COLORS, INTERVIEW_MODE_COLORS } from "@/lib/constants";
 
 type Tab = "postings" | "candidates" | "interviews";
 
@@ -283,44 +284,6 @@ const seedInterviews: Interview[] = [
   },
 ];
 
-const stageOrder: Stage[] = [
-  "applied",
-  "screening",
-  "interview",
-  "offer",
-  "hired",
-];
-
-const stageLabel: Record<Stage, string> = {
-  applied: "Applied",
-  screening: "Screening",
-  interview: "Interview",
-  offer: "Offer",
-  hired: "Hired",
-  rejected: "Rejected",
-};
-
-const stageColor: Record<Stage, string> = {
-  applied: "bg-gray-100 text-gray-700",
-  screening: "bg-blue-100 text-blue-800",
-  interview: "bg-purple-100 text-purple-800",
-  offer: "bg-amber-100 text-amber-800",
-  hired: "bg-green-100 text-green-800",
-  rejected: "bg-red-100 text-red-800",
-};
-
-const postingStatusColor: Record<JobPosting["status"], string> = {
-  open: "bg-green-100 text-green-800",
-  closed: "bg-gray-200 text-gray-700",
-  draft: "bg-amber-100 text-amber-800",
-};
-
-const interviewModeColor: Record<Interview["mode"], string> = {
-  "On-site": "bg-indigo-100 text-indigo-800",
-  Video: "bg-blue-100 text-blue-800",
-  Phone: "bg-teal-100 text-teal-800",
-};
-
 export default function Recruitment() {
   const [postings, setPostings] = useState<JobPosting[]>(seedPostings);
   const [candidates, setCandidates] = useState<Candidate[]>(seedCandidates);
@@ -358,13 +321,13 @@ export default function Recruitment() {
   const advanceStage = (id: string) => {
     const target = candidates.find((c) => c.id === id);
     if (!target) return;
-    const idx = stageOrder.indexOf(target.stage);
-    if (idx < 0 || idx >= stageOrder.length - 1) return;
-    const next = stageOrder[idx + 1];
+    const idx = (CANDIDATE_STAGE_ORDER as readonly Stage[]).indexOf(target.stage);
+    if (idx < 0 || idx >= CANDIDATE_STAGE_ORDER.length - 1) return;
+    const next = CANDIDATE_STAGE_ORDER[idx + 1];
     setCandidates((prev) =>
       prev.map((c) => (c.id === id ? { ...c, stage: next } : c))
     );
-    showToast(`${target.name} moved to ${stageLabel[next]}.`);
+    showToast(`${target.name} moved to ${CANDIDATE_STAGE_LABELS[next]}.`);
   };
 
   const rejectCandidate = (id: string) => {
@@ -546,7 +509,7 @@ function PostingsView({
                 <p className="font-semibold text-gray-900 text-base">{p.title}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{p.id} Â· {p.department}</p>
               </div>
-              <Badge className={postingStatusColor[p.status]}>{p.status}</Badge>
+              <Badge className={JOB_POSTING_STATUS_COLORS[p.status]}>{p.status}</Badge>
             </div>
             <div className="flex flex-wrap gap-3 text-xs text-gray-600 mb-3">
               <span className="flex items-center gap-1">
@@ -611,14 +574,14 @@ function CandidatesView({
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-        {stageOrder.map((stage) => (
+        {CANDIDATE_STAGE_ORDER.map((stage) => (
           <div
             key={stage}
             className="bg-gray-50 rounded-lg p-3 border border-gray-200"
           >
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-semibold uppercase text-gray-600 tracking-wide">
-                {stageLabel[stage]}
+                {CANDIDATE_STAGE_LABELS[stage]}
               </p>
               <span className="text-xs px-1.5 py-0.5 rounded-full bg-white border border-gray-200 text-gray-600">
                 {grouped[stage].length}
@@ -731,8 +694,8 @@ function CandidateDrawer({
             <div>
               <h2 className="text-xl font-bold">{candidate.name}</h2>
               <p className="text-sm text-white/90">{candidate.appliedFor}</p>
-              <Badge className={`mt-2 ${stageColor[candidate.stage]}`}>
-                {stageLabel[candidate.stage]}
+              <Badge className={`mt-2 ${CANDIDATE_STAGE_COLORS[candidate.stage]}`}>
+                {CANDIDATE_STAGE_LABELS[candidate.stage]}
               </Badge>
             </div>
           </div>
@@ -811,7 +774,7 @@ function InterviewsView({ interviews }: { interviews: Interview[] }) {
                   <p className="font-semibold text-gray-900">{i.candidateName}</p>
                   <span className="text-xs text-gray-500">Â·</span>
                   <span className="text-xs text-gray-500">{i.id}</span>
-                  <Badge className={interviewModeColor[i.mode]}>{i.mode}</Badge>
+                  <Badge className={INTERVIEW_MODE_COLORS[i.mode]}>{i.mode}</Badge>
                 </div>
                 <p className="text-sm text-gray-700">{i.role}</p>
                 <p className="text-xs text-gray-500 mt-1">Panel: {i.panel}</p>

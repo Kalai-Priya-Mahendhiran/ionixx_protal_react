@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { COURSE_LEVEL_COLORS, COURSE_STATUS_COLORS, TRAINING_ASSIGNMENT_STATUS_COLORS, TRAINING_ASSIGNMENT_STATUS_LABELS } from "@/lib/constants";
 
 type Tab = "courses" | "assignments";
 
@@ -223,32 +224,6 @@ const seedAssignments: Assignment[] = [
     status: "completed",
   },
 ];
-
-const levelColor: Record<Course["level"], string> = {
-  Beginner: "bg-green-100 text-green-800",
-  Intermediate: "bg-blue-100 text-blue-800",
-  Advanced: "bg-purple-100 text-purple-800",
-};
-
-const courseStatusColor: Record<Course["status"], string> = {
-  active: "bg-green-100 text-green-800",
-  draft: "bg-amber-100 text-amber-800",
-  archived: "bg-gray-200 text-gray-700",
-};
-
-const assignmentStatusColor: Record<Assignment["status"], string> = {
-  "not-started": "bg-gray-100 text-gray-700",
-  "in-progress": "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  overdue: "bg-red-100 text-red-800",
-};
-
-const assignmentStatusLabel: Record<Assignment["status"], string> = {
-  "not-started": "Not started",
-  "in-progress": "In progress",
-  completed: "Completed",
-  overdue: "Overdue",
-};
 
 export default function Training() {
   const [courses, setCourses] = useState<Course[]>(seedCourses);
@@ -481,7 +456,7 @@ function CoursesView({
                   <Badge className="bg-white text-gray-700 border border-gray-200">
                     {c.category}
                   </Badge>
-                  <Badge className={courseStatusColor[c.status]}>
+                  <Badge className={COURSE_STATUS_COLORS[c.status]}>
                     {c.status}
                   </Badge>
                 </div>
@@ -507,7 +482,7 @@ function CoursesView({
                     <Users className="h-3.5 w-3.5" />
                     {c.enrolled} enrolled
                   </span>
-                  <Badge className={`${levelColor[c.level]} w-fit`}>
+                  <Badge className={`${COURSE_LEVEL_COLORS[c.level]} w-fit`}>
                     {c.level}
                   </Badge>
                 </div>
@@ -598,8 +573,8 @@ function AssignmentsView({ assignments }: { assignments: Assignment[] }) {
                 </div>
               </td>
               <td className="py-3 px-2">
-                <Badge className={assignmentStatusColor[a.status]}>
-                  {assignmentStatusLabel[a.status]}
+                <Badge className={TRAINING_ASSIGNMENT_STATUS_COLORS[a.status]}>
+                  {TRAINING_ASSIGNMENT_STATUS_LABELS[a.status]}
                 </Badge>
               </td>
             </tr>

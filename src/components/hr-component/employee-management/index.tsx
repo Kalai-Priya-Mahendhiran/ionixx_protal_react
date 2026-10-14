@@ -26,6 +26,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { EMPLOYMENT_STATUS_COLORS, EMPLOYMENT_STATUS_LABELS } from "@/lib/constants";
 
 type EmploymentStatus = "active" | "on-leave" | "inactive";
 
@@ -188,18 +189,6 @@ const seedEmployees: Employee[] = [
     documents: [],
   },
 ];
-
-const statusBadgeColor: Record<EmploymentStatus, string> = {
-  active: "bg-green-100 text-green-800",
-  "on-leave": "bg-orange-100 text-orange-800",
-  inactive: "bg-gray-200 text-gray-700",
-};
-
-const statusLabel: Record<EmploymentStatus, string> = {
-  active: "Active",
-  "on-leave": "On leave",
-  inactive: "Inactive",
-};
 
 export default function EmployeeManagement() {
   const [employees, setEmployees] = useState<Employee[]>(seedEmployees);
@@ -422,8 +411,8 @@ export default function EmployeeManagement() {
                         {formatDate(e.joiningDate)}
                       </td>
                       <td className="py-3 px-2">
-                        <Badge className={statusBadgeColor[e.status]}>
-                          {statusLabel[e.status]}
+                        <Badge className={EMPLOYMENT_STATUS_COLORS[e.status]}>
+                          {EMPLOYMENT_STATUS_LABELS[e.status]}
                         </Badge>
                       </td>
                       <td className="py-3 px-2 text-right">
@@ -536,7 +525,7 @@ function EmployeeDrawer({
               <h2 className="text-xl font-bold">{employee.name}</h2>
               <p className="text-sm text-white/90">{employee.designation}</p>
               <Badge className="mt-2 bg-white/20 text-white border-white/30">
-                {statusLabel[employee.status]}
+                {EMPLOYMENT_STATUS_LABELS[employee.status]}
               </Badge>
             </div>
           </div>

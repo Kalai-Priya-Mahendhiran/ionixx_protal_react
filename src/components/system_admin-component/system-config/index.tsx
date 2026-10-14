@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TIMEZONES, WEEK_DAYS, MONTHS } from "@/lib/constants";
 
 type TabKey = "modules" | "workflows" | "defaults";
 
@@ -177,30 +178,6 @@ const initialDefaults: DefaultsState = {
   sessionTimeout: 30,
   passwordExpiry: 90,
 };
-
-const TIMEZONES = [
-  "Asia/Kolkata",
-  "Asia/Singapore",
-  "Asia/Dubai",
-  "Europe/London",
-  "America/New_York",
-  "America/Los_Angeles",
-];
-const WEEK_DAYS = ["Sunday", "Monday"];
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
 
 export default function SystemConfig() {
   const [tab, setTab] = useState<TabKey>("modules");

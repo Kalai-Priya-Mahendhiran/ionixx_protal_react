@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { todayAsDateInput } from "./utils";
 
 export const loginSchema = z.object({
   loginId: z.string().min(1, "Login ID is required"),
@@ -315,10 +316,76 @@ export const attendanceSchema = z.object({
 });
 
 export const timeEntrySchema = z.object({
-  project: z.string().min(1, "Project is required"),
-  task: z.string().min(1, "Task is required"),
-  date: z.string().min(1, "Date is required"),
-  startTime: z.string().min(1, "Start time is required"),
-  endTime: z.string().min(1, "End time is required"),
-  description: z.string().min(1, "Description is required"),
+  project: z.string().min(1, "Select a project"),
+  module: z.string().min(1, "Select an epic or module"),
+  task: z.string().min(1, "Select a user story or task"),
+  description: z.string().trim().min(1, "Enter a description"),
+  date: z.string()
+    .min(1, "Select a date")
+    .refine((date) => date <= todayAsDateInput(), "Date cannot be in the future"),
+  startTime: z.string().min(1, "Enter a start time"),
+  endTime: z.string().min(1, "Enter an end time"),
+}).refine((entry) => !entry.startTime || !entry.endTime || entry.endTime > entry.startTime, {
+  path: ["endTime"],
+  message: "End time must be after start time",
 });
+
+export type TimeEntryFormValues = z.infer<typeof timeEntrySchema>;
+
+// Time Tracker tasks
+export const TASK_STATUSES = ["not-started", "started", "completed", "hold"] as const;
+
+export const optionalHoursSchema = z.preprocess(
+  (value) => value === "" || value === undefined || (typeof value === "number" && Number.isNaN(value))
+    ? undefined
+    : typeof value === "string" ? Number(value) : value,
+  z.number({ invalid_type_error: "Enter a valid number of hours" })
+    .positive("Hours must be greater than zero")
+    .optional()
+);
+
+export const timeTrackerTaskSchema = z.object({
+  status: z.enum(TASK_STATUSES, { required_error: "Select a task status" }),
+  project: z.string().min(1, "Select a project"),
+  module: z.string().min(1, "Select an epic or module"),
+  task: z.string().min(1, "Select a user story or task"),
+  description: z.string().trim().min(1, "Enter a description"),
+  estimateHours: z.preprocess(
+    (value) => value === "" || value === undefined || (typeof value === "number" && Number.isNaN(value))
+      ? undefined
+      : typeof value === "string" ? Number(value) : value,
+    z.number({ required_error: "Enter estimated hours", invalid_type_error: "Enter valid estimated hours" })
+      .positive("Estimated hours must be greater than zero")
+  ),
+  actualHours: optionalHoursSchema,
+  completedDate: z.string().optional(),
+}).superRefine((task, context) => {
+  if (task.status === "completed" && task.actualHours === undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["actualHours"],
+      message: "Enter actual hours for a completed task",
+    });
+  }
+  if (task.status === "completed" && !task.completedDate) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["completedDate"],
+      message: "Select a date",
+    });
+  }
+  if (task.completedDate && task.completedDate > todayAsDateInput()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["completedDate"],
+      message: "Date cannot be in the future",
+    });
+  }
+});
+
+export const timeTrackerTaskFormSchema = z.object({
+  tasks: z.array(timeTrackerTaskSchema).min(1, "Add at least one task"),
+});
+
+export type TimeTrackerTaskFormValues = z.infer<typeof timeTrackerTaskFormSchema>;
+export type TimeTrackerTaskFormRow = TimeTrackerTaskFormValues["tasks"][number];

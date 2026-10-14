@@ -52,3 +52,12 @@ export function getInitials(name: string): string {
 export function generateId(): string {
   return Math.random().toString(36).substr(2, 9)
 }
+
+// Formats a date as YYYY-MM-DD in local time, for <input type="date"> values
+export function toDateInput(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+export function todayAsDateInput(): string {
+  return toDateInput(new Date())
+}

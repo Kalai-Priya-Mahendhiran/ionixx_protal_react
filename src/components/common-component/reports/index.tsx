@@ -13,6 +13,7 @@ import {
   Filter
 } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
+import { REPORT_DATE_RANGES } from '@/lib/constants';
 
 export default function Reports() {
   const [selectedReport, setSelectedReport] = useState('attendance');
@@ -24,15 +25,6 @@ export default function Reports() {
     { id: 'time-tracker', label: 'Time Tracker Report', icon: BarChart3, description: 'Project-wise time tracking' },
     { id: 'task', label: 'Task Report', icon: FileText, description: 'Task completion and productivity' },
     { id: 'employee', label: 'Employee Report', icon: Users, description: 'Employee performance and details' },
-  ];
-
-  const dateRanges = [
-    { id: 'this-week', label: 'This Week' },
-    { id: 'this-month', label: 'This Month' },
-    { id: 'last-month', label: 'Last Month' },
-    { id: 'this-quarter', label: 'This Quarter' },
-    { id: 'this-year', label: 'This Year' },
-    { id: 'custom', label: 'Custom Range' },
   ];
 
   const handleExport = (format: 'pdf' | 'excel') => {
@@ -386,7 +378,7 @@ export default function Reports() {
                       onChange={(e) => setDateRange(e.target.value)}
                       className="w-full p-2 border border-gray-300 rounded-md"
                     >
-                      {dateRanges.map(range => (
+                      {REPORT_DATE_RANGES.map(range => (
                         <option key={range.id} value={range.id}>{range.label}</option>
                       ))}
                     </select>

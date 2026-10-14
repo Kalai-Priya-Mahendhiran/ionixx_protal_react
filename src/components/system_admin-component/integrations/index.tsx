@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { INTEGRATION_STATUS_STYLES, INTEGRATION_STATUS_LABELS, INTEGRATION_CATEGORIES } from "@/lib/constants";
 
 type IntegrationStatus = "connected" | "disconnected" | "error";
 type Category = "ERP" | "Payroll" | "IAM" | "Storage" | "Communication" | "Analytics";
@@ -132,32 +133,11 @@ const seedIntegrations: Integration[] = [
   },
 ];
 
-const statusStyle: Record<IntegrationStatus, string> = {
-  connected: "bg-emerald-100 text-emerald-700",
-  disconnected: "bg-gray-200 text-gray-600",
-  error: "bg-red-100 text-red-700",
-};
-
-const statusLabel: Record<IntegrationStatus, string> = {
-  connected: "Connected",
-  disconnected: "Not connected",
-  error: "Error",
-};
-
 const statusIcon: Record<IntegrationStatus, React.ReactNode> = {
   connected: <CheckCircle2 className="h-3 w-3" />,
   disconnected: <XCircle className="h-3 w-3" />,
   error: <AlertTriangle className="h-3 w-3" />,
 };
-
-const CATEGORIES: Category[] = [
-  "ERP",
-  "Payroll",
-  "IAM",
-  "Storage",
-  "Communication",
-  "Analytics",
-];
 
 export default function Integrations() {
   const [integrations, setIntegrations] = useState<Integration[]>(seedIntegrations);
@@ -339,7 +319,7 @@ export default function Integrations() {
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm md:w-44 focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
               >
                 <option value="all">All categories</option>
-                {CATEGORIES.map((c) => (
+                {INTEGRATION_CATEGORIES.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
@@ -380,10 +360,10 @@ export default function Integrations() {
                         </div>
                       </div>
                       <Badge
-                        className={`${statusStyle[i.status]} inline-flex items-center gap-1 flex-shrink-0`}
+                        className={`${INTEGRATION_STATUS_STYLES[i.status]} inline-flex items-center gap-1 flex-shrink-0`}
                       >
                         {statusIcon[i.status]}
-                        {statusLabel[i.status]}
+                        {INTEGRATION_STATUS_LABELS[i.status]}
                       </Badge>
                     </div>
                     <p className="text-sm text-gray-600 mb-4 flex-1">
@@ -521,8 +501,8 @@ function IntegrationDrawer({
             <div>
               <h2 className="text-xl font-bold">{integration.name}</h2>
               <p className="text-sm text-white/90">{integration.vendor}</p>
-              <Badge className={`mt-2 ${statusStyle[integration.status]}`}>
-                {statusLabel[integration.status]}
+              <Badge className={`mt-2 ${INTEGRATION_STATUS_STYLES[integration.status]}`}>
+                {INTEGRATION_STATUS_LABELS[integration.status]}
               </Badge>
             </div>
           </div>
@@ -669,7 +649,7 @@ function AddIntegrationModal({
                 onChange={(e) => setCategory(e.target.value as Category)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
               >
-                {CATEGORIES.map((c) => (
+                {INTEGRATION_CATEGORIES.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>

@@ -57,6 +57,7 @@ export interface TimeEntry {
   id: string
   userId: string
   project: string
+  module?: string
   task: string
   date: string
   startTime: string
@@ -98,4 +99,10 @@ export interface Notification {
   isRead: boolean
   createdAt: string
   actionUrl?: string
+}
+
+export interface Department {
+  id: string
+  name: string
+  count: number
 }

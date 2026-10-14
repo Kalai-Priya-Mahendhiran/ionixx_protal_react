@@ -83,6 +83,319 @@ export const ATTENDANCE_STATUS = [
   { id: "half-day", label: "Half Day", color: "bg-orange-100 text-orange-800" },
 ] ;
 
+// Time Tracker
+export const TIME_TRACKER_STATUS_LABELS = {
+  "not-started": "Not started",
+  started: "Started",
+  completed: "Completed",
+  hold: "Hold",
+};
+
+export const TIME_TRACKER_STATUS_COLORS = {
+  "not-started": "bg-yellow-100 text-yellow-800",
+  started: "bg-white text-gray-700 border border-gray-300",
+  completed: "bg-green-100 text-green-800",
+  hold: "bg-[#BBBBBB] text-gray-800",
+};
+
+export const DAILY_HOUR_LIMIT = 8;
+
+// Reports
+export const REPORT_DATE_RANGES = [
+  { id: "this-week", label: "This Week" },
+  { id: "this-month", label: "This Month" },
+  { id: "last-month", label: "Last Month" },
+  { id: "this-quarter", label: "This Quarter" },
+  { id: "this-year", label: "This Year" },
+  { id: "custom", label: "Custom Range" },
+];
+
+// KPI Monitoring
+export const KPI_STATUS_CONFIG = {
+  "on-track": {
+    label: "On track",
+    tone: "bg-green-100 text-green-700",
+    ring: "stroke-green-500",
+    bar: "bg-green-500",
+  },
+  "at-risk": {
+    label: "At risk",
+    tone: "bg-amber-100 text-amber-700",
+    ring: "stroke-amber-500",
+    bar: "bg-amber-500",
+  },
+  "off-track": {
+    label: "Off track",
+    tone: "bg-red-100 text-red-700",
+    ring: "stroke-red-500",
+    bar: "bg-red-500",
+  },
+};
+
+// Compliance
+export const COMPLIANCE_DOC_STATUS_COLORS = {
+  valid: "bg-green-100 text-green-800",
+  expiring: "bg-amber-100 text-amber-800",
+  expired: "bg-red-100 text-red-800",
+  missing: "bg-gray-200 text-gray-700",
+};
+
+export const COMPLIANCE_DOC_STATUS_LABELS = {
+  valid: "Valid",
+  expiring: "Expiring soon",
+  expired: "Expired",
+  missing: "Missing",
+};
+
+export const COMPLIANCE_EMPLOYEE_STATUS_COLORS = {
+  compliant: "bg-green-100 text-green-800",
+  partial: "bg-amber-100 text-amber-800",
+  "non-compliant": "bg-red-100 text-red-800",
+};
+
+export const COMPLIANCE_EMPLOYEE_STATUS_LABELS = {
+  compliant: "Compliant",
+  partial: "Partial",
+  "non-compliant": "Non-compliant",
+};
+
+export const COMPLIANCE_AUDIT_TYPE_COLORS = {
+  upload: "bg-blue-100 text-blue-800",
+  update: "bg-purple-100 text-purple-800",
+  review: "bg-teal-100 text-teal-800",
+  delete: "bg-red-100 text-red-800",
+  assign: "bg-indigo-100 text-indigo-800",
+};
+
+// Employee Management
+export const EMPLOYMENT_STATUS_COLORS = {
+  active: "bg-green-100 text-green-800",
+  "on-leave": "bg-orange-100 text-orange-800",
+  inactive: "bg-gray-200 text-gray-700",
+};
+
+export const EMPLOYMENT_STATUS_LABELS = {
+  active: "Active",
+  "on-leave": "On leave",
+  inactive: "Inactive",
+};
+
+// Recruitment
+export const CANDIDATE_STAGE_ORDER = [
+  "applied",
+  "screening",
+  "interview",
+  "offer",
+  "hired",
+] as const;
+
+export const CANDIDATE_STAGE_LABELS = {
+  applied: "Applied",
+  screening: "Screening",
+  interview: "Interview",
+  offer: "Offer",
+  hired: "Hired",
+  rejected: "Rejected",
+};
+
+export const CANDIDATE_STAGE_COLORS = {
+  applied: "bg-gray-100 text-gray-700",
+  screening: "bg-blue-100 text-blue-800",
+  interview: "bg-purple-100 text-purple-800",
+  offer: "bg-amber-100 text-amber-800",
+  hired: "bg-green-100 text-green-800",
+  rejected: "bg-red-100 text-red-800",
+};
+
+export const JOB_POSTING_STATUS_COLORS = {
+  open: "bg-green-100 text-green-800",
+  closed: "bg-gray-200 text-gray-700",
+  draft: "bg-amber-100 text-amber-800",
+};
+
+export const INTERVIEW_MODE_COLORS = {
+  "On-site": "bg-indigo-100 text-indigo-800",
+  Video: "bg-blue-100 text-blue-800",
+  Phone: "bg-teal-100 text-teal-800",
+};
+
+// Training
+export const COURSE_LEVEL_COLORS = {
+  Beginner: "bg-green-100 text-green-800",
+  Intermediate: "bg-blue-100 text-blue-800",
+  Advanced: "bg-purple-100 text-purple-800",
+};
+
+export const COURSE_STATUS_COLORS = {
+  active: "bg-green-100 text-green-800",
+  draft: "bg-amber-100 text-amber-800",
+  archived: "bg-gray-200 text-gray-700",
+};
+
+export const TRAINING_ASSIGNMENT_STATUS_COLORS = {
+  "not-started": "bg-gray-100 text-gray-700",
+  "in-progress": "bg-blue-100 text-blue-800",
+  completed: "bg-green-100 text-green-800",
+  overdue: "bg-red-100 text-red-800",
+};
+
+export const TRAINING_ASSIGNMENT_STATUS_LABELS = {
+  "not-started": "Not started",
+  "in-progress": "In progress",
+  completed: "Completed",
+  overdue: "Overdue",
+};
+
+// Approvals
+export const APPROVAL_TYPE_LABELS = {
+  leave: "Leave",
+  "time-off": "Time off",
+  wfh: "Work from home",
+  expense: "Expense",
+};
+
+export const APPROVAL_TYPE_COLORS = {
+  leave: "bg-blue-100 text-blue-800",
+  "time-off": "bg-purple-100 text-purple-800",
+  wfh: "bg-teal-100 text-teal-800",
+  expense: "bg-amber-100 text-amber-800",
+};
+
+// Team Overview
+export const TEAM_MEMBER_STATUS_COLORS = {
+  active: "bg-green-100 text-green-800",
+  "on-leave": "bg-orange-100 text-orange-800",
+  remote: "bg-blue-100 text-blue-800",
+};
+
+export const TEAM_MEMBER_STATUS_LABELS = {
+  active: "In office",
+  "on-leave": "On leave",
+  remote: "Remote",
+};
+
+// Integrations
+export const INTEGRATION_STATUS_STYLES = {
+  connected: "bg-emerald-100 text-emerald-700",
+  disconnected: "bg-gray-200 text-gray-600",
+  error: "bg-red-100 text-red-700",
+};
+
+export const INTEGRATION_STATUS_LABELS = {
+  connected: "Connected",
+  disconnected: "Not connected",
+  error: "Error",
+};
+
+export const INTEGRATION_CATEGORIES = [
+  "ERP",
+  "Payroll",
+  "IAM",
+  "Storage",
+  "Communication",
+  "Analytics",
+] as const;
+
+// Logs
+export const LOG_SEVERITY_STYLES = {
+  info: "bg-blue-100 text-blue-700",
+  warn: "bg-amber-100 text-amber-800",
+  error: "bg-red-100 text-red-700",
+  success: "bg-emerald-100 text-emerald-700",
+};
+
+export const SERVICE_HEALTH_STYLES = {
+  healthy: "bg-emerald-100 text-emerald-700",
+  degraded: "bg-amber-100 text-amber-800",
+  down: "bg-red-100 text-red-700",
+};
+
+export const SERVICE_HEALTH_LABELS = {
+  healthy: "Healthy",
+  degraded: "Degraded",
+  down: "Down",
+};
+
+// Roles & Permissions
+export const PERMISSION_MODULES = [
+  { key: "users", label: "User Management", description: "Create, edit, suspend portal users" },
+  { key: "roles", label: "Roles & Permissions", description: "Manage RBAC policies" },
+  { key: "hr", label: "HR Operations", description: "Employee, recruitment, training, compliance" },
+  { key: "payroll", label: "Payroll & Compensation", description: "Salary structure, payouts" },
+  { key: "leave", label: "Leave & Attendance", description: "Leave approvals, attendance review" },
+  { key: "performance", label: "Performance Reviews", description: "Goals, ratings, feedback" },
+  { key: "analytics", label: "Analytics & KPIs", description: "Executive dashboards and reports" },
+  { key: "system", label: "System Configuration", description: "Modules, workflows, defaults" },
+  { key: "logs", label: "Logs & Monitoring", description: "Audit trail, system health" },
+  { key: "integrations", label: "Integrations", description: "ERP, payroll, IAM connectors" },
+];
+
+export const PERMISSION_LEVEL_STYLES = {
+  none: "bg-gray-100 text-gray-500",
+  read: "bg-blue-100 text-blue-700",
+  write: "bg-emerald-100 text-emerald-700",
+  admin: "bg-violet-100 text-violet-700",
+};
+
+export const PERMISSION_LEVEL_LABELS = {
+  none: "No access",
+  read: "Read",
+  write: "Write",
+  admin: "Admin",
+};
+
+export const PERMISSION_LEVELS = ["none", "read", "write", "admin"] as const;
+
+// System Config
+export const TIMEZONES = [
+  "Asia/Kolkata",
+  "Asia/Singapore",
+  "Asia/Dubai",
+  "Europe/London",
+  "America/New_York",
+  "America/Los_Angeles",
+];
+
+export const WEEK_DAYS = ["Sunday", "Monday"];
+
+export const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+// User Management
+export const USER_STATUS_COLORS = {
+  active: "bg-green-100 text-green-800",
+  pending: "bg-amber-100 text-amber-800",
+  suspended: "bg-red-100 text-red-700",
+};
+
+export const USER_STATUS_LABELS = {
+  active: "Active",
+  pending: "Pending invite",
+  suspended: "Suspended",
+};
+
+export const USER_ROLES = [
+  "System Admin",
+  "HR Manager",
+  "HR Associate",
+  "Engineering Lead",
+  "Executive",
+  "Designer",
+  "Employee",
+];
+
 // Utility functions for dashboard
 export const formatTime = (date: Date) => {
   return date.toLocaleTimeString('en-US', { 

@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { USER_STATUS_COLORS, USER_STATUS_LABELS, USER_ROLES } from "@/lib/constants";
 
 type UserStatus = "active" | "pending" | "suspended";
 
@@ -137,28 +138,6 @@ const seedUsers: PortalUser[] = [
     createdOn: "2021-04-17",
     mfaEnabled: true,
   },
-];
-
-const statusBadgeColor: Record<UserStatus, string> = {
-  active: "bg-green-100 text-green-800",
-  pending: "bg-amber-100 text-amber-800",
-  suspended: "bg-red-100 text-red-700",
-};
-
-const statusLabel: Record<UserStatus, string> = {
-  active: "Active",
-  pending: "Pending invite",
-  suspended: "Suspended",
-};
-
-const ROLES = [
-  "System Admin",
-  "HR Manager",
-  "HR Associate",
-  "Engineering Lead",
-  "Executive",
-  "Designer",
-  "Employee",
 ];
 
 export default function UserManagement() {
@@ -327,7 +306,7 @@ export default function UserManagement() {
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm md:w-48 focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
               >
                 <option value="all">All roles</option>
-                {ROLES.map((r) => (
+                {USER_ROLES.map((r) => (
                   <option key={r} value={r}>
                     {r}
                   </option>
@@ -393,8 +372,8 @@ export default function UserManagement() {
                         )}
                       </td>
                       <td className="py-3 px-2">
-                        <Badge className={statusBadgeColor[u.status]}>
-                          {statusLabel[u.status]}
+                        <Badge className={USER_STATUS_COLORS[u.status]}>
+                          {USER_STATUS_LABELS[u.status]}
                         </Badge>
                       </td>
                       <td className="py-3 px-2 text-right">
@@ -506,7 +485,7 @@ function UserDrawer({
               <h2 className="text-xl font-bold">{user.name}</h2>
               <p className="text-sm text-white/90">{user.role}</p>
               <Badge className="mt-2 bg-white/20 text-white border-white/30">
-                {statusLabel[user.status]}
+                {USER_STATUS_LABELS[user.status]}
               </Badge>
             </div>
           </div>
@@ -524,7 +503,7 @@ function UserDrawer({
                 onChange={(e) => onUpdateRole(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
               >
-                {ROLES.map((r) => (
+                {USER_ROLES.map((r) => (
                   <option key={r} value={r}>
                     {r}
                   </option>
@@ -580,7 +559,7 @@ function AddUserModal({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [role, setRole] = useState(ROLES[ROLES.length - 1]);
+  const [role, setRole] = useState(USER_ROLES[USER_ROLES.length - 1]);
   const [department, setDepartment] = useState("Engineering");
   const [mfaEnabled, setMfaEnabled] = useState(true);
 
@@ -634,7 +613,7 @@ function AddUserModal({
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
               >
-                {ROLES.map((r) => (
+                {USER_ROLES.map((r) => (
                   <option key={r} value={r}>
                     {r}
                   </option>

@@ -6,7 +6,7 @@ import ForgotPassword from '@/components/auth-component/forgot-password';
 
 // Common (shared across roles)
 import Dashboard from '@/components/common-component/dashboard';
-import Profile from '@/components/common-component/profile';
+import Profile from '@/components/employee-component/profile';
 import Reports from '@/components/common-component/reports';
 
 // Employee (ESS)

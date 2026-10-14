@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { LOG_SEVERITY_STYLES, SERVICE_HEALTH_STYLES, SERVICE_HEALTH_LABELS } from "@/lib/constants";
 
 type Severity = "info" | "warn" | "error" | "success";
 type ServiceHealth = "healthy" | "degraded" | "down";
@@ -206,30 +207,11 @@ const services: ServiceStatus[] = [
   },
 ];
 
-const severityStyle: Record<Severity, string> = {
-  info: "bg-blue-100 text-blue-700",
-  warn: "bg-amber-100 text-amber-800",
-  error: "bg-red-100 text-red-700",
-  success: "bg-emerald-100 text-emerald-700",
-};
-
 const severityIcon: Record<Severity, React.ReactNode> = {
   info: <Info className="h-3 w-3" />,
   warn: <AlertTriangle className="h-3 w-3" />,
   error: <XCircle className="h-3 w-3" />,
   success: <CheckCircle2 className="h-3 w-3" />,
-};
-
-const healthStyle: Record<ServiceHealth, string> = {
-  healthy: "bg-emerald-100 text-emerald-700",
-  degraded: "bg-amber-100 text-amber-800",
-  down: "bg-red-100 text-red-700",
-};
-
-const healthLabel: Record<ServiceHealth, string> = {
-  healthy: "Healthy",
-  degraded: "Degraded",
-  down: "Down",
 };
 
 export default function Logs() {
@@ -382,8 +364,8 @@ export default function Logs() {
                           {s.label}
                         </p>
                       </div>
-                      <Badge className={healthStyle[s.status]}>
-                        {healthLabel[s.status]}
+                      <Badge className={SERVICE_HEALTH_STYLES[s.status]}>
+                        {SERVICE_HEALTH_LABELS[s.status]}
                       </Badge>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
@@ -491,7 +473,7 @@ export default function Logs() {
                       </td>
                       <td className="py-3 px-2">
                         <Badge
-                          className={`${severityStyle[l.severity]} inline-flex items-center gap-1`}
+                          className={`${LOG_SEVERITY_STYLES[l.severity]} inline-flex items-center gap-1`}
                         >
                           {severityIcon[l.severity]}
                           {l.severity.toUpperCase()}
@@ -587,7 +569,7 @@ function LogDrawer({
             Log entry
           </p>
           <h2 className="text-xl font-bold font-mono mt-1">{entry.id}</h2>
-          <Badge className={`mt-3 ${severityStyle[entry.severity]}`}>
+          <Badge className={`mt-3 ${LOG_SEVERITY_STYLES[entry.severity]}`}>
             {entry.severity.toUpperCase()}
           </Badge>
         </div>
