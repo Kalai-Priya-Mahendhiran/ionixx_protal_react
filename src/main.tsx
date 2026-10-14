@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import App from './App';
 import { AuthProvider } from '@/context/auth-context';
 import { GlobalContextProvider } from '@/context/global-context';
+import { AttendanceProvider } from '@/context/attendance-context';
 import './index.css';
 
 const queryClient = new QueryClient();
@@ -16,8 +17,10 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <GlobalContextProvider>
           <AuthProvider>
-            <App />
-            <Toaster position="top-center" />
+            <AttendanceProvider>
+              <App />
+              <Toaster position="top-center" />
+            </AttendanceProvider>
           </AuthProvider>
         </GlobalContextProvider>
       </QueryClientProvider>

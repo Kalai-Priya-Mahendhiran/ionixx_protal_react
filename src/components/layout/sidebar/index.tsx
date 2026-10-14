@@ -3,59 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
 import { ROLE_LABELS, ROLE_SIDEBAR_ITEMS } from "@/lib/mock-users";
-import {
-  Home,
-  User,
-  Clock,
-  Timer,
-  Calendar,
-  CheckSquare,
-  Folder,
-  Building,
-  BarChart3,
-  Users,
-  CheckCheck,
-  ClipboardCheck,
-  Star,
-  UserCog,
-  Briefcase,
-  GraduationCap,
-  ShieldCheck,
-  LineChart,
-  Gauge,
-  Users2,
-  Lock,
-  Settings,
-  Plug,
-  ScrollText,
-} from "lucide-react";
-
-const iconMap = {
-  Home,
-  User,
-  Clock,
-  Timer,
-  Calendar,
-  CheckSquare,
-  Folder,
-  Building,
-  BarChart3,
-  Users,
-  CheckCheck,
-  ClipboardCheck,
-  Star,
-  UserCog,
-  Briefcase,
-  GraduationCap,
-  ShieldCheck,
-  LineChart,
-  Gauge,
-  Users2,
-  Lock,
-  Settings,
-  Plug,
-  ScrollText,
-};
+import { getIcon } from "@/lib/constants";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -111,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       <nav className="mt-4 px-3">
         <ul className="space-y-2">
           {items.map((item) => {
-            const Icon = iconMap[item.icon as keyof typeof iconMap];
+            const Icon = getIcon(item.icon);
             const isActive = pathname === item.path;
 
             return (

@@ -1,73 +1,75 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Clock, Coffee } from 'lucide-react';
+import { useAttendance } from '@/context/attendance-context';
+import { BREAK_TIMINGS, formatDuration, getIcon } from '@/lib/constants';
 
 export function CheckInOutSection() {
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [checkInTime, setCheckInTime] = useState('09:00');
+  const { isCheckedIn, checkInTime, checkOutTime } = useAttendance();
+  const [now, setNow] = useState(new Date());
 
-  const handleCheckIn = () => {
-    setIsCheckedIn(true);
-    setCheckInTime(new Date().toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    }));
-  };
+  useEffect(() => {
+    if (!isCheckedIn) return;
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, [isCheckedIn]);
 
-  const handleCheckOut = () => {
-    setIsCheckedIn(false);
-  };
+  const elapsed = checkInTime
+    ? formatDuration((checkOutTime ?? now).getTime() - checkInTime.getTime())
+    : '0h 0m 0s';
+
+  const status = isCheckedIn ? 'Checked In' : checkOutTime ? 'Checked Out' : 'Not Checked In';
+  const statusClass = isCheckedIn
+    ? 'bg-green-100 text-green-800'
+    : checkOutTime
+    ? 'bg-indigo-100 text-indigo-800'
+    : 'bg-gray-100 text-gray-800';
 
   return (
-    <Card>
+    <Card className="border-0 shadow-xl">
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <Clock className="h-5 w-5" />
+          <div className="p-2 rounded-lg bg-indigo-100">
+            <Clock className="h-5 w-5 text-indigo-600" />
+          </div>
           <span>Today's Attendance</span>
         </CardTitle>
-        <CardDescription>Check in and out for today</CardDescription>
+        <CardDescription>Tracked from your dashboard check-in</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         <div className="text-center">
-          <p className="text-sm text-gray-600">Current Status</p>
-          <p className="text-2xl font-bold text-green-600">
-            {isCheckedIn ? 'Checked In' : 'Not Checked In'}
-          </p>
-          {isCheckedIn && (
-            <p className="text-sm text-gray-600 mt-1">
-              Since: {checkInTime}
-            </p>
-          )}
+          <div className="w-32 h-32 mx-auto mb-4 rounded-full ionixx_icon-gradient ionixx-shadow-lg flex items-center justify-center">
+            <div className="w-28 h-28 rounded-full bg-white flex flex-col items-center justify-center">
+              <span className="text-lg font-bold ionixx-text-gradient">{elapsed}</span>
+              <span className="text-xs text-gray-500 mt-1">Worked</span>
+            </div>
+          </div>
+          <Badge className={statusClass}>
+            {isCheckedIn && <span className="w-2 h-2 mr-2 rounded-full bg-green-500 animate-pulse" />}
+            {status}
+          </Badge>
         </div>
 
-        <div className="space-y-2">
-          {!isCheckedIn ? (
-            <Button
-              onClick={handleCheckIn}
-              className="w-full"
-              size="lg"
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Check In
-            </Button>
-          ) : (
-            <Button
-              onClick={handleCheckOut}
-              variant="outline"
-              className="w-full"
-              size="lg"
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Check Out
-            </Button>
-          )}
-        </div>
-
-        <div className="text-center text-sm text-gray-600">
-          <p>Expected working hours: 8 hours</p>
-          <p>Break time: 1 hour</p>
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-gray-700">Break Timings</p>
+          {BREAK_TIMINGS.map(({ label, duration, icon, cardClass, iconClass }) => {
+            const Icon = getIcon(icon, Coffee);
+            return (
+              <div
+                key={label}
+                className={`flex items-center justify-between p-3 rounded-lg border ${cardClass}`}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className={`p-2 rounded-lg ${iconClass}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-600">{label}</span>
+                </div>
+                <span className="text-sm font-bold text-gray-900">{duration}</span>
+              </div>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle, XCircle, AlertCircle, Clock3 } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle, Clock3, History } from 'lucide-react';
 import { ATTENDANCE_STATUS } from '@/lib/constants';
 import type { Attendance } from '@/types';
 
@@ -34,19 +34,24 @@ const getStatusBadge = (status: string) => {
 
 export function RecentAttendanceSection({ records }: RecentAttendanceSectionProps) {
   return (
-    <Card>
+    <Card className="border-0 shadow-xl">
       <CardHeader>
-        <CardTitle>Recent Attendance Records</CardTitle>
+        <CardTitle className="flex items-center space-x-2">
+          <div className="p-2 rounded-lg bg-indigo-100">
+            <History className="h-5 w-5 text-indigo-600" />
+          </div>
+          <span>Recent Attendance Records</span>
+        </CardTitle>
         <CardDescription>Your attendance history for the past week</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {records.map((record) => (
-            <div key={record.id} className="flex items-center justify-between p-4 border rounded-lg">
+            <div key={record.id} className="flex items-center justify-between p-4 rounded-xl border border-indigo-100 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-violet-50 transition-colors duration-200">
               <div className="flex items-center space-x-4">
                 {getStatusIcon(record.status)}
                 <div>
-                  <p className="font-medium">
+                  <p className="font-medium text-gray-800">
                     {new Date(record.date).toLocaleDateString('en-US', {
                       weekday: 'long',
                       year: 'numeric',
@@ -62,7 +67,7 @@ export function RecentAttendanceSection({ records }: RecentAttendanceSectionProp
               <div className="flex items-center space-x-4">
                 {getStatusBadge(record.status)}
                 <div className="text-right">
-                  <p className="text-sm font-medium">
+                  <p className="text-sm font-semibold text-indigo-600">
                     {record.hoursWorked || 0} hours
                   </p>
                 </div>

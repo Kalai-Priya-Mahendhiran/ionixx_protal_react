@@ -110,3 +110,12 @@ export const celebrationCards = [
     ]
   }
 ];
+
+export const quickActions = [
+  { label: 'Add Task', icon: 'Plus', color: 'text-blue-600', hoverClass: 'hover:bg-blue-50 hover:border-blue-300' },
+  { label: 'Apply Leave', icon: 'Calendar', color: 'text-green-600', hoverClass: 'hover:bg-green-50 hover:border-green-300' },
+  { label: 'Upload File', icon: 'FileText', color: 'text-purple-600', hoverClass: 'hover:bg-purple-50 hover:border-purple-300' },
+  { label: 'View Team', icon: 'Users', color: 'text-orange-600', hoverClass: 'hover:bg-orange-50 hover:border-orange-300' },
+  { label: 'Reports', icon: 'TrendingUp', color: 'text-red-600', hoverClass: 'hover:bg-red-50 hover:border-red-300' },
+  { label: 'Achievements', icon: 'Award', color: 'text-indigo-600', hoverClass: 'hover:bg-indigo-50 hover:border-indigo-300' },
+];

@@ -1,3 +1,47 @@
+import {
+  Award,
+  BarChart3,
+  Briefcase,
+  Building,
+  Cake,
+  Calendar,
+  CalendarDays,
+  CheckCheck,
+  CheckCircle,
+  CheckSquare,
+  ClipboardCheck,
+  Clock,
+  Coffee,
+  FileText,
+  Folder,
+  Gauge,
+  Gift,
+  GraduationCap,
+  HeartHandshake,
+  Home,
+  LineChart,
+  Lock,
+  Moon,
+  Plug,
+  Plus,
+  ScrollText,
+  Settings,
+  ShieldCheck,
+  Star,
+  Sun,
+  Sunset,
+  Target,
+  Timer,
+  TrendingUp,
+  Upload,
+  User,
+  UserCog,
+  Users,
+  Users2,
+  UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
+
 export const ROUTES = {
   Login: "/login",
   ForgotPassword: "/forgot-password",
@@ -418,3 +462,92 @@ export const getGreetingIcon = (currentTime: Date) => {
   if (hour < 17) return 'Coffee';
   return 'Moon';
 };
+export const formatDuration = (ms: number) => {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${hours}h ${minutes}m ${seconds}s`;
+};
+
+// Icons - resolve icon names stored in constants/sample data to components
+export const ICON_MAP: Record<string, LucideIcon> = {
+  Award,
+  BarChart3,
+  Briefcase,
+  Building,
+  Cake,
+  Calendar,
+  CalendarDays,
+  CheckCheck,
+  CheckCircle,
+  CheckSquare,
+  ClipboardCheck,
+  Clock,
+  Coffee,
+  FileText,
+  Folder,
+  Gauge,
+  Gift,
+  GraduationCap,
+  HeartHandshake,
+  Home,
+  LineChart,
+  Lock,
+  Moon,
+  Plug,
+  Plus,
+  ScrollText,
+  Settings,
+  ShieldCheck,
+  Star,
+  Sun,
+  Sunset,
+  Target,
+  Timer,
+  TrendingUp,
+  Upload,
+  User,
+  UserCog,
+  Users,
+  Users2,
+  UtensilsCrossed,
+};
+
+export const getIcon = (iconName: string, fallback: LucideIcon = CheckCircle): LucideIcon =>
+  ICON_MAP[iconName] ?? fallback;
+
+// Dashboard
+export const GREETING_ICON_COLORS: Record<string, string> = {
+  Sun: "text-yellow-500",
+  Coffee: "text-orange-500",
+  Moon: "text-blue-500",
+};
+
+export const WORKING_HOURS = {
+  expectedHours: "8 hours",
+  breakTime: "1 hour",
+};
+
+export const EVENT_TYPE_COLORS: Record<string, string> = {
+  meeting: "bg-blue-100 text-blue-800",
+  birthday: "bg-pink-100 text-pink-800",
+  deadline: "bg-red-100 text-red-800",
+};
+
+export const CELEBRATION_STATUS_COLORS: Record<string, string> = {
+  Today: "bg-yellow-100 text-yellow-800",
+  upcoming: "bg-blue-100 text-blue-800",
+  completed: "bg-green-100 text-green-800",
+};
+
+export const DEFAULT_BADGE_COLOR = "bg-gray-100 text-gray-800";
+
+export const DASHBOARD_NOTIFICATION_LIMIT = 4;
+
+// Attendance
+export const BREAK_TIMINGS = [
+  { label: "Morning Break", duration: "15 mins", icon: "Coffee", cardClass: "bg-yellow-50 border-yellow-200", iconClass: "bg-yellow-100 text-yellow-600" },
+  { label: "Lunch Break", duration: "1 hour", icon: "UtensilsCrossed", cardClass: "bg-green-50 border-green-200", iconClass: "bg-green-100 text-green-600" },
+  { label: "Evening Break", duration: "15 mins", icon: "Sunset", cardClass: "bg-purple-50 border-purple-200", iconClass: "bg-purple-100 text-purple-600" },
+];

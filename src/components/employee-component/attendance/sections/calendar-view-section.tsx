@@ -8,18 +8,20 @@ interface CalendarViewSectionProps {
 
 export function CalendarViewSection({ records }: CalendarViewSectionProps) {
   return (
-    <Card className="lg:col-span-2">
+    <Card className="lg:col-span-2 border-0 shadow-xl">
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <Calendar className="h-5 w-5" />
+          <div className="p-2 rounded-lg bg-indigo-100">
+            <Calendar className="h-5 w-5 text-indigo-600" />
+          </div>
           <span>Attendance Calendar</span>
         </CardTitle>
         <CardDescription>View your attendance for the current month</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-7 gap-2 mb-4">
+        <div className="grid grid-cols-7 gap-2 mb-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="text-center text-sm font-medium text-gray-600 p-2">
+            <div key={day} className="text-center text-xs font-semibold uppercase tracking-wide text-indigo-600 p-2">
               {day}
             </div>
           ))}
@@ -35,14 +37,14 @@ export function CalendarViewSection({ records }: CalendarViewSectionProps) {
               <div
                 key={date}
                 className={`
-                  aspect-square flex items-center justify-center text-sm rounded-lg border
+                  aspect-square flex items-center justify-center text-sm font-medium rounded-xl border transition-transform duration-150 hover:scale-105
                   ${attendance
                     ? attendance.status === 'present'
                       ? 'bg-green-100 text-green-800 border-green-200'
                       : attendance.status === 'late'
-                      ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                      ? 'bg-amber-100 text-amber-800 border-amber-200'
                       : 'bg-red-100 text-red-800 border-red-200'
-                    : 'bg-gray-50 text-gray-600 border-gray-200'
+                    : 'bg-indigo-50/50 text-gray-600 border-indigo-100'
                   }
                 `}
               >
@@ -52,17 +54,17 @@ export function CalendarViewSection({ records }: CalendarViewSectionProps) {
           })}
         </div>
 
-        <div className="flex items-center justify-center space-x-6 mt-4 text-sm">
+        <div className="flex items-center justify-center space-x-6 mt-6 text-sm text-gray-600">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-green-100 border border-green-200 rounded"></div>
+            <div className="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
             <span>Present</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-yellow-100 border border-yellow-200 rounded"></div>
+            <div className="w-3 h-3 bg-amber-100 border border-amber-300 rounded"></div>
             <span>Late</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-red-100 border border-red-200 rounded"></div>
+            <div className="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
             <span>Absent</span>
           </div>
         </div>
