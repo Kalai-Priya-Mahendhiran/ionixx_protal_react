@@ -1,4 +1,4 @@
-import { Columns3, List, Search, X, type LucideIcon } from 'lucide-react';
+import { Columns3, List, Rows3, Search, X, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -17,6 +17,9 @@ interface TaskFiltersSectionProps {
   onSearchChange: (term: string) => void;
   onStatusFilterChange: (filter: TaskStatusFilter) => void;
   onLayoutChange: (layout: TaskLayout) => void;
+  groupByAssignee?: boolean;
+  // Only passed for people who can reassign work (managers, admins)
+  onGroupByAssigneeChange?: (groupByAssignee: boolean) => void;
 }
 
 export function TaskFiltersSection({
@@ -26,6 +29,8 @@ export function TaskFiltersSection({
   onSearchChange,
   onStatusFilterChange,
   onLayoutChange,
+  groupByAssignee = false,
+  onGroupByAssigneeChange,
 }: TaskFiltersSectionProps) {
   return (
     <Card>
@@ -72,6 +77,21 @@ export function TaskFiltersSection({
               </span>
             )}
           </div>
+          {onGroupByAssigneeChange && layout === 'board' && (
+            <button
+              type="button"
+              onClick={() => onGroupByAssigneeChange(!groupByAssignee)}
+              aria-pressed={groupByAssignee}
+              title="Show one row per person; drag a card to another row to reassign it"
+              className={cn(
+                'inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
+                groupByAssignee ? 'border-[#464EB8]/40 bg-indigo-50 text-[#464EB8]' : 'border-gray-200 bg-white text-gray-600 hover:text-gray-900',
+              )}
+            >
+              <Rows3 className="h-4 w-4" />
+              Group by assignee
+            </button>
+          )}
           <div role="group" aria-label="Layout" className="inline-flex shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
             {LAYOUT_OPTIONS.map(({ value, label, icon: Icon }) => (
               <button

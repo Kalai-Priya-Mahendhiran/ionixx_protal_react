@@ -81,3 +81,57 @@ describe('taskService Phase 2', () => {
     );
   });
 });
+
+describe('taskService Phase 3', () => {
+  const employee = { id: 'EMP001', role: 'employee' as const };
+  const keyOf = async (key: string) => (await taskService.list(manager)).find((task) => task.key === key)!;
+
+  it('asks the approver to review work moved to In Review', async () => {
+    const task = (await taskService.list(employee)).find((item) => item.key === 'IXP-105')!;
+    await taskService.changeStatus(employee, task.id, 'in-review');
+    const [latest] = await notificationService.list(manager);
+    expect(latest.title).toBe('IXP-105 is ready for your review');
+  });
+
+  it('approves to Done and tells the assignee', async () => {
+    const task = await keyOf('IXP-121');
+    const approved = await taskService.approve(manager, task.id);
+    expect(approved.status).toBe('done');
+    const [latest] = await notificationService.list({ id: 'EMP005', role: 'employee' });
+    expect(latest.title).toBe('IXP-121 approved');
+  });
+
+  it('sends back to In Progress only with a comment, and posts that comment', async () => {
+    const task = await keyOf('IXP-108');
+    await expect(taskService.sendBack(manager, task.id, 'no')).rejects.toThrow('Explain');
+    const sent = await taskService.sendBack(manager, task.id, 'Badge contrast fails on dark rows');
+    expect(sent.status).toBe('in-progress');
+    const comments = await taskService.listComments(manager, task.id);
+    expect(comments.at(-1)?.body).toBe('Sent back for changes: Badge contrast fails on dark rows');
+  });
+
+  it('reassigns within the team only', async () => {
+    const task = await keyOf('IXP-120');
+    expect((await taskService.reassign(manager, task.id, 'EMP002')).assigneeId).toBe('EMP002');
+    await expect(taskService.reassign(manager, task.id, 'HR001')).rejects.toThrow("can't assign");
+  });
+
+  it('plans sprints: one active per project, unfinished work moves on completion', async () => {
+    await expect(taskService.startSprint(manager, 'SPR-IXP-16')).rejects.toThrow('Complete IXP Sprint 15');
+
+    const backlogItem = await keyOf('IXP-119');
+    await taskService.moveToSprint(manager, backlogItem.id, 'SPR-IXP-15');
+    await expect(taskService.moveToSprint(employee, (await taskService.list(employee))[0].id, null)).rejects.toThrow("can't plan");
+
+    const { moved } = await taskService.completeSprint(manager, 'SPR-IXP-15', 'SPR-IXP-16');
+    expect(moved).toBeGreaterThan(0);
+    expect((await keyOf('IXP-119')).sprintId).toBe('SPR-IXP-16');
+    expect((await taskService.startSprint(manager, 'SPR-IXP-16')).status).toBe('active');
+
+    const created = await taskService.createSprint(manager, { projectId: 'PRJ-IXP', name: 'IXP Sprint 17', startDate: '2026-11-09', endDate: '2026-11-22' });
+    expect(created.status).toBe('planned');
+    await expect(
+      taskService.createSprint(employee, { projectId: 'PRJ-IXP', name: 'Mine', startDate: '2026-11-09', endDate: '2026-11-22' }),
+    ).rejects.toThrow("can't plan");
+  });
+});

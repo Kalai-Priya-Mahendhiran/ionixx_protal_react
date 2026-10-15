@@ -11,6 +11,8 @@ import {
   matchesSearch,
   matchesStatusFilter,
   parseLabels,
+  getTeamAlerts,
+  getWorkload,
 } from './task-utils';
 
 const today = new Date(2026, 9, 15); // Oct 15, 2026 (local time)
@@ -94,5 +96,30 @@ describe('My Tasks tabs and sub-tasks', () => {
     const childOpen = task({ id: 'C2', parentId: 'P', status: 'todo', assigneeId: 'EMP001' });
     expect(filterTasksForView('my-tasks', [parent, childDone, childOpen], 'EMP001').map((item) => item.id)).toEqual(['P']);
     expect(getSubtaskProgress([parent, childDone, childOpen]).get('P')).toEqual({ done: 1, total: 2 });
+  });
+});
+
+describe('workload and alerts', () => {
+  const work = [
+    task({ id: 'A', parentId: undefined, assigneeId: 'EMP002', status: 'in-progress', estimateHours: 24, loggedHours: 4, dueDate: '2026-10-20', isBlocked: false }),
+    task({ id: 'B', parentId: undefined, assigneeId: 'EMP002', status: 'todo', estimateHours: 30, loggedHours: 0, dueDate: '2026-10-10', isBlocked: true }),
+    task({ id: 'C', parentId: undefined, assigneeId: 'EMP002', status: 'done', estimateHours: 50, loggedHours: 50, dueDate: '2026-10-01', isBlocked: false }),
+  ];
+
+  it('counts remaining hours on open work only', () => {
+    const [row] = getWorkload(work, ['EMP002', 'EMP003'], today);
+    expect(row).toMatchObject({ openTasks: 2, estimateHours: 54, loggedHours: 4, remainingHours: 50, overdue: 1, blocked: 1 });
+    expect(getWorkload(work, ['EMP003'], today)[0].openTasks).toBe(0);
+  });
+
+  it('leaves epics out of personal workload', () => {
+    const epic = task({ id: 'E', parentId: undefined, type: 'epic', assigneeId: 'PM001', status: 'in-progress', estimateHours: 120, loggedHours: 18 });
+    expect(getWorkload([epic], ['PM001'], today)[0]).toMatchObject({ openTasks: 0, remainingHours: 0 });
+  });
+
+  it('lists overdue and blocked open work', () => {
+    const alerts = getTeamAlerts(work, today);
+    expect(alerts.overdue.map((item) => item.id)).toEqual(['B']);
+    expect(alerts.blocked.map((item) => item.id)).toEqual(['B']);
   });
 });

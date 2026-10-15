@@ -5,11 +5,27 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import MainLayout from '@/components/layout/main-layout';
 import { useAuth } from '@/context/auth-context';
-import { can, isTaskReadOnly, resolveTaskView, type PermissionUser } from '@/lib/permissions/task-permissions';
+import {
+  can,
+  canApprove,
+  getAssignableUsers,
+  getManagerSections,
+  getScope,
+  isTaskReadOnly,
+  resolveTaskView,
+  type ManagerSection,
+  type PermissionUser,
+} from '@/lib/permissions/task-permissions';
 import { useDeleteTask, useProjects, useTasks } from '@/services/apis/tasks/use-tasks';
 import type { Task } from '@/types';
 import {
+  ApprovalsSection,
+  ManagerTabs,
+  SprintPlanningSection,
   TaskBoardSection,
+  TaskSwimlanes,
+  TeamAlertsPanel,
+  WorkloadSection,
   TaskFiltersSection,
   TaskFormDialog,
   TaskListSection,
@@ -95,6 +111,22 @@ function TasksPage({ user }: { user: PermissionUser }) {
     if (legacyTaskKey) navigate(taskPath(legacyTaskKey), { replace: true });
   }, [legacyTaskKey, navigate]);
 
+  // Manager tools (Board · Workload · Backlog & Sprints · Approvals) on team-wide views
+  const managerSections = getManagerSections(user);
+  const showManagerTabs = !showTabs && view !== 'hr-tasks' && managerSections.length > 1;
+  const requestedSection = searchParams.get('section') as ManagerSection | null;
+  const section: ManagerSection =
+    showManagerTabs && requestedSection && managerSections.includes(requestedSection) ? requestedSection : 'board';
+  const canGroupByAssignee = showManagerTabs && managerSections.includes('workload');
+  const groupByAssignee = canGroupByAssignee && searchParams.get('group') === 'assignee';
+  const focusUserId = searchParams.get('focus') ?? undefined;
+  const approvalCount = viewTasks.filter((task) => canApprove(user, task)).length;
+  // A manager's lanes are their team (even people with no work yet); org-wide users see whoever holds work
+  const teamIds = useMemo(() => {
+    const assignable = getAssignableUsers(user).map((member) => member.id);
+    return getScope(user, 'task.assign') === 'team' ? assignable : assignable.filter((id) => viewTasks.some((task) => task.assigneeId === id));
+  }, [user, viewTasks]);
+
   const canCreate = can(user, 'task.create');
   const readOnly = isTaskReadOnly(user);
   const { title, description } = TASK_VIEW_META[view];
@@ -142,38 +174,77 @@ function TasksPage({ user }: { user: PermissionUser }) {
 
         {showTabs && <TaskTabs active={tab} counts={tabCounts} onChange={(next) => updateParams({ tab: next })} />}
 
-        <TaskStatsSection counts={counts} activeFilter={statusFilter} isLoading={isLoading} onSelect={setStatusFilter} />
-
-        <TaskFiltersSection
-          searchTerm={searchTerm}
-          statusFilter={statusFilter}
-          layout={layout}
-          onSearchChange={setSearchTerm}
-          onStatusFilterChange={setStatusFilter}
-          onLayoutChange={(next) => updateParams({ layout: next })}
-        />
-
-        {isLoading || isError || visibleTasks.length === 0 ? (
-          <TaskStates
-            layout={layout}
-            isLoading={isLoading}
-            isError={isError}
-            isFiltered={scopedTasks.length > 0}
-            onRetry={() => refetch()}
-            onClearFilters={clearFilters}
-            onCreate={canCreate ? openCreate : undefined}
+        {showManagerTabs && (
+          <ManagerTabs
+            sections={managerSections}
+            active={section}
+            approvalCount={approvalCount}
+            onChange={(next) => updateParams({ section: next === 'board' ? null : next, focus: null })}
           />
-        ) : layout === 'board' ? (
-          <TaskBoardSection
-            tasks={visibleTasks}
-            subtaskProgress={subtaskProgress}
-            onCreate={canCreate ? openCreate : undefined}
-            onOpen={showTask}
-            onEdit={openEdit}
-            onDelete={setTaskToDelete}
+        )}
+
+        {section === 'workload' ? (
+          <WorkloadSection
+            tasks={viewTasks}
+            userIds={teamIds}
+            onSelectPerson={(userId) => updateParams({ section: null, layout: null, group: 'assignee', focus: userId })}
           />
+        ) : section === 'sprints' ? (
+          <SprintPlanningSection tasks={viewTasks} projects={projects} />
+        ) : section === 'approvals' ? (
+          <ApprovalsSection tasks={viewTasks} subtaskProgress={subtaskProgress} />
         ) : (
-          <TaskListSection tasks={visibleTasks} subtaskProgress={subtaskProgress} onEdit={openEdit} onDelete={setTaskToDelete} />
+          <>
+            {showManagerTabs && !isLoading && <TeamAlertsPanel tasks={viewTasks} />}
+
+            <TaskStatsSection counts={counts} activeFilter={statusFilter} isLoading={isLoading} onSelect={setStatusFilter} />
+
+            <TaskFiltersSection
+              searchTerm={searchTerm}
+              statusFilter={statusFilter}
+              layout={layout}
+              onSearchChange={setSearchTerm}
+              onStatusFilterChange={setStatusFilter}
+              onLayoutChange={(next) => updateParams({ layout: next })}
+              groupByAssignee={groupByAssignee}
+              onGroupByAssigneeChange={canGroupByAssignee ? (next) => updateParams({ group: next ? 'assignee' : null, focus: null }) : undefined}
+            />
+
+            {isLoading || isError || (visibleTasks.length === 0 && !groupByAssignee) ? (
+              <TaskStates
+                layout={layout}
+                isLoading={isLoading}
+                isError={isError}
+                isFiltered={scopedTasks.length > 0}
+                onRetry={() => refetch()}
+                onClearFilters={clearFilters}
+                onCreate={canCreate ? openCreate : undefined}
+              />
+            ) : layout === 'board' && groupByAssignee ? (
+              <TaskSwimlanes
+                key={focusUserId ?? 'all'}
+                tasks={visibleTasks}
+                laneUserIds={teamIds}
+                workloadTasks={viewTasks}
+                focusUserId={focusUserId}
+                subtaskProgress={subtaskProgress}
+                onOpen={showTask}
+                onEdit={openEdit}
+                onDelete={setTaskToDelete}
+              />
+            ) : layout === 'board' ? (
+              <TaskBoardSection
+                tasks={visibleTasks}
+                subtaskProgress={subtaskProgress}
+                onCreate={canCreate ? openCreate : undefined}
+                onOpen={showTask}
+                onEdit={openEdit}
+                onDelete={setTaskToDelete}
+              />
+            ) : (
+              <TaskListSection tasks={visibleTasks} subtaskProgress={subtaskProgress} onEdit={openEdit} onDelete={setTaskToDelete} />
+            )}
+          </>
         )}
       </div>
 

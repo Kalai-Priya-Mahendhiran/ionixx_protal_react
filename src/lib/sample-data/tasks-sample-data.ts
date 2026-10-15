@@ -142,6 +142,37 @@ const SAMPLE_TASKS: SampleTask[] = [
     labels: ['onboarding'], loggedHours: 2, dueInDays: -3, createdDaysAgo: 11,
   },
 
+  // Team work for the manager views: Arjun is over the 40h workload threshold, and the backlog has unplanned items
+  {
+    key: 'IXP-117', projectId: 'PRJ-IXP', type: 'task', title: 'Migrate attendance API to v2', sprintId: ACTIVE_SPRINT_ID, startInDays: -4,
+    description: 'Move attendance endpoints to the v2 contract and keep v1 running until clients switch.',
+    status: 'in-progress', priority: 'high', assigneeId: 'EMP002', reporterId: 'PM001',
+    labels: ['api'], estimateHours: 24, loggedHours: 4, dueInDays: 5, createdDaysAgo: 6,
+  },
+  {
+    key: 'IXP-118', projectId: 'PRJ-IXP', type: 'story', title: 'Team calendar for managers',
+    description: 'As a manager I want to see my team\'s leave and holidays in one calendar.',
+    status: 'todo', priority: 'medium', assigneeId: 'EMP002', reporterId: 'PM001',
+    labels: ['leave-tracker'], estimateHours: 16, loggedHours: 0, dueInDays: 12, createdDaysAgo: 2,
+  },
+  {
+    key: 'IXP-119', projectId: 'PRJ-IXP', type: 'bug', title: 'Leave balance rounds half days wrongly',
+    description: 'A 1.5-day balance shows as 2 days on the dashboard widget.',
+    status: 'todo', priority: 'medium', assigneeId: 'EMP003', reporterId: 'PM001',
+    labels: ['leave-tracker'], estimateHours: 6, loggedHours: 0, dueInDays: 8, createdDaysAgo: 1,
+  },
+  {
+    key: 'IXP-120', projectId: 'PRJ-IXP', type: 'task', title: 'CSV export for the Reports page',
+    description: 'Let managers export the current report view as CSV.',
+    status: 'todo', priority: 'low', assigneeId: 'EMP006', reporterId: 'PM001',
+    labels: ['reports'], estimateHours: 10, loggedHours: 0, dueInDays: 15, createdDaysAgo: 1,
+  },
+  {
+    key: 'IXP-121', projectId: 'PRJ-IXP', type: 'story', title: 'Health-check endpoint for monitoring', sprintId: ACTIVE_SPRINT_ID, startInDays: -3,
+    description: 'Expose /health so the uptime monitor can alert on outages.',
+    status: 'in-review', priority: 'medium', assigneeId: 'EMP005', reporterId: 'PM001',
+    labels: ['devops'], estimateHours: 5, loggedHours: 5, dueInDays: 1, createdDaysAgo: 5,
+  },
   // Sub-tasks: shown inside their parent, not as separate board cards
   {
     key: 'IXP-112', projectId: 'PRJ-IXP', type: 'sub-task', parentId: 'TSK-IXP-102', title: 'Check token refresh flow',

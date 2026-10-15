@@ -1,5 +1,8 @@
 import {
   can,
+  canApprove,
+  canManageSprints,
+  canReassign,
   canCreateSubtask,
   canCreateTask,
   canTransition,
@@ -63,7 +66,7 @@ const MOCK_LATENCY_MS = 250;
 // Shallow copies are enough: the mock replaces objects instead of mutating them
 let tasks: Task[] = sampleTasks.map((task) => ({ ...task }));
 const projects: Project[] = sampleProjects.map((project) => ({ ...project }));
-const sprints: Sprint[] = sampleSprints.map((sprint) => ({ ...sprint }));
+let sprints: Sprint[] = sampleSprints.map((sprint) => ({ ...sprint }));
 const activities: TaskActivity[] = sampleActivities.map((activity) => ({ ...activity }));
 let comments: TaskComment[] = sampleComments.map((comment) => ({ ...comment }));
 let workLogs: WorkLog[] = sampleWorkLogs.map((workLog) => ({ ...workLog }));
@@ -134,6 +137,50 @@ function notifyAssigned(task: Task, actorId: string) {
     message: `${nameOf(actorId)} assigned you "${task.title}"`,
     actionUrl: taskUrl(task),
   });
+}
+
+// The person who unblocks and approves: the assignee's manager, else the reporter
+function approverOf(task: Task): string {
+  return getUserById(task.assigneeId)?.managerId ?? task.reporterId;
+}
+
+// Saves a comment and tells mentioned people and everyone following the task
+function postComment(actor: PermissionUser, task: Task, body: string, mentionIds: string[]): TaskComment {
+  const comment: TaskComment = { id: generateId(), taskId: task.id, authorId: actor.id, body: body.trim(), mentionIds, createdAt: now() };
+  comments = [...comments, comment];
+  recordActivity({ taskId: task.id, actorId: actor.id, type: 'commented' });
+
+  const excerpt = comment.body.length > 120 ? `${comment.body.slice(0, 117)}…` : comment.body;
+  notificationService.notify(mentionIds, actor.id, {
+    type: 'info',
+    title: `${nameOf(actor.id)} mentioned you on ${task.key}`,
+    message: excerpt,
+    actionUrl: taskUrl(task),
+  });
+  // Everyone else involved hears about the comment, once
+  const followers = [task.assigneeId, task.reporterId, ...task.watcherIds].filter((userId) => !mentionIds.includes(userId));
+  notificationService.notify(followers, actor.id, {
+    type: 'info',
+    title: `New comment on ${task.key}`,
+    message: `${nameOf(actor.id)}: ${excerpt}`,
+    actionUrl: taskUrl(task),
+  });
+  return comment;
+}
+
+function findSprint(sprintId: string): Sprint {
+  const sprint = sprints.find((item) => item.id === sprintId);
+  if (!sprint) throw new Error('Sprint not found');
+  return sprint;
+}
+
+function assertCanPlan(actor: PermissionUser, projectId: string) {
+  if (!canManageSprints(actor, findProject(projectId))) throw new TaskPermissionError("You can't plan sprints for this project");
+}
+
+// Moves a task and its sub-tasks together
+function setSprint(task: Task, sprintId: string | undefined) {
+  tasks = tasks.map((item) => (item.id === task.id || item.parentId === task.id ? { ...item, sprintId, updatedAt: now() } : item));
 }
 
 // "HH:MM" plus a number of hours, e.g. 09:30 + 1.5 -> 11:00
@@ -228,7 +275,136 @@ export const taskService = {
       throw new TaskPermissionError("You can't move this task to that status");
     }
     recordActivity({ taskId: id, actorId: actor.id, type: 'status-changed', field: 'status', from: existing.status, to: status });
+    // Work ready for review goes to the approver's "Awaiting my approval" list
+    if (status === 'in-review' && !existing.parentId) {
+      notificationService.notify([approverOf(existing)], actor.id, {
+        type: 'info',
+        title: `${existing.key} is ready for your review`,
+        message: `${nameOf(actor.id)} moved "${existing.title}" to In Review`,
+        actionUrl: taskUrl(existing),
+      });
+    }
     return saveTask({ ...existing, status, updatedAt: now() });
+  },
+
+  /* ---------- Approvals ---------- */
+
+  // POST /api/tasks/:id/approve — In Review -> Done
+  async approve(actor: PermissionUser, id: string): Promise<Task> {
+    await delay();
+    const task = findTask(actor, id);
+    if (!canApprove(actor, task)) throw new TaskPermissionError("You can't approve this task");
+    recordActivity({ taskId: id, actorId: actor.id, type: 'status-changed', field: 'status', from: task.status, to: 'done', note: 'Approved' });
+    notificationService.notify([task.assigneeId], actor.id, {
+      type: 'success',
+      title: `${task.key} approved`,
+      message: `${nameOf(actor.id)} approved "${task.title}" and moved it to Done`,
+      actionUrl: taskUrl(task),
+    });
+    return saveTask({ ...task, status: 'done', updatedAt: now() });
+  },
+
+  // POST /api/tasks/:id/send-back { comment } — In Review -> In Progress, with the reason posted as a comment
+  async sendBack(actor: PermissionUser, id: string, reason: string): Promise<Task> {
+    await delay();
+    const task = findTask(actor, id);
+    if (!canApprove(actor, task)) throw new TaskPermissionError("You can't review this task");
+    if (reason.trim().length < 5) throw new Error('Explain what needs to change (at least 5 characters)');
+
+    recordActivity({ taskId: id, actorId: actor.id, type: 'status-changed', field: 'status', from: task.status, to: 'in-progress', note: 'Sent back' });
+    postComment(actor, task, `Sent back for changes: ${reason.trim()}`, []);
+    notificationService.notify([task.assigneeId], actor.id, {
+      type: 'warning',
+      title: `${task.key} needs changes`,
+      message: `${nameOf(actor.id)}: ${reason.trim()}`,
+      actionUrl: taskUrl(task),
+    });
+    return saveTask({ ...task, status: 'in-progress', updatedAt: now() });
+  },
+
+  /* ---------- Reassign (team board swimlanes) ---------- */
+
+  // PATCH /api/tasks/:id { assigneeId, status? }
+  async reassign(actor: PermissionUser, id: string, assigneeId: string, status?: TaskStatus): Promise<Task> {
+    await delay();
+    const task = findTask(actor, id);
+    if (!canReassign(actor, task, assigneeId)) throw new TaskPermissionError(`You can't assign ${task.key} to ${nameOf(assigneeId)}`);
+    const nextStatus = status && status !== task.status ? status : task.status;
+    if (nextStatus !== task.status && !canTransition(actor, task, nextStatus)) {
+      throw new TaskPermissionError("You can't move this task to that status");
+    }
+
+    recordActivity({ taskId: id, actorId: actor.id, type: 'assigned', from: task.assigneeId, to: assigneeId });
+    if (nextStatus !== task.status) {
+      recordActivity({ taskId: id, actorId: actor.id, type: 'status-changed', field: 'status', from: task.status, to: nextStatus });
+    }
+    const updated = saveTask({ ...task, assigneeId, status: nextStatus, updatedAt: now() });
+    notifyAssigned(updated, actor.id);
+    return updated;
+  },
+
+  /* ---------- Sprints ---------- */
+
+  // POST /api/sprints
+  async createSprint(actor: PermissionUser, input: Pick<Sprint, 'projectId' | 'name' | 'goal' | 'startDate' | 'endDate'>): Promise<Sprint> {
+    await delay();
+    assertCanPlan(actor, input.projectId);
+    if (!input.name.trim()) throw new Error('Give the sprint a name');
+    if (input.endDate <= input.startDate) throw new Error('The sprint must end after it starts');
+    if (sprints.some((sprint) => sprint.projectId === input.projectId && sprint.name.toLowerCase() === input.name.trim().toLowerCase())) {
+      throw new Error(`${input.name.trim()} already exists`);
+    }
+    const sprint: Sprint = { ...input, name: input.name.trim(), goal: input.goal?.trim() || undefined, id: generateId(), status: 'planned' };
+    sprints = [...sprints, sprint];
+    return sprint;
+  },
+
+  // POST /api/sprints/:id/start — one active sprint per project
+  async startSprint(actor: PermissionUser, sprintId: string): Promise<Sprint> {
+    await delay();
+    const sprint = findSprint(sprintId);
+    assertCanPlan(actor, sprint.projectId);
+    if (sprint.status !== 'planned') throw new Error(`${sprint.name} has already started`);
+    const running = sprints.find((item) => item.projectId === sprint.projectId && item.status === 'active');
+    if (running) throw new Error(`Complete ${running.name} before starting another sprint`);
+
+    const started: Sprint = { ...sprint, status: 'active' };
+    sprints = sprints.map((item) => (item.id === sprintId ? started : item));
+    return started;
+  },
+
+  // POST /api/sprints/:id/complete { moveTo } — unfinished work goes to a planned sprint or the backlog
+  async completeSprint(actor: PermissionUser, sprintId: string, moveToSprintId: string | null): Promise<{ sprint: Sprint; moved: number }> {
+    await delay();
+    const sprint = findSprint(sprintId);
+    assertCanPlan(actor, sprint.projectId);
+    if (sprint.status !== 'active') throw new Error(`${sprint.name} isn't running`);
+    if (moveToSprintId) {
+      const target = findSprint(moveToSprintId);
+      if (target.projectId !== sprint.projectId || target.status !== 'planned') throw new Error('Move unfinished work to a planned sprint of the same project');
+    }
+
+    const unfinished = tasks.filter((task) => task.sprintId === sprintId && task.status !== 'done');
+    tasks = tasks.map((task) => (unfinished.includes(task) ? { ...task, sprintId: moveToSprintId ?? undefined, updatedAt: now() } : task));
+    const completed: Sprint = { ...sprint, status: 'completed' };
+    sprints = sprints.map((item) => (item.id === sprintId ? completed : item));
+    return { sprint: completed, moved: unfinished.filter((task) => !task.parentId).length };
+  },
+
+  // PATCH /api/tasks/:id { sprintId } — null moves the task to the backlog
+  async moveToSprint(actor: PermissionUser, id: string, sprintId: string | null): Promise<Task> {
+    await delay();
+    const task = findTask(actor, id);
+    assertCanPlan(actor, task.projectId);
+    if (task.parentId) throw new Error('Sub-tasks move with their parent task');
+    if (sprintId) {
+      const sprint = findSprint(sprintId);
+      if (sprint.projectId !== task.projectId) throw new Error('Choose a sprint from the same project');
+      if (sprint.status === 'completed') throw new Error(`${sprint.name} is already completed`);
+    }
+    setSprint(task, sprintId ?? undefined);
+    recordActivity({ taskId: id, actorId: actor.id, type: 'updated', field: 'sprint', to: sprintId ? findSprint(sprintId).name : 'the backlog' });
+    return findTask(actor, id);
   },
 
   // POST /api/tasks/:id/duplicate
@@ -330,8 +506,8 @@ export const taskService = {
     const updated = saveTask({ ...existing, isBlocked: blocked, blockedReason: blocked ? reason.trim() : undefined, updatedAt: now() });
     recordActivity({ taskId: id, actorId: actor.id, type: blocked ? 'blocked' : 'unblocked', note: blocked ? reason.trim() : undefined });
 
-    // The assignee's manager unblocks; fall back to the reporter when there's no manager on record
-    const managerId = getUserById(existing.assigneeId)?.managerId ?? existing.reporterId;
+    // The assignee's manager unblocks (or the reporter when there's no manager on record)
+    const managerId = approverOf(existing);
     notificationService.notify([managerId], actor.id, {
       type: blocked ? 'warning' : 'success',
       title: blocked ? `${existing.key} is blocked` : `${existing.key} is unblocked`,
@@ -380,27 +556,7 @@ export const taskService = {
     const task = findTask(actor, id);
     assertCan(actor, 'task.comment', task, "You can't comment on this task");
     if (!body.trim()) throw new Error('Write a comment first');
-
-    const comment: TaskComment = { id: generateId(), taskId: id, authorId: actor.id, body: body.trim(), mentionIds, createdAt: now() };
-    comments = [...comments, comment];
-    recordActivity({ taskId: id, actorId: actor.id, type: 'commented' });
-
-    const excerpt = comment.body.length > 120 ? `${comment.body.slice(0, 117)}…` : comment.body;
-    notificationService.notify(mentionIds, actor.id, {
-      type: 'info',
-      title: `${nameOf(actor.id)} mentioned you on ${task.key}`,
-      message: excerpt,
-      actionUrl: taskUrl(task),
-    });
-    // Everyone else involved hears about the comment, once
-    const followers = [task.assigneeId, task.reporterId, ...task.watcherIds].filter((userId) => !mentionIds.includes(userId));
-    notificationService.notify(followers, actor.id, {
-      type: 'info',
-      title: `New comment on ${task.key}`,
-      message: `${nameOf(actor.id)}: ${excerpt}`,
-      actionUrl: taskUrl(task),
-    });
-    return comment;
+    return postComment(actor, task, body, mentionIds);
   },
 
   /* ---------- History & work log ---------- */

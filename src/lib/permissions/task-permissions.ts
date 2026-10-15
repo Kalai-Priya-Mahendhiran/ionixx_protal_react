@@ -1,6 +1,6 @@
 import type { UserRole } from '@/lib/mock-users';
 import { USER_DIRECTORY, getTeamOf } from '@/lib/user-directory';
-import type { Task, TaskStatus, TaskUser } from '@/types';
+import type { Project, Task, TaskStatus, TaskUser } from '@/types';
 
 /*
  * Single source of truth for what each role may do in the Tasks module.
@@ -19,6 +19,7 @@ export type TaskAction =
   | 'task.comment'
   | 'task.logWork'
   | 'task.watch'
+  | 'sprint.manage'
   | 'workflow.configure'
   | 'reports.view';
 
@@ -37,6 +38,7 @@ export const TASK_PERMISSION_MATRIX: Record<TaskAction, Record<UserRole, Permiss
   'task.comment':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
   'task.logWork':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
   'task.watch':         { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'all' },
+  'sprint.manage':      { employee: 'none', project_manager: 'team', hr: 'none', admin: 'all',  system_admin: 'all',  executive: 'none' },
   'workflow.configure': { employee: 'none', project_manager: 'none', hr: 'none', admin: 'none', system_admin: 'all',  executive: 'none' },
   'reports.view':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'all' },
 };
@@ -173,4 +175,43 @@ export function canOpenTaskView(user: PermissionUser | null | undefined, view: s
 // The requested view if the user may open it, otherwise their role's default
 export function resolveTaskView(user: PermissionUser, requested: string | null): TaskView {
   return requested && canOpenTaskView(user, requested) ? requested : DEFAULT_TASK_VIEW[user.role];
+}
+
+/* ---------- Manager tools (Phase 3) ---------- */
+
+// Sprints belong to a project: managers plan the projects they lead or work in, admins plan all
+export function canManageSprints(user: PermissionUser | null | undefined, project: Pick<Project, 'leadId' | 'memberIds'>): boolean {
+  switch (getScope(user, 'sprint.manage')) {
+    case 'all':
+      return true;
+    case 'team':
+      return !!user && (project.leadId === user.id || project.memberIds.includes(user.id));
+    default:
+      return false;
+  }
+}
+
+// Reviewing your own work doesn't count as an approval
+export function canApprove(user: PermissionUser | null | undefined, task: Task): boolean {
+  return !!user && task.status === 'in-review' && task.assigneeId !== user.id && can(user, 'task.approve', task);
+}
+
+// Moving a card to someone else's swimlane: edit the task and assign it to that person
+export function canReassign(user: PermissionUser | null | undefined, task: Task, assigneeId: string): boolean {
+  return task.assigneeId !== assigneeId && can(user, 'task.edit', task) && can(user, 'task.assign', { ...task, assigneeId });
+}
+
+export type ManagerSection = 'board' | 'workload' | 'sprints' | 'approvals';
+
+const MANAGER_SECTION_REQUIREMENTS: Record<ManagerSection, (user: PermissionUser) => boolean> = {
+  board: () => true,
+  workload: (user) => ['team', 'all'].includes(getScope(user, 'task.view')) && can(user, 'task.assign'),
+  sprints: (user) => can(user, 'sprint.manage'),
+  approvals: (user) => can(user, 'task.approve'),
+};
+
+// Sections shown as tabs on the Tasks page; just ['board'] means no tabs
+export function getManagerSections(user: PermissionUser | null | undefined): ManagerSection[] {
+  if (!user) return ['board'];
+  return (Object.keys(MANAGER_SECTION_REQUIREMENTS) as ManagerSection[]).filter((section) => MANAGER_SECTION_REQUIREMENTS[section](user));
 }

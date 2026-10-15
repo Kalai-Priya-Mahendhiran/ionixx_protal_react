@@ -240,11 +240,19 @@ function describeActivity(activity: TaskActivity): ReactNode {
     case 'created':
       return 'created the task';
     case 'updated':
-      return 'updated the details';
+      return activity.field === 'sprint' ? (
+        <>
+          moved this to <b>{activity.to}</b>
+        </>
+      ) : (
+        'updated the details'
+      );
     case 'status-changed':
+      // Approvals record a note ("Approved" / "Sent back") on top of the status change
       return (
         <>
-          changed status from <b>{statusLabel(activity.from)}</b> to <b>{statusLabel(activity.to)}</b>
+          {activity.note ? `${activity.note.toLowerCase()} this — ` : ''}changed status from <b>{statusLabel(activity.from)}</b> to{' '}
+          <b>{statusLabel(activity.to)}</b>
         </>
       );
     case 'assigned':

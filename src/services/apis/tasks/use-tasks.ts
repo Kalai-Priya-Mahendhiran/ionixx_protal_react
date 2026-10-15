@@ -179,3 +179,82 @@ export const useLogWork = () =>
     ({ task, input }) => `${input.hours}h logged on ${task.key} and added to your Time Tracker`,
     [TIME_ENTRIES_KEY],
   );
+
+/* ---------- Manager tools ---------- */
+
+export const useApproveTask = () =>
+  useTaskMutation((actor, task: Task) => taskService.approve(actor, task.id), (task) => `${task.key} approved and moved to Done`);
+
+export const useSendBackTask = () =>
+  useTaskMutation(
+    (actor, { task, reason }: { task: Task; reason: string }) => taskService.sendBack(actor, task.id, reason),
+    ({ task }) => `${task.key} sent back to In Progress`,
+  );
+
+// Optimistic update shared by drag-and-drop moves, rolled back if the server refuses
+function useOptimisticTaskMove<TVariables extends { task: Task }>(
+  mutationFn: (actor: PermissionUser, variables: TVariables) => Promise<unknown>,
+  applyChange: (task: Task, variables: TVariables) => Task,
+  successMessage: (variables: TVariables) => string,
+  extraKeys: readonly (readonly string[])[] = [],
+) {
+  const actor = useActor();
+  const queryClient = useQueryClient();
+  const queryKey = [...TASKS_KEY, actor.id];
+
+  return useMutation({
+    mutationFn: (variables: TVariables) => mutationFn(actor, variables),
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<Task[]>(queryKey);
+      queryClient.setQueryData<Task[]>(queryKey, (tasks) =>
+        tasks?.map((item) => (item.id === variables.task.id ? applyChange(item, variables) : item)),
+      );
+      return { previous };
+    },
+    onError: (error, _variables, context) => {
+      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
+      toast.error(errorMessage(error));
+    },
+    onSuccess: (_result, variables) => toast.success(successMessage(variables)),
+    onSettled: () => [TASKS_KEY, NOTIFICATIONS_KEY, ...extraKeys].forEach((key) => queryClient.invalidateQueries({ queryKey: key })),
+  });
+}
+
+export const useReassignTask = () =>
+  useOptimisticTaskMove(
+    (actor, { task, assigneeId, status }: { task: Task; assigneeId: string; assigneeName: string; status?: TaskStatus }) =>
+      taskService.reassign(actor, task.id, assigneeId, status),
+    (task, { assigneeId, status }) => ({ ...task, assigneeId, status: status ?? task.status }),
+    ({ task, assigneeName }) => `${task.key} assigned to ${assigneeName}`,
+  );
+
+export const useMoveToSprint = () =>
+  useOptimisticTaskMove(
+    (actor, { task, sprintId }: { task: Task; sprintId: string | null; targetName: string }) => taskService.moveToSprint(actor, task.id, sprintId),
+    (task, { sprintId }) => ({ ...task, sprintId: sprintId ?? undefined }),
+    ({ task, targetName }) => `${task.key} moved to ${targetName}`,
+    [SPRINTS_KEY],
+  );
+
+export const useCreateSprint = () =>
+  useTaskMutation(
+    (actor, input: Parameters<typeof taskService.createSprint>[1]) => taskService.createSprint(actor, input),
+    (input) => `${input.name} created`,
+    [SPRINTS_KEY],
+  );
+
+export const useStartSprint = () =>
+  useTaskMutation(
+    (actor, sprint: { id: string; name: string }) => taskService.startSprint(actor, sprint.id),
+    (sprint) => `${sprint.name} started`,
+    [SPRINTS_KEY],
+  );
+
+export const useCompleteSprint = () =>
+  useTaskMutation(
+    (actor, { sprint, moveToSprintId }: { sprint: { id: string; name: string }; moveToSprintId: string | null }) =>
+      taskService.completeSprint(actor, sprint.id, moveToSprintId),
+    ({ sprint }) => `${sprint.name} completed`,
+    [SPRINTS_KEY],
+  );

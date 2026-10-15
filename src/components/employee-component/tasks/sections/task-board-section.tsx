@@ -1,16 +1,13 @@
-import { useState, type ReactNode, type SyntheticEvent } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
   PointerSensor,
-  pointerWithin,
-  rectIntersection,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors,
-  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
@@ -28,20 +25,8 @@ import { TaskActionsMenu } from './task-actions-menu';
 import { DueDateChip, TaskTypeIcon } from './task-badges';
 import { BOARD_COLUMNS, TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getBoardColumn, getLabelColor } from './task-config';
 import type { SubtaskProgress } from './task-utils';
+import { KEYBOARD_OPTIONS, cardClass, collisionDetection, dropAreaClass, stopPropagation, type DropState } from './board-dnd';
 
-type DropState = 'idle' | 'origin' | 'allowed' | 'blocked';
-
-// Space picks a card up and drops it, so Enter stays free for opening the task
-const KEYBOARD_OPTIONS = { keyboardCodes: { start: ['Space'], cancel: ['Escape'], end: ['Space'] } };
-
-// Prefer the column under the pointer; fall back to overlap (keyboard dragging has no pointer)
-const collisionDetection: CollisionDetection = (args) => {
-  const hits = pointerWithin(args);
-  return hits.length > 0 ? hits : rectIntersection(args);
-};
-
-// Keeps clicks, key presses and pointer-downs inside the "…" menu from opening the card or starting a drag
-const stopPropagation = (event: SyntheticEvent) => event.stopPropagation();
 
 function AssigneeAvatar({ userId }: { userId: string }) {
   const user = getUserById(userId);
@@ -68,7 +53,7 @@ interface CardContentProps {
   menu?: ReactNode;
 }
 
-function BoardCardContent({ task, epic, progress, menu }: CardContentProps) {
+export function BoardCardContent({ task, epic, progress, menu }: CardContentProps) {
   const priority = TASK_PRIORITY_CONFIG[task.priority];
   const PriorityIcon = priority.icon;
   const isBlocked = task.isBlocked && task.status !== 'done';
@@ -147,12 +132,6 @@ function BoardCardContent({ task, epic, progress, menu }: CardContentProps) {
   );
 }
 
-const cardClass = (task: Task) =>
-  cn(
-    'rounded-lg border border-gray-200 bg-white p-3 shadow-sm',
-    task.isBlocked && task.status !== 'done' && 'border-l-4 border-l-red-500',
-  );
-
 interface BoardCardProps {
   task: Task;
   epic?: EpicSummary;
@@ -162,7 +141,7 @@ interface BoardCardProps {
   onDelete: (task: Task) => void;
 }
 
-function BoardCard({ task, epic, progress, onOpen, onEdit, onDelete }: BoardCardProps) {
+export function BoardCard({ task, epic, progress, onOpen, onEdit, onDelete }: BoardCardProps) {
   const { user } = useAuth();
   const canDrag = can(user, 'task.changeStatus', task);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id, data: { task }, disabled: !canDrag });
@@ -226,9 +205,7 @@ function BoardColumn({ status, label, dotClass, count, dropState, onCreate, chil
       aria-label={`${label} column`}
       className={cn(
         'flex w-72 shrink-0 flex-col rounded-xl bg-indigo-50/60 p-3 transition-colors xl:w-auto xl:min-w-0 xl:flex-1',
-        dropState === 'allowed' && 'bg-indigo-50 outline-dashed outline-2 outline-[#464EB8]/30',
-        dropState === 'allowed' && isOver && 'bg-indigo-100/70 outline-[#464EB8]',
-        dropState === 'blocked' && 'opacity-50',
+        dropAreaClass(dropState, isOver),
       )}
     >
       <header className="mb-3 flex items-center justify-between px-1">

@@ -493,3 +493,17 @@ export const flagBlockedSchema = z.object({
 });
 
 export type FlagBlockedFormValues = z.infer<typeof flagBlockedSchema>;
+
+export const sprintSchema = z
+  .object({
+    name: z.string().trim().min(1, "Give the sprint a name").max(60, "Keep the name under 60 characters"),
+    goal: z.string().trim().max(200, "Keep the goal under 200 characters"),
+    startDate: z.string().min(1, "Start date is required"),
+    endDate: z.string().min(1, "End date is required"),
+  })
+  .refine((values) => !values.startDate || !values.endDate || values.endDate > values.startDate, {
+    path: ["endDate"],
+    message: "The sprint must end after it starts",
+  });
+
+export type SprintFormValues = z.infer<typeof sprintSchema>;

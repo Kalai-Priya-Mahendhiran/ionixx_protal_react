@@ -152,3 +152,59 @@ export function getDurationDays(startDate: string, dueDate: string): number {
 export function parseLabels(value: string): string[] {
   return [...new Set(value.split(',').map((label) => label.trim()).filter(Boolean))];
 }
+
+/* ---------- Manager tools ---------- */
+
+export const DEFAULT_WORKLOAD_THRESHOLD = 40;
+
+export interface WorkloadRow {
+  userId: string;
+  openTasks: number;
+  estimateHours: number;
+  loggedHours: number;
+  // Estimate minus logged on open work: what this person still has to do
+  remainingHours: number;
+  overdue: number;
+  blocked: number;
+}
+
+const round = (value: number) => Math.round(value * 10) / 10;
+
+// Open (not done) top-level work per person. Sub-tasks are part of their parent's estimate, and
+// epics are left out: their estimate covers the whole initiative, not one person's work
+export function getWorkload(tasks: Task[], userIds: string[], today: Date = new Date()): WorkloadRow[] {
+  return userIds.map((userId) => {
+    const open = tasks.filter((task) => !task.parentId && task.type !== 'epic' && task.assigneeId === userId && task.status !== 'done');
+    const estimateHours = open.reduce((sum, task) => sum + (task.estimateHours ?? 0), 0);
+    const loggedHours = open.reduce((sum, task) => sum + task.loggedHours, 0);
+    const remainingHours = open.reduce((sum, task) => sum + Math.max(0, (task.estimateHours ?? 0) - task.loggedHours), 0);
+    return {
+      userId,
+      openTasks: open.length,
+      estimateHours: round(estimateHours),
+      loggedHours: round(loggedHours),
+      remainingHours: round(remainingHours),
+      overdue: open.filter((task) => getDueState(task, today) === 'overdue').length,
+      blocked: open.filter((task) => task.isBlocked).length,
+    };
+  });
+}
+
+export interface TeamAlerts {
+  overdue: Task[];
+  blocked: Task[];
+}
+
+// Open top-level work that needs a manager's attention, most urgent first
+export function getTeamAlerts(tasks: Task[], today: Date = new Date()): TeamAlerts {
+  const open = tasks.filter((task) => !task.parentId && task.status !== 'done');
+  return {
+    overdue: open.filter((task) => getDueState(task, today) === 'overdue').sort((a, b) => a.dueDate.localeCompare(b.dueDate)),
+    blocked: open.filter((task) => task.isBlocked),
+  };
+}
+
+// "Waiting 3d" style age for review queues
+export function daysSince(iso: string, today: Date = new Date()): number {
+  return Math.max(0, Math.floor((today.getTime() - new Date(iso).getTime()) / MS_PER_DAY));
+}

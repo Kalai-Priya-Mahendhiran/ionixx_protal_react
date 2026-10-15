@@ -4,6 +4,10 @@ import type { Task } from '@/types';
 import {
   DEFAULT_TASK_VIEW,
   can,
+  canApprove,
+  canManageSprints,
+  canReassign,
+  getManagerSections,
   canCreateSubtask,
   canCreateTask,
   canTransition,
@@ -181,5 +185,40 @@ describe('Phase 2 rules', () => {
     expect(can(executive, 'task.watch', outsideTask)).toBe(true);
     expect(can(executive, 'task.comment', outsideTask)).toBe(false);
     expect(can(executive, 'task.logWork', outsideTask)).toBe(false);
+  });
+});
+
+describe('Phase 3 manager rules', () => {
+  const ixp = { leadId: 'PM001', memberIds: ['PM001', 'EMP001'] };
+  const hrProject = { leadId: 'HR001', memberIds: ['HR001'] };
+
+  it('lets managers plan sprints only in their projects; admins everywhere; employees nowhere', () => {
+    expect(canManageSprints(manager, ixp)).toBe(true);
+    expect(canManageSprints(manager, hrProject)).toBe(false);
+    expect(canManageSprints(admin, hrProject)).toBe(true);
+    expect(canManageSprints(employee, ixp)).toBe(false);
+    expect(canManageSprints(hr, hrProject)).toBe(false);
+  });
+
+  it('approves team work in review, but never your own', () => {
+    const inReview = makeTask({ status: 'in-review', assigneeId: 'EMP002', reporterId: 'EMP002' });
+    expect(canApprove(manager, inReview)).toBe(true);
+    expect(canApprove(manager, { ...inReview, assigneeId: 'PM001' })).toBe(false);
+    expect(canApprove(manager, { ...inReview, status: 'in-progress' })).toBe(false);
+    expect(canApprove(employee, inReview)).toBe(false);
+  });
+
+  it('reassigns only to people the user may assign to', () => {
+    expect(canReassign(manager, teamTask, 'EMP003')).toBe(true);
+    expect(canReassign(manager, teamTask, 'HR001')).toBe(false);
+    expect(canReassign(employee, makeTask(), 'EMP002')).toBe(false);
+  });
+
+  it('shows manager tools by role', () => {
+    expect(getManagerSections(manager)).toEqual(['board', 'workload', 'sprints', 'approvals']);
+    expect(getManagerSections(admin)).toEqual(['board', 'workload', 'sprints', 'approvals']);
+    expect(getManagerSections(sysAdmin)).toEqual(['board', 'workload', 'sprints']);
+    expect(getManagerSections(employee)).toEqual(['board']);
+    expect(getManagerSections(executive)).toEqual(['board']);
   });
 });
