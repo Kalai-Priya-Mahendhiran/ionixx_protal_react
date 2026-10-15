@@ -171,6 +171,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
   project_manager: [
     ITEM.dashboard,
     ITEM.profile,
+    ITEM.tasks,
     ITEM.teamOverview,
     ITEM.approvals,
     ITEM.attendanceMonitoring,
@@ -180,6 +181,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
   hr: [
     ITEM.dashboard,
     ITEM.profile,
+    ITEM.tasks,
     ITEM.employeeManagement,
     ITEM.recruitment,
     ITEM.training,
@@ -189,6 +191,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
   executive: [
     ITEM.dashboard,
     ITEM.profile,
+    ITEM.tasks,
     ITEM.analytics,
     ITEM.kpiMonitoring,
     ITEM.reports,
@@ -196,6 +199,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
   system_admin: [
     ITEM.dashboard,
     ITEM.profile,
+    ITEM.tasks,
     ITEM.userManagement,
     ITEM.rolesPermissions,
     ITEM.systemConfig,
@@ -205,6 +209,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
   admin: [
     ITEM.dashboard,
     ITEM.profile,
+    ITEM.tasks,
     ITEM.teamOverview,
     ITEM.approvals,
     ITEM.attendanceMonitoring,
@@ -234,7 +239,7 @@ export const ROLE_ROUTE_ACCESS: Record<string, UserRole[]> = {
   [ROUTES.Attendance]: ["employee", "admin"],
   [ROUTES.TimeTracker]: ["employee", "admin"],
   [ROUTES.Leave]: ["employee", "admin"],
-  [ROUTES.Tasks]: ["employee", "admin"],
+  [ROUTES.Tasks]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
   [ROUTES.Files]: ["employee", "admin"],
   [ROUTES.Organization]: ["employee", "admin"],
 

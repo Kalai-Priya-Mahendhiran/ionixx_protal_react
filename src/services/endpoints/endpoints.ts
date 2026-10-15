@@ -27,11 +27,15 @@ export const endpoints = {
   updateLeaveRequest: "api/leave/requests",
   leaveBalance: "api/leave/balance",
   
-  // Tasks
-  tasks: "api/tasks",
-  createTask: "api/tasks",
-  updateTask: "api/tasks",
-  deleteTask: "api/tasks",
+  // Tasks (the backend must enforce the same permission matrix as lib/permissions/task-permissions.ts)
+  tasks: "api/tasks", // GET list (visible to caller), POST create
+  task: "api/tasks/:id", // GET, PATCH, DELETE
+  taskStatus: "api/tasks/:id/status", // POST { status }
+  duplicateTask: "api/tasks/:id/duplicate", // POST
+  projects: "api/projects",
+  sprints: "api/sprints", // GET, scoped to projects the caller belongs to
+  epics: "api/epics", // GET epic summaries for the epic picker
+  userDirectory: "api/users/directory",
   
   // Files
   files: "api/files",

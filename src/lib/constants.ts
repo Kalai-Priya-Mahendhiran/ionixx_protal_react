@@ -179,20 +179,6 @@ export const HOLIDAY_TYPE_LABELS = {
   restricted: "Restricted",
 };
 
-export const TASK_STATUS = [
-  { id: "pending", label: "Pending", color: "bg-yellow-100 text-yellow-800" },
-  { id: "in-progress", label: "In Progress", color: "bg-blue-100 text-blue-800" },
-  { id: "completed", label: "Completed", color: "bg-green-100 text-green-800" },
-  { id: "cancelled", label: "Cancelled", color: "bg-red-100 text-red-800" },
-] ;
-
-export const TASK_PRIORITY = [
-  { id: "low", label: "Low", color: "bg-gray-100 text-gray-800" },
-  { id: "medium", label: "Medium", color: "bg-yellow-100 text-yellow-800" },
-  { id: "high", label: "High", color: "bg-orange-100 text-orange-800" },
-  { id: "urgent", label: "Urgent", color: "bg-red-100 text-red-800" },
-] ;
-
 export const ATTENDANCE_STATUS = [
   { id: "present", label: "Present", color: "bg-green-100 text-green-800" },
   { id: "absent", label: "Absent", color: "bg-red-100 text-red-800" },

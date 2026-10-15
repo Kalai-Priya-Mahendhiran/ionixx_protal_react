@@ -1,76 +1,57 @@
+import { Ban, CheckCircle2, CheckSquare, Circle, Eye, Loader, type LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckSquare, Clock, User } from 'lucide-react';
-import type { Task } from '@/types';
+import { cn } from '@/lib/utils';
+import type { TaskStatusFilter } from './task-utils';
+
+const STAT_CARDS: { filter: TaskStatusFilter; label: string; icon: LucideIcon; iconClass: string }[] = [
+  { filter: 'all', label: 'Total Tasks', icon: CheckSquare, iconClass: 'bg-indigo-100 text-indigo-600' },
+  { filter: 'todo', label: 'To Do', icon: Circle, iconClass: 'bg-gray-100 text-gray-600' },
+  { filter: 'in-progress', label: 'In Progress', icon: Loader, iconClass: 'bg-blue-100 text-blue-600' },
+  { filter: 'in-review', label: 'In Review', icon: Eye, iconClass: 'bg-purple-100 text-purple-600' },
+  { filter: 'done', label: 'Done', icon: CheckCircle2, iconClass: 'bg-green-100 text-green-600' },
+  { filter: 'blocked', label: 'Blocked', icon: Ban, iconClass: 'bg-red-100 text-red-600' },
+];
 
 interface TaskStatsSectionProps {
-  tasks: Task[];
+  counts: Record<TaskStatusFilter, number>;
+  activeFilter: TaskStatusFilter;
+  isLoading: boolean;
+  onSelect: (filter: TaskStatusFilter) => void;
 }
 
-export function TaskStatsSection({ tasks }: TaskStatsSectionProps) {
-  const taskStats = {
-    total: tasks.length,
-    pending: tasks.filter(t => t.status === 'pending').length,
-    inProgress: tasks.filter(t => t.status === 'in-progress').length,
-    completed: tasks.filter(t => t.status === 'completed').length,
-  };
-
+export function TaskStatsSection({ counts, activeFilter, isLoading, onSelect }: TaskStatsSectionProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center space-x-4">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <CheckSquare className="h-6 w-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Tasks</p>
-              <p className="text-2xl font-bold text-gray-900">{taskStats.total}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center space-x-4">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <Clock className="h-6 w-6 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pending</p>
-              <p className="text-2xl font-bold text-gray-900">{taskStats.pending}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center space-x-4">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <User className="h-6 w-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">In Progress</p>
-              <p className="text-2xl font-bold text-gray-900">{taskStats.inProgress}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center space-x-4">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <CheckSquare className="h-6 w-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Completed</p>
-              <p className="text-2xl font-bold text-gray-900">{taskStats.completed}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+      {STAT_CARDS.map(({ filter, label, icon: Icon, iconClass }) => {
+        const isActive = activeFilter === filter;
+        return (
+          <button
+            key={filter}
+            type="button"
+            onClick={() => onSelect(filter)}
+            aria-pressed={isActive}
+            className="rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#464EB8]/50"
+          >
+            <Card className={cn('h-full transition-all hover:shadow-md', isActive && 'ring-2 ring-[#464EB8] shadow-md')}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className={cn('rounded-lg p-2', iconClass)}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">{label}</p>
+                    {isLoading ? (
+                      <div className="mt-1 h-7 w-8 animate-pulse rounded bg-gray-200" />
+                    ) : (
+                      <p className="text-2xl font-bold text-gray-900">{counts[filter]}</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </button>
+        );
+      })}
     </div>
   );
 }

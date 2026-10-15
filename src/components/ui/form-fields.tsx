@@ -6,6 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 export interface Option {
   value: string;
   label: string;
+  // Shown before the label, in the list and in the selected value
+  icon?: ReactNode;
+  // Secondary line shown only in the open list
+  hint?: string;
 }
 
 export const toOptions = (values: readonly string[]): Option[] => values.map((value) => ({ value, label: value }));
@@ -61,7 +65,20 @@ export function SelectField<T extends FieldValues>({
             </FormControl>
             <SelectContent>
               {options.map((option) => (
-                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                <SelectItem key={option.value} value={option.value}>
+                  {option.icon || option.hint ? (
+                    <span className="flex items-center gap-2">
+                      {option.icon}
+                      <span>
+                        {option.label}
+                        {/* The trigger is a <button>, so the hint only shows in the open list */}
+                        {option.hint && <span className="block text-xs text-gray-500 [button_&]:hidden">{option.hint}</span>}
+                      </span>
+                    </span>
+                  ) : (
+                    option.label
+                  )}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>

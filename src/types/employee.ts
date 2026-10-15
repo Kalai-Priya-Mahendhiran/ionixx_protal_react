@@ -53,20 +53,6 @@ export interface Holiday {
   type: 'public' | 'restricted'
 }
 
-export interface Task {
-  id: string
-  title: string
-  description: string
-  assignee: string
-  assigner: string
-  priority: 'low' | 'medium' | 'high' | 'urgent'
-  status: 'pending' | 'in-progress' | 'completed'
-  dueDate: string
-  createdDate: string
-  completedDate?: string
-  progress: number
-}
-
 export interface TimeEntry {
   id: string
   userId: string

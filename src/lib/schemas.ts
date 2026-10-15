@@ -345,14 +345,39 @@ export const leaveRequestSchema = z.object({
 
 export type LeaveRequestFormValues = z.infer<typeof leaveRequestSchema>;
 
-export const taskSchema = z.object({
-  title: z.string().min(1, "Task title is required"),
-  description: z.string().min(1, "Task description is required"),
-  priority: z.string().min(1, "Priority is required"),
-  dueDate: z.string().min(1, "Due date is required"),
-  assignee: z.string().min(1, "Assignee is required"),
-  status: z.string().default("pending"),
-});
+// Tasks module: default workflow, issue types and priorities
+export const TASK_WORKFLOW_STATUSES = ["todo", "in-progress", "in-review", "done", "reopened"] as const;
+export const TASK_ISSUE_TYPES = ["task", "bug", "story", "epic", "sub-task", "hr"] as const;
+export const TASK_PRIORITIES = ["low", "medium", "high", "urgent"] as const;
+
+// Select value meaning "no epic" / "backlog" (Radix Select items can't use an empty string)
+export const TASK_FIELD_NONE = "none";
+
+export const taskSchema = z
+  .object({
+    title: z.string().trim().min(1, "Task title is required").max(200, "Keep the title under 200 characters"),
+    description: z.string().trim().max(5000, "Keep the description under 5000 characters"),
+    projectId: z.string().min(1, "Select a project"),
+    type: z.enum(TASK_ISSUE_TYPES, { required_error: "Select a task type" }),
+    priority: z.enum(TASK_PRIORITIES, { required_error: "Select a priority" }),
+    assigneeId: z.string().min(1, "Select an assignee"),
+    epicId: z.string(),
+    sprintId: z.string(),
+    startDate: z.string(),
+    dueDate: z.string().min(1, "Due date is required"),
+    estimateHours: z
+      .string()
+      .trim()
+      .refine((value) => value === "" || (Number(value) > 0 && Number(value) <= 999), "Enter hours between 0 and 999"),
+    // Comma-separated in the form, split into an array on submit
+    labels: z.string(),
+  })
+  .refine((values) => !values.startDate || !values.dueDate || values.dueDate >= values.startDate, {
+    path: ["dueDate"],
+    message: "Due date can't be before the start date",
+  });
+
+export type TaskFormValues = z.infer<typeof taskSchema>;
 
 export const attendanceSchema = z.object({
   date: z.string().min(1, "Date is required"),
