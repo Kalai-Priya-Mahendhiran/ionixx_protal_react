@@ -8,6 +8,7 @@ import {
   canManageSprints,
   canReassign,
   getManagerSections,
+  getSectionsForView,
   canCreateSubtask,
   canCreateTask,
   canTransition,
@@ -131,8 +132,9 @@ describe('canTransition()', () => {
 });
 
 describe('getVisibleTasks()', () => {
-  it('limits HR to HR tasks plus their own', () => {
-    expect(getVisibleTasks(hr, sampleTasks).every((task) => task.type === 'hr' || task.assigneeId === 'HR001')).toBe(true);
+  it('limits HR to HR-type tasks only, even project work they are involved in', () => {
+    expect(getVisibleTasks(hr, sampleTasks).every((task) => task.type === 'hr')).toBe(true);
+    expect(can(hr, 'task.view', makeTask({ type: 'task', assigneeId: 'HR001', reporterId: 'HR001' }))).toBe(false);
   });
 
   it('shows admin every task', () => {
@@ -220,5 +222,22 @@ describe('Phase 3 manager rules', () => {
     expect(getManagerSections(sysAdmin)).toEqual(['board', 'workload', 'sprints']);
     expect(getManagerSections(employee)).toEqual(['board']);
     expect(getManagerSections(executive)).toEqual(['board']);
+  });
+});
+
+describe('Phase 4 HR rules', () => {
+  it('lets HR, admins and system admins manage templates', () => {
+    expect(can(hr, 'template.manage')).toBe(true);
+    expect(can(admin, 'template.manage')).toBe(true);
+    expect(can(sysAdmin, 'template.manage')).toBe(true);
+    expect(can(manager, 'template.manage')).toBe(false);
+    expect(can(employee, 'template.manage')).toBe(false);
+  });
+
+  it('shows HR tools on the HR view and manager tools on team views', () => {
+    expect(getSectionsForView(hr, 'hr-tasks')).toEqual(['board', 'checklists', 'templates']);
+    expect(getSectionsForView(admin, 'hr-tasks')).toEqual(['board', 'checklists', 'templates']);
+    expect(getSectionsForView(manager, 'team-board')).toEqual(['board', 'workload', 'sprints', 'approvals']);
+    expect(getSectionsForView(manager, 'my-tasks')).toEqual(['board']);
   });
 });

@@ -37,6 +37,8 @@ import type {
 import { fileService } from '../files/file-service';
 import { notificationService } from '../notifications/notification-service';
 import { timeEntryService } from '../time-tracker/time-entry-service';
+import { templateService } from '../templates/template-service';
+import { planChecklist } from '@/lib/task-templates';
 
 /*
  * Task data access. Every method is async and mirrors a REST endpoint (see `endpoints.tasks*`),
@@ -437,6 +439,77 @@ export const taskService = {
     assertCan(actor, 'task.delete', existing);
     tasks = tasks.filter((task) => task.id !== id && task.parentId !== id);
     recordActivity({ taskId: id, actorId: actor.id, type: 'deleted', from: existing.key });
+  },
+
+  /* ---------- HR checklists from templates ---------- */
+
+  // POST /api/task-templates/:id/apply { subjectId, anchorDate }
+  // Creates one HR parent task (the checklist) with each template item as a sub-task
+  async applyTemplate(actor: PermissionUser, templateId: string, subjectId: string, anchorDate: string): Promise<Task> {
+    await delay();
+    if (!can(actor, 'template.manage')) throw new TaskPermissionError("You can't apply templates");
+    const template = templateService.get(templateId);
+    const subject = getUserById(subjectId);
+    if (!subject) throw new Error('Choose the employee this checklist is for');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(anchorDate)) throw new Error('Choose a valid date');
+    const project = projects.find((item) => item.defaultIssueType === 'hr');
+    if (!project) throw new Error('There is no HR project to create the checklist in');
+    // A second open checklist from the same template for the same person would duplicate work
+    if (tasks.some((task) => !task.parentId && task.templateId === templateId && task.subjectId === subjectId && task.status !== 'done')) {
+      throw new Error(`${subject.name} already has an open "${template.name}" checklist`);
+    }
+
+    const plan = planChecklist(template, subjectId, anchorDate, actor);
+    plan.items.forEach(({ item, assigneeId }) => {
+      if (!canCreateTask(actor, { assigneeId, type: 'hr' })) throw new TaskPermissionError(`You can't assign "${item.title}" to ${nameOf(assigneeId)}`);
+    });
+
+    const timestamp = now();
+    const base = { projectId: project.id, type: 'hr' as const, reporterId: actor.id, watcherIds: [], labels: [template.kind], loggedHours: 0, isBlocked: false, attachments: [], templateId, subjectId, createdAt: timestamp, updatedAt: timestamp };
+    const parent: Task = {
+      ...base,
+      id: generateId(),
+      key: nextTaskKey(project),
+      title: plan.title,
+      description: template.description ?? '',
+      status: 'todo',
+      priority: 'high',
+      assigneeId: actor.id,
+      startDate: plan.startDate,
+      dueDate: plan.dueDate,
+      estimateHours: plan.estimateHours,
+    };
+    tasks = [parent, ...tasks];
+    plan.items.forEach(({ item, assigneeId, dueDate }) => {
+      const subtask: Task = {
+        ...base,
+        id: generateId(),
+        key: nextTaskKey(project),
+        title: item.title,
+        description: item.description ?? '',
+        status: 'todo',
+        priority: item.priority,
+        assigneeId,
+        dueDate,
+        estimateHours: item.estimateHours,
+        parentId: parent.id,
+      };
+      tasks = [...tasks, subtask];
+    });
+    recordActivity({ taskId: parent.id, actorId: actor.id, type: 'created', note: `from the "${template.name}" template` });
+
+    // One notification per owner rather than one per item
+    const countByOwner = new Map<string, number>();
+    plan.items.forEach(({ assigneeId }) => countByOwner.set(assigneeId, (countByOwner.get(assigneeId) ?? 0) + 1));
+    countByOwner.forEach((count, ownerId) =>
+      notificationService.notify([ownerId], actor.id, {
+        type: 'info',
+        title: `${count} ${template.kind === 'custom' ? 'checklist' : template.kind} ${count === 1 ? 'task' : 'tasks'} for ${subject.name}`,
+        message: `${nameOf(actor.id)} assigned you items on "${plan.title}"`,
+        actionUrl: taskUrl(parent),
+      }),
+    );
+    return parent;
   },
 
   /* ---------- Sub-tasks ---------- */

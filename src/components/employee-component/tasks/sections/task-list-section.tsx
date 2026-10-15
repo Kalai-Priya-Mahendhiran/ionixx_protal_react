@@ -11,6 +11,7 @@ import { useChangeTaskStatus, useSprints } from '@/services/apis/tasks/use-tasks
 import type { Sprint, Task, TaskStatus } from '@/types';
 import { TaskActionsMenu } from './task-actions-menu';
 import { DueDateChip, PriorityIndicator, TaskTypeIcon, UserChip } from './task-badges';
+import { OnLeaveChip } from './leave-warning';
 import { TASK_STATUS_CONFIG } from './task-config';
 import { taskPath } from './task-link';
 import type { SubtaskProgress } from './task-utils';
@@ -191,7 +192,10 @@ export function TaskListSection({ tasks, subtaskProgress, onEdit, onDelete }: Ta
                   </td>
                   <td className="px-4 py-2.5 text-gray-600">{sprint ? sprint.name : <span className="text-gray-400">Backlog</span>}</td>
                   <td className="px-4 py-2.5">
-                    <DueDateChip task={task} />
+                    <div className="flex flex-col items-start gap-1">
+                      <DueDateChip task={task} />
+                      <OnLeaveChip userId={task.assigneeId} date={task.dueDate} hidden={task.status === 'done'} />
+                    </div>
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-gray-600">{formatDateTime(task.createdAt)}</td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-gray-600">{formatDateTime(task.updatedAt)}</td>

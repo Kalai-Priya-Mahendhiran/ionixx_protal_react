@@ -36,6 +36,9 @@ export interface Task {
   parentId?: string // set for sub-tasks
   epicId?: string // the epic this task belongs to
   sprintId?: string // unset = in the backlog
+  // Set on checklists created from a template (e.g. onboarding): the template and the employee it is for
+  templateId?: string
+  subjectId?: string
   isBlocked: boolean
   blockedReason?: string
   attachments: TaskAttachment[]
@@ -95,7 +98,46 @@ export interface TaskUser {
   department: string
   designation: string
   managerId?: string
+  joiningDate?: string // YYYY-MM-DD
   avatar?: string
+}
+
+/* ---------- HR templates ---------- */
+
+export type TemplateKind = 'onboarding' | 'offboarding' | 'custom'
+
+// Who gets an item when the template is applied
+export type TemplateOwner = 'hr' | 'it' | 'manager' | 'employee' | 'specific'
+
+export interface TaskTemplateItem {
+  id: string
+  title: string
+  description?: string
+  owner: TemplateOwner
+  ownerId?: string // only for 'specific'
+  // Days from the anchor date (joining day for onboarding, last working day for offboarding); negative = before
+  offsetDays: number
+  priority: TaskPriority
+  estimateHours?: number
+}
+
+export interface TaskTemplate {
+  id: string
+  name: string
+  kind: TemplateKind
+  description?: string
+  items: TaskTemplateItem[]
+  updatedById: string
+  updatedAt: string
+}
+
+/* ---------- Leave (as seen from Tasks) ---------- */
+
+// An approved absence. Only dates are shared outside Leave Tracker, never the type or reason.
+export interface LeaveAbsence {
+  userId: string
+  startDate: string // YYYY-MM-DD
+  endDate: string // YYYY-MM-DD
 }
 
 export interface TaskComment {

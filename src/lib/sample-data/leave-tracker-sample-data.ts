@@ -17,7 +17,7 @@ export const LEAVE_BALANCE: Record<LeaveRequest['leaveType'], number | null> = {
 export const sampleLeaveRequests: LeaveRequest[] = [
   {
     id: '1',
-    userId: '1',
+    userId: 'EMP001',
     leaveType: 'casual',
     startDate: '2026-11-16',
     startDayPart: 'full-day',
@@ -30,7 +30,7 @@ export const sampleLeaveRequests: LeaveRequest[] = [
   },
   {
     id: '2',
-    userId: '1',
+    userId: 'EMP001',
     leaveType: 'sick',
     startDate: '2026-10-09',
     startDayPart: 'first-half',
@@ -45,7 +45,7 @@ export const sampleLeaveRequests: LeaveRequest[] = [
   },
   {
     id: '3',
-    userId: '1',
+    userId: 'EMP001',
     leaveType: 'casual',
     startDate: '2026-10-05',
     startDayPart: 'full-day',
@@ -60,7 +60,7 @@ export const sampleLeaveRequests: LeaveRequest[] = [
   },
   {
     id: '4',
-    userId: '1',
+    userId: 'EMP001',
     leaveType: 'earned',
     startDate: '2026-09-21',
     startDayPart: 'full-day',
@@ -75,7 +75,7 @@ export const sampleLeaveRequests: LeaveRequest[] = [
   },
   {
     id: '5',
-    userId: '1',
+    userId: 'EMP001',
     leaveType: 'casual',
     startDate: '2026-08-10',
     startDayPart: 'full-day',
@@ -88,6 +88,36 @@ export const sampleLeaveRequests: LeaveRequest[] = [
     approvedBy: 'Jane Smith',
     approvedDate: '2026-08-06',
   },
+];
+
+// Dates relative to today, so the "assignee on leave" warning on tasks always has something to show
+const inDays = (days: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
+
+const approvedTeamLeave = (id: string, userId: string, from: number, to: number, reason: string): LeaveRequest => ({
+  id,
+  userId,
+  leaveType: 'casual',
+  startDate: inDays(from),
+  startDayPart: 'full-day',
+  endDate: inDays(to),
+  endDayPart: 'full-day',
+  days: to - from + 1,
+  reason,
+  status: 'approved',
+  appliedDate: inDays(-14),
+  approvedBy: 'Priya Kumar',
+  approvedDate: inDays(-13),
+});
+
+// Other people's approved leave (Kalai's own requests are above)
+export const sampleTeamLeaveRequests: LeaveRequest[] = [
+  approvedTeamLeave('T1', 'EMP001', 9, 10, 'Family event'),
+  approvedTeamLeave('T2', 'EMP002', 4, 6, 'Travel'),
+  approvedTeamLeave('T3', 'EMP004', -2, 5, 'Medical leave'),
 ];
 
 export const HOLIDAYS_BY_COUNTRY: Record<LeaveCountry, Holiday[]> = {

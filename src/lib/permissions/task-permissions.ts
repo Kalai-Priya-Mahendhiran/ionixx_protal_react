@@ -20,11 +20,12 @@ export type TaskAction =
   | 'task.logWork'
   | 'task.watch'
   | 'sprint.manage'
+  | 'template.manage'
   | 'workflow.configure'
   | 'reports.view';
 
 // none: never · own: tasks assigned to (or reported by) the user · team: the user's direct reports
-// hr: HR-type tasks · all: every task
+// hr: HR-type tasks only (not project work, even the user's own) · all: every task
 export type PermissionScope = 'none' | 'own' | 'team' | 'hr' | 'all';
 
 export const TASK_PERMISSION_MATRIX: Record<TaskAction, Record<UserRole, PermissionScope>> = {
@@ -39,6 +40,7 @@ export const TASK_PERMISSION_MATRIX: Record<TaskAction, Record<UserRole, Permiss
   'task.logWork':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
   'task.watch':         { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'all' },
   'sprint.manage':      { employee: 'none', project_manager: 'team', hr: 'none', admin: 'all',  system_admin: 'all',  executive: 'none' },
+  'template.manage':    { employee: 'none', project_manager: 'none', hr: 'all',  admin: 'all',  system_admin: 'all',  executive: 'none' },
   'workflow.configure': { employee: 'none', project_manager: 'none', hr: 'none', admin: 'none', system_admin: 'all',  executive: 'none' },
   'reports.view':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'all' },
 };
@@ -67,6 +69,9 @@ function getTeamIds(managerId: string): Set<string> {
 }
 
 function isInScope(user: PermissionUser, scope: PermissionScope, action: TaskAction, task: TaskScopeTarget): boolean {
+  // HR works on HR-type tasks only, never project work, even when they're involved in it
+  if (scope === 'hr') return task.type === 'hr';
+
   const byAssignee = ASSIGNEE_ACTIONS.has(action);
   const involves = (ids: Set<string>) => ids.has(task.assigneeId) || (!byAssignee && ids.has(task.reporterId));
 
@@ -77,8 +82,6 @@ function isInScope(user: PermissionUser, scope: PermissionScope, action: TaskAct
       return true;
     case 'team':
       return involves(getTeamIds(user.id));
-    case 'hr':
-      return task.type === 'hr';
     default:
       return false;
   }
@@ -214,4 +217,26 @@ const MANAGER_SECTION_REQUIREMENTS: Record<ManagerSection, (user: PermissionUser
 export function getManagerSections(user: PermissionUser | null | undefined): ManagerSection[] {
   if (!user) return ['board'];
   return (Object.keys(MANAGER_SECTION_REQUIREMENTS) as ManagerSection[]).filter((section) => MANAGER_SECTION_REQUIREMENTS[section](user));
+}
+
+/* ---------- Page sections per view ---------- */
+
+export type TaskSection = ManagerSection | 'checklists' | 'templates';
+
+const HR_SECTION_REQUIREMENTS: Record<'board' | 'checklists' | 'templates', (user: PermissionUser) => boolean> = {
+  board: () => true,
+  checklists: (user) => can(user, 'template.manage'),
+  templates: (user) => can(user, 'template.manage'),
+};
+
+// Tabs on the Tasks page: HR tools on the HR view, manager tools on team-wide views, none on My Tasks.
+// A single 'board' entry means no tabs are shown.
+export function getSectionsForView(user: PermissionUser | null | undefined, view: TaskView): TaskSection[] {
+  if (!user || view === 'my-tasks') return ['board'];
+  if (view === 'hr-tasks') {
+    return (Object.keys(HR_SECTION_REQUIREMENTS) as (keyof typeof HR_SECTION_REQUIREMENTS)[]).filter((section) =>
+      HR_SECTION_REQUIREMENTS[section](user),
+    );
+  }
+  return getManagerSections(user);
 }

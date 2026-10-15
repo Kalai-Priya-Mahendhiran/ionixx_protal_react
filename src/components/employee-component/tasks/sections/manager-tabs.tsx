@@ -1,27 +1,32 @@
-import { CalendarRange, CheckCheck, Columns3, Gauge, type LucideIcon } from 'lucide-react';
-import type { ManagerSection } from '@/lib/permissions/task-permissions';
+import { CalendarRange, CheckCheck, ClipboardList, Columns3, Gauge, LayoutTemplate, type LucideIcon } from 'lucide-react';
+import type { TaskSection } from '@/lib/permissions/task-permissions';
 import { cn } from '@/lib/utils';
 
-const SECTION_META: Record<ManagerSection, { label: string; icon: LucideIcon }> = {
+const SECTION_META: Record<TaskSection, { label: string; icon: LucideIcon }> = {
   board: { label: 'Board', icon: Columns3 },
   workload: { label: 'Workload', icon: Gauge },
   sprints: { label: 'Backlog & Sprints', icon: CalendarRange },
   approvals: { label: 'Approvals', icon: CheckCheck },
+  checklists: { label: 'Checklists', icon: ClipboardList },
+  templates: { label: 'Templates', icon: LayoutTemplate },
 };
 
-interface ManagerTabsProps {
-  sections: ManagerSection[];
-  active: ManagerSection;
-  approvalCount: number;
-  onChange: (section: ManagerSection) => void;
+interface SectionTabsProps {
+  sections: TaskSection[];
+  active: TaskSection;
+  // Shown as a badge on the tab (e.g. approvals waiting)
+  counts?: Partial<Record<TaskSection, number>>;
+  onChange: (section: TaskSection) => void;
 }
 
-export function ManagerTabs({ sections, active, approvalCount, onChange }: ManagerTabsProps) {
+// Tool tabs at the top of the Tasks page (manager tools on team views, HR tools on the HR view)
+export function SectionTabs({ sections, active, counts = {}, onChange }: SectionTabsProps) {
   return (
-    <div role="tablist" aria-label="Manager tools" className="ionixx-scrollbar flex gap-1 overflow-x-auto border-b border-gray-200">
+    <div role="tablist" aria-label="Task tools" className="ionixx-scrollbar flex gap-1 overflow-x-auto border-b border-gray-200">
       {sections.map((section) => {
         const { label, icon: Icon } = SECTION_META[section];
         const isActive = section === active;
+        const count = counts[section] ?? 0;
         return (
           <button
             key={section}
@@ -36,9 +41,7 @@ export function ManagerTabs({ sections, active, approvalCount, onChange }: Manag
           >
             <Icon className="h-4 w-4" />
             {label}
-            {section === 'approvals' && approvalCount > 0 && (
-              <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">{approvalCount}</span>
-            )}
+            {count > 0 && <span className="rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">{count}</span>}
           </button>
         );
       })}

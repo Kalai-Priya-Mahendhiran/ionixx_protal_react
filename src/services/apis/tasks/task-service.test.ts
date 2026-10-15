@@ -135,3 +135,31 @@ describe('taskService Phase 3', () => {
     ).rejects.toThrow("can't plan");
   });
 });
+
+describe('taskService Phase 4', () => {
+  const hrUser = { id: 'HR001', role: 'hr' as const };
+  const employee = { id: 'EMP001', role: 'employee' as const };
+
+  it('applies a template as one HR checklist with an owned, dated sub-task per item', async () => {
+    const checklist = await taskService.applyTemplate(hrUser, 'TPL-ONBOARDING', 'EMP007', '2026-10-22');
+    expect(checklist).toMatchObject({ type: 'hr', title: 'Onboarding: Sneha Reddy', subjectId: 'EMP007', templateId: 'TPL-ONBOARDING', assigneeId: 'HR001' });
+    expect(checklist.key).toMatch(/^HR-\d+$/);
+
+    const items = (await taskService.list(hrUser)).filter((task) => task.parentId === checklist.id);
+    expect(items).toHaveLength(10);
+    expect(items.every((task) => task.type === 'hr')).toBe(true);
+    expect(new Set(items.map((task) => task.assigneeId))).toEqual(new Set(['SYS001', 'HR001', 'PM001', 'EMP007']));
+
+    // The IT owner gets one notification covering all three of their items
+    const [latest] = await notificationService.list({ id: 'SYS001', role: 'system_admin' });
+    expect(latest.title).toBe('3 onboarding tasks for Sneha Reddy');
+  });
+
+  it('refuses a second open checklist from the same template for the same person', async () => {
+    await expect(taskService.applyTemplate(hrUser, 'TPL-ONBOARDING', 'EMP007', '2026-10-22')).rejects.toThrow('already has an open');
+  });
+
+  it('only lets template managers apply templates', async () => {
+    await expect(taskService.applyTemplate(employee, 'TPL-OFFBOARDING', 'EMP002', '2026-11-01')).rejects.toThrow("can't apply");
+  });
+});

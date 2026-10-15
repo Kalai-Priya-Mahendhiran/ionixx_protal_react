@@ -23,6 +23,7 @@ import { useChangeTaskStatus, useEpics } from '@/services/apis/tasks/use-tasks';
 import type { EpicSummary, Task, TaskStatus } from '@/types';
 import { TaskActionsMenu } from './task-actions-menu';
 import { DueDateChip, TaskTypeIcon } from './task-badges';
+import { OnLeaveChip } from './leave-warning';
 import { BOARD_COLUMNS, TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getBoardColumn, getLabelColor } from './task-config';
 import type { SubtaskProgress } from './task-utils';
 import { KEYBOARD_OPTIONS, cardClass, collisionDetection, dropAreaClass, stopPropagation, type DropState } from './board-dnd';
@@ -84,6 +85,7 @@ export function BoardCardContent({ task, epic, progress, menu }: CardContentProp
 
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
         <DueDateChip task={task} />
+        <OnLeaveChip userId={task.assigneeId} date={task.dueDate} hidden={task.status === 'done'} />
         {task.status === 'reopened' && (
           <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', TASK_STATUS_CONFIG.reopened.className)}>Reopened</span>
         )}

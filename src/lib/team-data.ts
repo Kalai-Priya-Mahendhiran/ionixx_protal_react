@@ -13,6 +13,13 @@ export interface TeamMember {
   location: string;
 }
 
+// Sample new joiner starts a week from today, so the onboarding template has someone to apply to
+const inDays = (days: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+};
+
 export const teamMembers: TeamMember[] = [
   {
     id: "EMP001",
@@ -96,6 +103,20 @@ export const teamMembers: TeamMember[] = [
     status: "active",
     skills: ["JavaScript", "Python"],
     phone: "+91 98765 11006",
+    location: "Chennai, IN",
+  },
+  {
+    id: "EMP007",
+    name: "Sneha Reddy",
+    email: "sneha.reddy@ionixx.com",
+    designation: "Associate Software Developer",
+    department: "Engineering",
+    employeeId: "EMP00107",
+    reportingManager: "Priya Kumar",
+    joiningDate: inDays(7),
+    status: "active",
+    skills: ["React", "TypeScript"],
+    phone: "+91 98765 11007",
     location: "Chennai, IN",
   },
 ];

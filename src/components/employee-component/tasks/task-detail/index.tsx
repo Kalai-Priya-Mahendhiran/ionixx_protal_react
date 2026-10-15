@@ -36,6 +36,7 @@ import { DueDateChip, PriorityIndicator, TaskTypeGlyph, UserChip } from '../sect
 import { TASK_STATUS_CONFIG, TASK_TYPE_CONFIG, getLabelColor } from '../sections/task-config';
 import { copyTaskLink, taskPath } from '../sections/task-link';
 import { TaskSubtasks } from '../sections/task-subtasks';
+import { OnLeaveBanner, OnLeaveChip } from '../sections/leave-warning';
 import { formatShortDate } from '../sections/task-utils';
 
 /* ---------- Small building blocks ---------- */
@@ -313,6 +314,8 @@ function TaskDetailView({ task, allTasks, user, backTo, onEdit, onDelete }: Task
             <div className="space-y-4">
               <h1 className="text-2xl font-semibold leading-tight text-gray-900">{task.title}</h1>
 
+              <OnLeaveBanner userId={task.assigneeId} date={task.dueDate} hidden={task.status === 'done'} />
+
               {isBlocked && (
                 <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm">
                   <Ban className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
@@ -467,8 +470,16 @@ function TaskDetailView({ task, allTasks, user, backTo, onEdit, onDelete }: Task
                   </DetailRow>
                   <DetailRow label="Start date">{task.startDate ? formatShortDate(task.startDate) : none}</DetailRow>
                   <DetailRow label="Due date">
-                    <DueDateChip task={task} />
+                    <span className="flex flex-col items-start gap-1">
+                      <DueDateChip task={task} />
+                      <OnLeaveChip userId={task.assigneeId} date={task.dueDate} hidden={task.status === 'done'} />
+                    </span>
                   </DetailRow>
+                  {task.subjectId && (
+                    <DetailRow label="Employee">
+                      <UserChip userId={task.subjectId} />
+                    </DetailRow>
+                  )}
                   <DetailRow label="Time tracking">
                     {task.estimateHours !== undefined || task.loggedHours > 0 ? (
                       <div className="space-y-1">

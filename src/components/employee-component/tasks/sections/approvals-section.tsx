@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { useApproveTask, useSendBackTask } from '@/services/apis/tasks/use-tasks';
 import type { Task } from '@/types';
 import { DueDateChip, PriorityIndicator, TaskTypeIcon, UserChip } from './task-badges';
+import { OnLeaveChip } from './leave-warning';
 import { taskPath } from './task-link';
 import { daysSince, type SubtaskProgress } from './task-utils';
 
@@ -128,6 +129,7 @@ export function ApprovalsSection({ tasks, subtaskProgress }: ApprovalsSectionPro
                   <UserChip userId={task.assigneeId} label="By" />
                   <PriorityIndicator priority={task.priority} />
                   <DueDateChip task={task} />
+                  <OnLeaveChip userId={task.assigneeId} date={task.dueDate} hidden={task.status === 'done'} />
                   <span className={cn('inline-flex items-center gap-1', waitingDays >= 2 ? 'font-medium text-amber-700' : 'text-gray-500')}>
                     <Clock className="h-4 w-4" />
                     {waitingDays === 0 ? 'In review · updated today' : `In review · updated ${waitingDays}d ago`}

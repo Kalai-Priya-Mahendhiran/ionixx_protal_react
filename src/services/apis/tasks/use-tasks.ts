@@ -258,3 +258,12 @@ export const useCompleteSprint = () =>
     ({ sprint }) => `${sprint.name} completed`,
     [SPRINTS_KEY],
   );
+
+/* ---------- HR templates ---------- */
+
+export const useApplyTemplate = () =>
+  useTaskMutation(
+    (actor, { template, subjectId, anchorDate }: { template: { id: string; name: string }; subjectId: string; anchorDate: string }) =>
+      taskService.applyTemplate(actor, template.id, subjectId, anchorDate),
+    ({ template }) => `Checklist created from "${template.name}"`,
+  );

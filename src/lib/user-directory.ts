@@ -24,6 +24,7 @@ const rosterUsers: TaskUser[] = teamMembers.map((member) => ({
   department: member.department,
   designation: member.designation,
   managerId: findIdByName(member.reportingManager),
+  joiningDate: member.joiningDate,
 }));
 
 // Roster entries win for people in both lists, since they carry the reporting manager

@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { CalendarDays } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
-import { HOLIDAYS_BY_COUNTRY, sampleLeaveRequests } from '@/lib/sample-data/leave-tracker-sample-data';
+import { HOLIDAYS_BY_COUNTRY } from '@/lib/sample-data/leave-tracker-sample-data';
 import { DEFAULT_LEAVE_COUNTRY } from '@/lib/constants';
 import type { LeaveRequestFormValues } from '@/lib/schemas';
-import { todayAsDateInput } from '@/lib/utils';
-import type { LeaveCountry, LeaveRequest } from '@/types';
+import type { LeaveCountry } from '@/types';
+import { useApplyLeave, useLeaveRequests } from '@/services/apis/leave/use-leave';
 import {
   ApplyLeaveSection,
   LeaveCalendarSection,
@@ -15,25 +14,13 @@ import {
 } from './sections';
 
 export default function Leave() {
-  const [requests, setRequests] = useState<LeaveRequest[]>(sampleLeaveRequests);
+  // Requests come from the shared leave service, so Tasks can warn when an assignee is on approved leave
+  const { data: requests = [] } = useLeaveRequests();
+  const applyLeaveRequest = useApplyLeave();
   const [country, setCountry] = useState<LeaveCountry>(DEFAULT_LEAVE_COUNTRY);
   const holidays = HOLIDAYS_BY_COUNTRY[country];
 
-  const applyLeave = (values: LeaveRequestFormValues, days: number) => {
-    setRequests((current) => [
-      {
-        ...values,
-        reason: values.reason.trim(),
-        id: crypto.randomUUID(),
-        userId: '1',
-        days,
-        status: 'pending',
-        appliedDate: todayAsDateInput(),
-      },
-      ...current,
-    ]);
-    toast.success('Leave request submitted for approval');
-  };
+  const applyLeave = (values: LeaveRequestFormValues, days: number) => applyLeaveRequest.mutate({ ...values, days });
 
   return (
     <MainLayout>

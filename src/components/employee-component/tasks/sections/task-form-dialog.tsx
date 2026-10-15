@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { useCreateTask, useEpics, useSprints, useUpdateTask } from '@/services/apis/tasks/use-tasks';
 import type { Project, SprintStatus, Task, TaskAttachment } from '@/types';
 import { TaskAttachmentsField } from './task-attachments-field';
+import { OnLeaveBanner } from './leave-warning';
 import { TaskTypeGlyph, UserChip } from './task-badges';
 import { TASK_PRIORITY_CONFIG, TASK_TYPE_CONFIG } from './task-config';
 import { formatShortDate, getDurationDays, parseLabels } from './task-utils';
@@ -382,6 +383,7 @@ export function TaskFormDialog({ open, task, projects, onOpenChange }: TaskFormD
                       )}
                     />
                   </div>
+                  <OnLeaveBanner userId={assigneeId || user?.id || ''} date={dueDate} className="mt-3" />
                   {(duration || dueAfterSprint) && (
                     <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                       {duration && (

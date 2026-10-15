@@ -507,3 +507,42 @@ export const sprintSchema = z
   });
 
 export type SprintFormValues = z.infer<typeof sprintSchema>;
+
+// HR task templates
+export const TEMPLATE_KINDS = ["onboarding", "offboarding", "custom"] as const;
+export const TEMPLATE_OWNERS = ["hr", "it", "manager", "employee", "specific"] as const;
+
+const templateItemSchema = z
+  .object({
+    id: z.string(),
+    title: z.string().trim().min(1, "Add a title").max(120, "Keep it under 120 characters"),
+    owner: z.enum(TEMPLATE_OWNERS),
+    ownerId: z.string(),
+    // Number inputs give strings; checked and converted on save
+    offsetDays: z
+      .string()
+      .trim()
+      .refine((value) => /^-?\d+$/.test(value) && Math.abs(Number(value)) <= 365, "Whole days, −365 to 365"),
+    priority: z.enum(TASK_PRIORITIES),
+    estimateHours: z
+      .string()
+      .trim()
+      .refine((value) => value === "" || (Number(value) > 0 && Number(value) <= 999), "0–999 hours"),
+  })
+  .refine((item) => item.owner !== "specific" || !!item.ownerId, { path: ["ownerId"], message: "Choose a person" });
+
+export const templateSchema = z.object({
+  name: z.string().trim().min(1, "Give the template a name").max(80, "Keep the name under 80 characters"),
+  kind: z.enum(TEMPLATE_KINDS),
+  description: z.string().trim().max(300, "Keep the description under 300 characters"),
+  items: z.array(templateItemSchema).min(1, "Add at least one item").max(30, "A template can have at most 30 items"),
+});
+
+export type TemplateFormValues = z.infer<typeof templateSchema>;
+
+export const applyTemplateSchema = z.object({
+  subjectId: z.string().min(1, "Choose the employee"),
+  anchorDate: z.string().min(1, "Choose a date"),
+});
+
+export type ApplyTemplateFormValues = z.infer<typeof applyTemplateSchema>;
