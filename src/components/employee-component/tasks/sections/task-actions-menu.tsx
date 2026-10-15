@@ -1,4 +1,4 @@
-import { ArrowRightLeft, Copy, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, Copy, Link2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -18,6 +18,7 @@ import { TASK_WORKFLOW_STATUSES } from '@/lib/schemas';
 import { useChangeTaskStatus, useDuplicateTask } from '@/services/apis/tasks/use-tasks';
 import type { Task, TaskStatus } from '@/types';
 import { TASK_STATUS_CONFIG } from './task-config';
+import { copyTaskLink } from './task-link';
 
 interface TaskActionsMenuProps {
   task: Task;
@@ -37,9 +38,6 @@ export function TaskActionsMenu({ task, onDelete, onEdit, triggerClassName }: Ta
   const canDuplicate = canCreateTask(user, task);
   const canDelete = can(user, 'task.delete', task);
 
-  // Nothing to offer (e.g. read-only roles): don't render an empty menu
-  if (!canEdit && !canChangeStatus && !canDuplicate && !canDelete) return null;
-
   // Non-modal so opening the delete confirmation from the menu doesn't leave the page unclickable
   return (
     <DropdownMenu modal={false}>
@@ -49,6 +47,10 @@ export function TaskActionsMenu({ task, onDelete, onEdit, triggerClassName }: Ta
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48 bg-white">
+        <DropdownMenuItem onSelect={() => void copyTaskLink(task)}>
+          <Link2 className="text-gray-500" />
+          Copy link
+        </DropdownMenuItem>
         {canEdit && (
           <DropdownMenuItem onSelect={() => onEdit(task)}>
             <Pencil className="text-gray-500" />

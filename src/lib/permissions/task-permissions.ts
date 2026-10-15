@@ -16,6 +16,9 @@ export type TaskAction =
   | 'task.changeStatus'
   | 'task.delete'
   | 'task.approve'
+  | 'task.comment'
+  | 'task.logWork'
+  | 'task.watch'
   | 'workflow.configure'
   | 'reports.view';
 
@@ -31,6 +34,9 @@ export const TASK_PERMISSION_MATRIX: Record<TaskAction, Record<UserRole, Permiss
   'task.changeStatus':  { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
   'task.delete':        { employee: 'none', project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
   'task.approve':       { employee: 'none', project_manager: 'team', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },
+  'task.comment':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
+  'task.logWork':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
+  'task.watch':         { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'all' },
   'workflow.configure': { employee: 'none', project_manager: 'none', hr: 'none', admin: 'none', system_admin: 'all',  executive: 'none' },
   'reports.view':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'all' },
 };
@@ -41,11 +47,14 @@ export interface PermissionUser {
 }
 
 // The parts of a task a permission decision depends on (a full Task works too)
-export type TaskScopeTarget = Pick<Task, 'assigneeId' | 'reporterId' | 'type'>;
+export type TaskScopeTarget = Pick<Task, 'assigneeId' | 'reporterId' | 'type'> & Partial<Pick<Task, 'watcherIds'>>;
 
 // For these actions the task is judged by who it is (or will be) assigned to;
 // for the rest, being the reporter also counts as "own"
 const ASSIGNEE_ACTIONS = new Set<TaskAction>(['task.create', 'task.assign']);
+
+// Watchers can follow the conversation on a task: see it, keep watching and comment
+const WATCHER_ACTIONS = new Set<TaskAction>(['task.view', 'task.watch', 'task.comment']);
 
 export function getScope(user: PermissionUser | null | undefined, action: TaskAction): PermissionScope {
   return user ? TASK_PERMISSION_MATRIX[action][user.role] : 'none';
@@ -60,6 +69,7 @@ function isInScope(user: PermissionUser, scope: PermissionScope, action: TaskAct
   const involves = (ids: Set<string>) => ids.has(task.assigneeId) || (!byAssignee && ids.has(task.reporterId));
 
   if (involves(new Set([user.id]))) return true;
+  if (WATCHER_ACTIONS.has(action) && task.watcherIds?.includes(user.id)) return true;
   switch (scope) {
     case 'all':
       return true;
@@ -101,8 +111,23 @@ export function isTaskReadOnly(user: PermissionUser | null | undefined): boolean
   return !can(user, 'task.create') && !can(user, 'task.edit');
 }
 
-export function getVisibleTasks<T extends TaskScopeTarget>(user: PermissionUser | null | undefined, tasks: T[]): T[] {
-  return tasks.filter((task) => can(user, 'task.view', task));
+// Sub-tasks are visible to anyone who can see their parent, so a checklist is never half hidden
+export function getVisibleTasks<T extends TaskScopeTarget & Pick<Task, 'id' | 'parentId'>>(
+  user: PermissionUser | null | undefined,
+  tasks: T[],
+): T[] {
+  const visibleIds = new Set(tasks.filter((task) => can(user, 'task.view', task)).map((task) => task.id));
+  return tasks.filter((task) => visibleIds.has(task.id) || (!!task.parentId && visibleIds.has(task.parentId)));
+}
+
+// A sub-task of an HR task is itself HR work; anything else is a plain sub-task
+export function getSubtaskType(parent: Pick<Task, 'type'>): Task['type'] {
+  return parent.type === 'hr' ? 'hr' : 'sub-task';
+}
+
+// Sub-tasks can be added to a task you can edit, assigned to someone you could create a task for
+export function canCreateSubtask(user: PermissionUser | null | undefined, parent: Task, assigneeId: string): boolean {
+  return can(user, 'task.edit', parent) && canCreateTask(user, { assigneeId, type: getSubtaskType(parent) });
 }
 
 // People the user may pick in the Assignee field

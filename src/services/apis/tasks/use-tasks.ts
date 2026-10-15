@@ -2,10 +2,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/auth-context';
 import type { PermissionUser } from '@/lib/permissions/task-permissions';
-import type { Task, TaskInput, TaskStatus } from '@/types';
-import { taskService } from './task-service';
+import type { Task, TaskAttachment, TaskInput, TaskStatus } from '@/types';
+import { FILES_KEY } from '../files/use-files';
+import { NOTIFICATIONS_KEY } from '../notifications/use-notifications';
+import { TIME_ENTRIES_KEY } from '../time-tracker/use-time-entries';
+import { taskService, type LogWorkInput } from './task-service';
 
+// Detail queries (comments, history, work log) live under this key too, so any task change refreshes them
 const TASKS_KEY = ['tasks'] as const;
+const PROJECTS_KEY = ['projects'] as const;
+const SPRINTS_KEY = ['sprints'] as const;
+const EPICS_KEY = ['epics'] as const;
 
 const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   todo: 'To Do',
@@ -14,9 +21,8 @@ const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   done: 'Done',
   reopened: 'Reopened',
 };
-const PROJECTS_KEY = ['projects'] as const;
-const SPRINTS_KEY = ['sprints'] as const;
-const EPICS_KEY = ['epics'] as const;
+
+const errorMessage = (error: unknown) => (error instanceof Error ? error.message : 'Something went wrong');
 
 function useActor(): PermissionUser {
   const { user } = useAuth();
@@ -24,6 +30,8 @@ function useActor(): PermissionUser {
   if (!user) throw new Error('Tasks require a signed-in user');
   return user;
 }
+
+/* ---------- Queries ---------- */
 
 export function useTasks() {
   const actor = useActor();
@@ -47,36 +55,55 @@ export function useEpics() {
   return useQuery({ queryKey: [...EPICS_KEY, actor.id], queryFn: () => taskService.listEpics(actor) });
 }
 
-// Shared mutation wiring: refresh the task list and toast the outcome
-function useTaskMutation<TVariables>(
-  mutationFn: (actor: PermissionUser, variables: TVariables) => Promise<unknown>,
-  successMessage: (variables: TVariables) => string,
+export function useTaskComments(taskId: string) {
+  const actor = useActor();
+  return useQuery({ queryKey: [...TASKS_KEY, 'detail', taskId, 'comments'], queryFn: () => taskService.listComments(actor, taskId) });
+}
+
+export function useTaskActivity(taskId: string) {
+  const actor = useActor();
+  return useQuery({ queryKey: [...TASKS_KEY, 'detail', taskId, 'activity'], queryFn: () => taskService.listActivity(actor, taskId) });
+}
+
+export function useTaskWorkLogs(taskId: string) {
+  const actor = useActor();
+  return useQuery({ queryKey: [...TASKS_KEY, 'detail', taskId, 'worklogs'], queryFn: () => taskService.listWorkLogs(actor, taskId) });
+}
+
+/* ---------- Mutations ---------- */
+
+// Shared mutation wiring: refresh everything a task change can affect and toast the outcome
+function useTaskMutation<TVariables, TResult = unknown>(
+  mutationFn: (actor: PermissionUser, variables: TVariables) => Promise<TResult>,
+  successMessage: ((variables: TVariables) => string) | null,
+  extraKeys: readonly (readonly string[])[] = [],
 ) {
   const actor = useActor();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (variables: TVariables) => mutationFn(actor, variables),
     onSuccess: (_result, variables) => {
-      queryClient.invalidateQueries({ queryKey: TASKS_KEY });
-      // Epics are tasks too, so creating, renaming or deleting one changes the epic list
-      queryClient.invalidateQueries({ queryKey: EPICS_KEY });
-      toast.success(successMessage(variables));
+      // Epics are tasks too; notifications are raised by task changes
+      [TASKS_KEY, EPICS_KEY, NOTIFICATIONS_KEY, ...extraKeys].forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
+      if (successMessage) toast.success(successMessage(variables));
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : 'Something went wrong'),
+    onError: (error) => toast.error(errorMessage(error)),
   });
 }
 
 export const useCreateTask = () =>
-  useTaskMutation((actor, input: TaskInput) => taskService.create(actor, input), () => 'Task created');
+  useTaskMutation((actor, input: TaskInput) => taskService.create(actor, input), () => 'Task created', [FILES_KEY]);
 
 export const useUpdateTask = () =>
   useTaskMutation(
     (actor, { id, input }: { id: string; input: Omit<TaskInput, 'projectId'> }) => taskService.update(actor, id, input),
     () => 'Task updated',
+    [FILES_KEY],
   );
 
-// Optimistic: the card moves immediately (e.g. on a board drop) and rolls back if the server refuses
-export function useChangeTaskStatus() {
+// Optimistic: the card moves immediately (e.g. on a board drop) and rolls back if the server refuses.
+// `silent` skips the success toast, e.g. for ticking sub-tasks off a checklist.
+export function useChangeTaskStatus({ silent = false }: { silent?: boolean } = {}) {
   const actor = useActor();
   const queryClient = useQueryClient();
   const queryKey = [...TASKS_KEY, actor.id];
@@ -91,9 +118,11 @@ export function useChangeTaskStatus() {
     },
     onError: (error, _variables, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
-      toast.error(error instanceof Error ? error.message : 'Something went wrong');
+      toast.error(errorMessage(error));
     },
-    onSuccess: (_result, { task, status }) => toast.success(`${task.key} moved to ${TASK_STATUS_LABELS[status]}`),
+    onSuccess: (_result, { task, status }) => {
+      if (!silent) toast.success(`${task.key} moved to ${TASK_STATUS_LABELS[status]}`);
+    },
     onSettled: () => queryClient.invalidateQueries({ queryKey: TASKS_KEY }),
   });
 }
@@ -103,3 +132,50 @@ export const useDuplicateTask = () =>
 
 export const useDeleteTask = () =>
   useTaskMutation((actor, task: Task) => taskService.remove(actor, task.id), (task) => `${task.key} deleted`);
+
+export const useCreateSubtask = () =>
+  useTaskMutation(
+    (actor, { parent, title, assigneeId }: { parent: Task; title: string; assigneeId: string }) =>
+      taskService.createSubtask(actor, parent.id, { title, assigneeId }),
+    null,
+  );
+
+export const useSetWatching = () =>
+  useTaskMutation(
+    (actor, { task, watching }: { task: Task; watching: boolean }) => taskService.setWatching(actor, task.id, watching),
+    ({ task, watching }) => (watching ? `You're watching ${task.key}` : `You stopped watching ${task.key}`),
+  );
+
+export const useSetBlocked = () =>
+  useTaskMutation(
+    (actor, { task, blocked, reason }: { task: Task; blocked: boolean; reason?: string }) =>
+      taskService.setBlocked(actor, task.id, blocked, reason),
+    ({ task, blocked }) => (blocked ? `${task.key} flagged as blocked — your manager has been notified` : `${task.key} unblocked`),
+  );
+
+export const useAddAttachments = () =>
+  useTaskMutation(
+    (actor, { task, attachments }: { task: Task; attachments: TaskAttachment[] }) => taskService.addAttachments(actor, task.id, attachments),
+    ({ attachments }) => (attachments.length === 1 ? `${attachments[0].name} attached` : `${attachments.length} files attached`),
+    [FILES_KEY],
+  );
+
+export const useRemoveAttachment = () =>
+  useTaskMutation(
+    (actor, { task, attachmentId }: { task: Task; attachmentId: string }) => taskService.removeAttachment(actor, task.id, attachmentId),
+    () => 'Attachment removed',
+  );
+
+export const useAddComment = () =>
+  useTaskMutation(
+    (actor, { task, body, mentionIds }: { task: Task; body: string; mentionIds: string[] }) =>
+      taskService.addComment(actor, task.id, body, mentionIds),
+    null,
+  );
+
+export const useLogWork = () =>
+  useTaskMutation(
+    (actor, { task, input }: { task: Task; input: LogWorkInput }) => taskService.logWork(actor, task.id, input),
+    ({ task, input }) => `${input.hours}h logged on ${task.key} and added to your Time Tracker`,
+    [TIME_ENTRIES_KEY],
+  );

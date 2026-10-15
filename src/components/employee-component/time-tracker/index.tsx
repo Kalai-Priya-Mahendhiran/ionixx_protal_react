@@ -1,7 +1,8 @@
 ﻿import { useState } from 'react';
 import { Timer } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
-import { sampleTimeEntries, sampleTodaysTasks, sampleProductivity, sampleWeeklyTimeDistribution } from '@/lib/sample-data/time-tracker-sample-data';
+import { sampleTodaysTasks, sampleProductivity, sampleWeeklyTimeDistribution } from '@/lib/sample-data/time-tracker-sample-data';
+import { useCreateTimeEntry, useDeleteTimeEntry, useTimeEntries, useUpdateTimeEntry } from '@/services/apis/time-tracker/use-time-entries';
 import {
   TimeTrackingStatsSection,
   TimerAndEntriesSection,
@@ -20,12 +21,14 @@ import type { TimeEntry } from '@/types';
 export default function TimeTracker() {
   const [tasks, setTasks] = useState<TaskRecord[]>(sampleTodaysTasks);
   const [taskDialog, setTaskDialog] = useState<{ task?: TaskRecord } | null>(null);
-  const [entries, setEntries] = useState<TimeEntry[]>(sampleTimeEntries);
+  // Entries come from the shared service, so work logged on a task shows up here too
+  const { data: entries = [] } = useTimeEntries();
+  const createEntry = useCreateTimeEntry();
+  const updateEntry = useUpdateTimeEntry();
+  const deleteEntry = useDeleteTimeEntry();
   const [entryDialog, setEntryDialog] = useState<{ entry?: TimeEntry } | null>(null);
 
-  const recordEntry = (entry: NewTimeEntry) => {
-    setEntries((current) => [{ ...entry, id: crypto.randomUUID(), userId: '1', status: 'submitted' }, ...current]);
-  };
+  const recordEntry = (entry: NewTimeEntry) => createEntry.mutate(entry);
 
   const saveEntry = (values: TimeEntryFormValues) => {
     const details = {
@@ -34,8 +37,7 @@ export default function TimeTracker() {
       totalHours: hoursBetween(values.startTime, values.endTime),
     };
     if (entryDialog?.entry) {
-      const entryId = entryDialog.entry.id;
-      setEntries((current) => current.map((entry) => entry.id === entryId ? { ...entry, ...details } : entry));
+      updateEntry.mutate({ id: entryDialog.entry.id, changes: details });
     } else {
       recordEntry(details);
     }
@@ -89,7 +91,7 @@ export default function TimeTracker() {
           onRecordEntry={recordEntry}
           onAddEntry={() => setEntryDialog({})}
           onEditEntry={(entry) => setEntryDialog({ entry })}
-          onDeleteEntry={(entryId) => setEntries((current) => current.filter((entry) => entry.id !== entryId))}
+          onDeleteEntry={(entryId) => deleteEntry.mutate(entryId)}
         />
 
         {/* Today's Tasks */}

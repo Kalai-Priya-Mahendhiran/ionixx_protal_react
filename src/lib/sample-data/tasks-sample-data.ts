@@ -1,5 +1,5 @@
 import { toDateInput } from '@/lib/utils';
-import type { Project, Sprint, Task } from '@/types';
+import type { Project, Sprint, Task, TaskActivity, TaskComment, WorkLog } from '@/types';
 
 // Dates are relative to today so overdue / due-soon states always show up in the demo
 const daysFromNow = (days: number) => {
@@ -88,7 +88,7 @@ const SAMPLE_TASKS: SampleTask[] = [
     isBlocked: true, blockedReason: 'Waiting for AWS access to the build bucket',
   },
   {
-    key: 'IXP-107', projectId: 'PRJ-IXP', type: 'bug', title: 'Dashboard loads slowly for managers', sprintId: ACTIVE_SPRINT_ID, epicId: TASKS_EPIC_ID,
+    key: 'IXP-107', projectId: 'PRJ-IXP', type: 'bug', title: 'Dashboard loads slowly for managers', sprintId: ACTIVE_SPRINT_ID, epicId: TASKS_EPIC_ID, watcherIds: ['EMP001'],
     description: 'Team dashboard takes over 6 seconds to render for managers with large teams.',
     status: 'todo', priority: 'high', assigneeId: 'EMP002', reporterId: 'PM001',
     labels: ['performance'], estimateHours: 8, loggedHours: 0, dueInDays: 0, createdDaysAgo: 3,
@@ -106,7 +106,7 @@ const SAMPLE_TASKS: SampleTask[] = [
     labels: ['qa'], estimateHours: 10, loggedHours: 7, dueInDays: 6, createdDaysAgo: 12,
   },
   {
-    key: 'IXP-110', projectId: 'PRJ-IXP', type: 'epic', title: 'Tasks module revamp', id: TASKS_EPIC_ID, startInDays: -5,
+    key: 'IXP-110', projectId: 'PRJ-IXP', type: 'epic', title: 'Tasks module revamp', id: TASKS_EPIC_ID, startInDays: -5, watcherIds: ['EMP001', 'EMP002'],
     description: 'Role-based, Jira-style task management for every portal user.',
     status: 'in-progress', priority: 'high', assigneeId: 'PM001', reporterId: 'ADM001',
     labels: ['roadmap'], estimateHours: 120, loggedHours: 18, dueInDays: 30, createdDaysAgo: 5,
@@ -141,10 +141,48 @@ const SAMPLE_TASKS: SampleTask[] = [
     status: 'done', priority: 'low', assigneeId: 'HR001', reporterId: 'HR001',
     labels: ['onboarding'], loggedHours: 2, dueInDays: -3, createdDaysAgo: 11,
   },
+
+  // Sub-tasks: shown inside their parent, not as separate board cards
+  {
+    key: 'IXP-112', projectId: 'PRJ-IXP', type: 'sub-task', parentId: 'TSK-IXP-102', title: 'Check token refresh flow',
+    description: '', status: 'done', priority: 'high', assigneeId: 'EMP001', reporterId: 'EMP001',
+    sprintId: ACTIVE_SPRINT_ID, dueInDays: 1, createdDaysAgo: 5,
+  },
+  {
+    key: 'IXP-113', projectId: 'PRJ-IXP', type: 'sub-task', parentId: 'TSK-IXP-102', title: 'Verify logout clears the session',
+    description: '', status: 'todo', priority: 'high', assigneeId: 'EMP001', reporterId: 'EMP001',
+    sprintId: ACTIVE_SPRINT_ID, dueInDays: 1, createdDaysAgo: 5,
+  },
+  {
+    key: 'IXP-114', projectId: 'PRJ-IXP', type: 'sub-task', parentId: 'TSK-IXP-102', title: 'Write the review summary',
+    description: '', status: 'todo', priority: 'medium', assigneeId: 'EMP001', reporterId: 'EMP001',
+    sprintId: ACTIVE_SPRINT_ID, dueInDays: 1, createdDaysAgo: 5,
+  },
+  {
+    key: 'IXP-115', projectId: 'PRJ-IXP', type: 'sub-task', parentId: 'TSK-IXP-104', title: 'Load holidays from the leave API',
+    description: '', status: 'done', priority: 'medium', assigneeId: 'EMP001', reporterId: 'PM001',
+    sprintId: ACTIVE_SPRINT_ID, dueInDays: 3, createdDaysAgo: 9,
+  },
+  {
+    key: 'IXP-116', projectId: 'PRJ-IXP', type: 'sub-task', parentId: 'TSK-IXP-104', title: 'Add calendar legend for holiday types',
+    description: '', status: 'done', priority: 'low', assigneeId: 'EMP001', reporterId: 'PM001',
+    sprintId: ACTIVE_SPRINT_ID, dueInDays: 3, createdDaysAgo: 9,
+  },
+  {
+    key: 'HR-5', projectId: 'PRJ-HR', type: 'hr', parentId: 'TSK-HR-1', title: 'Raise laptop request with IT',
+    description: '', status: 'done', priority: 'high', assigneeId: 'HR001', reporterId: 'HR001',
+    dueInDays: 1, createdDaysAgo: 2,
+  },
+  {
+    key: 'HR-6', projectId: 'PRJ-HR', type: 'hr', parentId: 'TSK-HR-1', title: 'Book ID card photo slot',
+    description: '', status: 'todo', priority: 'medium', assigneeId: 'HR001', reporterId: 'HR001',
+    dueInDays: 2, createdDaysAgo: 2,
+  },
 ];
 
-export const sampleTasks: Task[] = SAMPLE_TASKS.map(({ dueInDays, createdDaysAgo, startInDays, ...task }, index) => ({
-  id: `TSK-${index + 1}`,
+// IDs derive from the key (TSK-IXP-102) so sub-tasks can point at their parent
+export const sampleTasks: Task[] = SAMPLE_TASKS.map(({ dueInDays, createdDaysAgo, startInDays, ...task }) => ({
+  id: `TSK-${task.key}`,
   watcherIds: [],
   labels: [],
   loggedHours: 0,
@@ -156,3 +194,41 @@ export const sampleTasks: Task[] = SAMPLE_TASKS.map(({ dueInDays, createdDaysAgo
   createdAt: timestampDaysAgo(createdDaysAgo),
   updatedAt: timestampDaysAgo(Math.max(0, createdDaysAgo - 1)),
 }));
+
+const findSample = (key: string) => sampleTasks.find((task) => task.key === key)!;
+
+export const sampleComments: TaskComment[] = [
+  {
+    id: 'CMT-1', taskId: findSample('IXP-102').id, authorId: 'PM001', mentionIds: ['EMP001'],
+    body: '@Kalai Priya please focus on the refresh-token edge cases first.', createdAt: timestampDaysAgo(3),
+  },
+  {
+    id: 'CMT-2', taskId: findSample('IXP-102').id, authorId: 'EMP001', mentionIds: [],
+    body: 'Token refresh looks good. Moving on to the logout checks today.', createdAt: timestampDaysAgo(1),
+  },
+  {
+    id: 'CMT-3', taskId: findSample('IXP-104').id, authorId: 'EMP001', mentionIds: ['PM001'],
+    body: '@Priya Kumar ready for review, the restricted holidays now show a tooltip.', createdAt: timestampDaysAgo(1),
+  },
+  {
+    id: 'CMT-4', taskId: findSample('IXP-106').id, authorId: 'EMP005', mentionIds: ['PM001'],
+    body: '@Priya Kumar blocked until DevOps grants access to the build bucket.', createdAt: timestampDaysAgo(2),
+  },
+];
+
+// One "created" entry per task, plus the work already logged
+export const sampleActivities: TaskActivity[] = sampleTasks.map((task) => ({
+  id: `ACT-${task.id}`, taskId: task.id, actorId: task.reporterId, type: 'created', createdAt: task.createdAt,
+}));
+
+export const sampleWorkLogs: WorkLog[] = sampleTasks
+  .filter((task) => task.loggedHours > 0)
+  .map((task) => ({
+    id: `WL-${task.id}`,
+    taskId: task.id,
+    userId: task.assigneeId,
+    hours: task.loggedHours,
+    note: 'Work logged before the tasks module launch',
+    date: daysFromNow(-1),
+    createdAt: timestampDaysAgo(1),
+  }));

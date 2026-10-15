@@ -82,7 +82,7 @@ export function DueDateChip({ task }: { task: Pick<Task, 'dueDate' | 'status'> }
   const state = getDueState(task);
   const Icon = state === 'overdue' ? AlertTriangle : Calendar;
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium', DUE_CHIP_CLASS[state])}>
+    <span className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium', DUE_CHIP_CLASS[state])}>
       <Icon className="h-3 w-3" aria-hidden />
       {getDueLabel(task.dueDate, state)}
     </span>

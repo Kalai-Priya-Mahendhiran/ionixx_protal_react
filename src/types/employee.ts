@@ -65,6 +65,8 @@ export interface TimeEntry {
   description: string
   totalHours: number
   status: 'submitted' | 'approved' | 'rejected'
+  // Set when the entry came from "Log Work" on a task
+  taskId?: string
 }
 
 export interface File {
@@ -77,6 +79,9 @@ export interface File {
   category: string
   accessLevel: 'public' | 'private'
   url: string
+  uploadedById?: string
+  // Set for files attached to a task
+  taskId?: string
 }
 
 export interface Event {

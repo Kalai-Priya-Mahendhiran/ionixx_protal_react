@@ -4,9 +4,11 @@ import type { Task } from '@/types';
 import {
   DEFAULT_TASK_VIEW,
   can,
+  canCreateSubtask,
   canCreateTask,
   canTransition,
   getAssignableUsers,
+  getSubtaskType,
   getVisibleTasks,
   isTaskReadOnly,
   resolveTaskView,
@@ -142,5 +144,42 @@ describe('resolveTaskView()', () => {
   it('falls back to the default when the requested view is not allowed', () => {
     expect(resolveTaskView(employee, 'settings')).toBe('my-tasks');
     expect(resolveTaskView(admin, 'team-board')).toBe('team-board');
+  });
+});
+
+describe('Phase 2 rules', () => {
+  it('lets watchers see and comment on a task, but not edit it', () => {
+    const watched = makeTask({ assigneeId: 'EMP002', reporterId: 'PM001', watcherIds: ['EMP001'] });
+    expect(can(employee, 'task.view', watched)).toBe(true);
+    expect(can(employee, 'task.comment', watched)).toBe(true);
+    expect(can(employee, 'task.edit', watched)).toBe(false);
+    expect(can(employee, 'task.logWork', watched)).toBe(false);
+  });
+
+  it('shows every sub-task of a visible parent', () => {
+    const parent = makeTask({ id: 'P1', assigneeId: 'EMP001' });
+    const othersSubtask = makeTask({ id: 'S1', parentId: 'P1', type: 'sub-task', assigneeId: 'EMP002', reporterId: 'EMP002' });
+    const unrelated = makeTask({ id: 'S2', parentId: 'NOPE', type: 'sub-task', assigneeId: 'EMP002', reporterId: 'EMP002' });
+    expect(getVisibleTasks(employee, [parent, othersSubtask, unrelated]).map((task) => task.id)).toEqual(['P1', 'S1']);
+  });
+
+  it('lets employees add sub-tasks only for themselves, managers for their team', () => {
+    const parent = makeTask({ assigneeId: 'EMP001' });
+    expect(canCreateSubtask(employee, parent, 'EMP001')).toBe(true);
+    expect(canCreateSubtask(employee, parent, 'EMP002')).toBe(false);
+    expect(canCreateSubtask(manager, parent, 'EMP002')).toBe(true);
+    expect(canCreateSubtask(manager, parent, 'HR001')).toBe(false);
+  });
+
+  it('treats sub-tasks of HR work as HR work', () => {
+    const hrParent = makeTask({ type: 'hr', assigneeId: 'HR001', reporterId: 'HR001' });
+    expect(getSubtaskType(hrParent)).toBe('hr');
+    expect(canCreateSubtask(hr, hrParent, 'SYS001')).toBe(true);
+  });
+
+  it('gives executives watch but not comment or log work', () => {
+    expect(can(executive, 'task.watch', outsideTask)).toBe(true);
+    expect(can(executive, 'task.comment', outsideTask)).toBe(false);
+    expect(can(executive, 'task.logWork', outsideTask)).toBe(false);
   });
 });

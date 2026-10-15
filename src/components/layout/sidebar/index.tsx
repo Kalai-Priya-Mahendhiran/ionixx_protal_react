@@ -60,7 +60,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         <ul className="space-y-2">
           {items.map((item) => {
             const Icon = getIcon(item.icon);
-            const isActive = pathname === item.path;
+            // Sub-pages (e.g. /tasks/IXP-102) keep their section highlighted
+            const isActive = pathname === item.path || pathname.startsWith(`${item.path}/`);
 
             return (
               <li key={item.id}>

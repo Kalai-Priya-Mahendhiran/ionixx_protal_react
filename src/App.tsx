@@ -14,6 +14,7 @@ import Attendance from '@/components/employee-component/attendance';
 import TimeTracker from '@/components/employee-component/time-tracker';
 import Leave from '@/components/employee-component/leave-tracker';
 import Tasks from '@/components/employee-component/tasks';
+import TaskDetail from '@/components/employee-component/tasks/task-detail';
 import Files from '@/components/employee-component/files';
 import Organization from '@/components/employee-component/organization';
 
@@ -119,6 +120,15 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Tasks]}>
             <Tasks />
+          </ProtectedRoute>
+        }
+      />
+      {/* Each task has its own shareable page, e.g. /tasks/IXP-102 */}
+      <Route
+        path={`${ROUTES.Tasks}/:taskKey`}
+        element={
+          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Tasks]}>
+            <TaskDetail />
           </ProtectedRoute>
         }
       />

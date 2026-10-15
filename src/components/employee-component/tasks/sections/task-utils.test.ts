@@ -1,7 +1,17 @@
 import { sampleTasks } from '@/lib/sample-data/tasks-sample-data';
 import type { Task } from '@/types';
 import { taskSchema } from '@/lib/schemas';
-import { countByStatusFilter, getDueState, getDurationDays, matchesSearch, matchesStatusFilter, parseLabels } from './task-utils';
+import {
+  countByStatusFilter,
+  filterTasksForView,
+  getDueState,
+  getDurationDays,
+  getSubtaskProgress,
+  matchesMyTasksTab,
+  matchesSearch,
+  matchesStatusFilter,
+  parseLabels,
+} from './task-utils';
 
 const today = new Date(2026, 9, 15); // Oct 15, 2026 (local time)
 const task = (overrides: Partial<Task>): Task => ({ ...sampleTasks[0], ...overrides });
@@ -64,5 +74,25 @@ describe('taskSchema dates', () => {
 
   it('accepts an empty start date', () => {
     expect(taskSchema.safeParse({ ...base, startDate: '', dueDate: '2026-10-18' }).success).toBe(true);
+  });
+});
+
+describe('My Tasks tabs and sub-tasks', () => {
+  it('splits my work into open tabs and Completed', () => {
+    const mine = task({ assigneeId: 'EMP001', reporterId: 'PM001', status: 'in-progress', watcherIds: [] });
+    const finished = task({ assigneeId: 'EMP001', status: 'done' });
+    const watched = task({ assigneeId: 'EMP002', reporterId: 'PM001', status: 'todo', watcherIds: ['EMP001'] });
+    expect(matchesMyTasksTab(mine, 'assigned', 'EMP001')).toBe(true);
+    expect(matchesMyTasksTab(finished, 'assigned', 'EMP001')).toBe(false);
+    expect(matchesMyTasksTab(finished, 'completed', 'EMP001')).toBe(true);
+    expect(matchesMyTasksTab(watched, 'watching', 'EMP001')).toBe(true);
+  });
+
+  it('keeps sub-tasks out of views and counts them per parent', () => {
+    const parent = task({ id: 'P', parentId: undefined, assigneeId: 'EMP001' });
+    const childDone = task({ id: 'C1', parentId: 'P', status: 'done', assigneeId: 'EMP001' });
+    const childOpen = task({ id: 'C2', parentId: 'P', status: 'todo', assigneeId: 'EMP001' });
+    expect(filterTasksForView('my-tasks', [parent, childDone, childOpen], 'EMP001').map((item) => item.id)).toEqual(['P']);
+    expect(getSubtaskProgress([parent, childDone, childOpen]).get('P')).toEqual({ done: 1, total: 2 });
   });
 });

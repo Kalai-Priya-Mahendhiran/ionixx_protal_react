@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { QUICK_ADD_OPTIONS, ROUTES } from "@/lib/constants";
 import { useLocation } from "react-router-dom";
+import { NotificationsPanel } from "./notifications-panel";
+import { useUnreadNotificationCount } from "@/services/apis/notifications/use-notifications";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -27,10 +29,13 @@ interface HeaderProps {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const unreadCount = useUnreadNotificationCount();
 
   // Function to get current page name based on pathname
   const getCurrentPageName = (): string => {
-    switch (pathname) {
+    // Sub-pages such as /tasks/IXP-102 show their section name
+    const section = `/${pathname.split("/")[1] ?? ""}`;
+    switch (section) {
       case ROUTES.Dashboard:
         return 'Dashboard';
       case ROUTES.Profile:
@@ -171,32 +176,14 @@ interface HeaderProps {
             className="relative"
           >
             <Bell className="h-8 w-8 text-slate-700" />
-            <span className="absolute top-1 -right-1 h-6 w-6 ionixx_icon-gradient rounded-full text-xs text-white flex items-center justify-center font-bold border border-blue-600">
-            03+
-            </span>
+            {unreadCount > 0 && (
+              <span className="absolute top-1 -right-1 h-6 min-w-6 px-1 ionixx_icon-gradient rounded-full text-xs text-white flex items-center justify-center font-bold border border-blue-600">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </Button>
-          
-          {showNotifications && (
-            <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-md shadow-lg border border-gray-200 py-2 z-50">
-              <div className="px-4 py-2 border-b border-gray-200">
-                <h3 className="font-medium text-sm">Notifications</h3>
-              </div>
-              <div className="max-h-64 overflow-y-auto">
-                <div className="px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
-                  <p className="text-sm font-medium">New task assigned</p>
-                  <p className="text-xs text-gray-600">2 minutes ago</p>
-                </div>
-                <div className="px-4 py-3 hover:bg-gray-50 border-b border-gray-100">
-                  <p className="text-sm font-medium">Leave request approved</p>
-                  <p className="text-xs text-gray-600">1 hour ago</p>
-                </div>
-                <div className="px-4 py-3 hover:bg-gray-50">
-                  <p className="text-sm font-medium">Team meeting reminder</p>
-                  <p className="text-xs text-gray-600">3 hours ago</p>
-                </div>
-              </div>
-            </div>
-          )}
+
+          {showNotifications && <NotificationsPanel onNavigate={() => setShowNotifications(false)} />}
         </div>
 
         {/* Profile */}

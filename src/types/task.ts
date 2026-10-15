@@ -12,6 +12,8 @@ export interface TaskAttachment {
   fileId?: string
   url?: string
   sizeBytes?: number
+  uploadedById?: string
+  uploadedAt?: string
 }
 
 export interface Task {
@@ -105,7 +107,22 @@ export interface TaskComment {
   createdAt: string
 }
 
-export type TaskActivityType = 'created' | 'updated' | 'status-changed' | 'assigned' | 'duplicated' | 'deleted' | 'commented'
+export type TaskActivityType =
+  | 'created'
+  | 'updated'
+  | 'status-changed'
+  | 'assigned'
+  | 'duplicated'
+  | 'deleted'
+  | 'commented'
+  | 'subtask-added'
+  | 'attachment-added'
+  | 'attachment-removed'
+  | 'work-logged'
+  | 'blocked'
+  | 'unblocked'
+  | 'watched'
+  | 'unwatched'
 
 export interface TaskActivity {
   id: string
@@ -115,6 +132,7 @@ export interface TaskActivity {
   field?: string
   from?: string
   to?: string
+  note?: string
   createdAt: string
 }
 

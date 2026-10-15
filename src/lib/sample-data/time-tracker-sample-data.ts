@@ -4,7 +4,7 @@ import type { TaskRecord } from '@/components/employee-component/time-tracker/se
 export const sampleTimeEntries: TimeEntry[] = [
   {
     id: '1',
-    userId: '1',
+    userId: 'EMP001',
     project: 'Employee Portal',
     module: 'Dashboard',
     task: 'Coding',
@@ -17,7 +17,7 @@ export const sampleTimeEntries: TimeEntry[] = [
   },
   {
     id: '2',
-    userId: '1',
+    userId: 'EMP001',
     project: 'Employee Portal',
     module: 'Authentication',
     task: 'Coding',

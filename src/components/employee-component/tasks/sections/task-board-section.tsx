@@ -14,7 +14,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
-import { Ban, Clock, Paperclip, Plus, Zap } from 'lucide-react';
+import { Ban, Clock, ListChecks, Paperclip, Plus, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -27,8 +27,12 @@ import type { EpicSummary, Task, TaskStatus } from '@/types';
 import { TaskActionsMenu } from './task-actions-menu';
 import { DueDateChip, TaskTypeIcon } from './task-badges';
 import { BOARD_COLUMNS, TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getBoardColumn, getLabelColor } from './task-config';
+import type { SubtaskProgress } from './task-utils';
 
 type DropState = 'idle' | 'origin' | 'allowed' | 'blocked';
+
+// Space picks a card up and drops it, so Enter stays free for opening the task
+const KEYBOARD_OPTIONS = { keyboardCodes: { start: ['Space'], cancel: ['Escape'], end: ['Space'] } };
 
 // Prefer the column under the pointer; fall back to overlap (keyboard dragging has no pointer)
 const collisionDetection: CollisionDetection = (args) => {
@@ -60,10 +64,11 @@ function AssigneeAvatar({ userId }: { userId: string }) {
 interface CardContentProps {
   task: Task;
   epic?: EpicSummary;
+  progress?: SubtaskProgress;
   menu?: ReactNode;
 }
 
-function BoardCardContent({ task, epic, menu }: CardContentProps) {
+function BoardCardContent({ task, epic, progress, menu }: CardContentProps) {
   const priority = TASK_PRIORITY_CONFIG[task.priority];
   const PriorityIcon = priority.icon;
   const isBlocked = task.isBlocked && task.status !== 'done';
@@ -117,6 +122,18 @@ function BoardCardContent({ task, epic, menu }: CardContentProps) {
               {task.loggedHours}/{task.estimateHours}h
             </span>
           )}
+          {progress && progress.total > 0 && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-0.5 rounded px-1 font-medium',
+                progress.done === progress.total ? 'bg-green-100 text-green-700' : 'text-gray-500',
+              )}
+              title="Sub-tasks done"
+            >
+              <ListChecks className="h-3.5 w-3.5" />
+              {progress.done}/{progress.total}
+            </span>
+          )}
           {task.attachments.length > 0 && (
             <span className="inline-flex items-center gap-0.5" title="Attachments">
               <Paperclip className="h-3.5 w-3.5" />
@@ -139,14 +156,15 @@ const cardClass = (task: Task) =>
 interface BoardCardProps {
   task: Task;
   epic?: EpicSummary;
+  progress?: SubtaskProgress;
+  onOpen: (task: Task) => void;
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
 }
 
-function BoardCard({ task, epic, onEdit, onDelete }: BoardCardProps) {
+function BoardCard({ task, epic, progress, onOpen, onEdit, onDelete }: BoardCardProps) {
   const { user } = useAuth();
   const canDrag = can(user, 'task.changeStatus', task);
-  const canEdit = can(user, 'task.edit', task);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id, data: { task }, disabled: !canDrag });
 
   return (
@@ -155,17 +173,23 @@ function BoardCard({ task, epic, onEdit, onDelete }: BoardCardProps) {
       {...attributes}
       {...listeners}
       aria-label={`${task.key}: ${task.title}`}
-      onClick={canEdit ? () => onEdit(task) : undefined}
+      onClick={() => onOpen(task)}
+      // Enter opens the task; Space picks the card up for keyboard dragging
+      onKeyDown={(event) => {
+        listeners?.onKeyDown?.(event);
+        if (event.key === 'Enter') onOpen(task);
+      }}
       className={cn(
         cardClass(task),
         'group transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#464EB8]/50',
-        canDrag ? 'cursor-grab active:cursor-grabbing' : canEdit ? 'cursor-pointer' : 'cursor-default',
+        canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
         isDragging && 'opacity-40',
       )}
     >
       <BoardCardContent
         task={task}
         epic={epic}
+        progress={progress}
         menu={
           <div onClick={stopPropagation} onPointerDown={stopPropagation} onKeyDown={stopPropagation}>
             <TaskActionsMenu
@@ -253,19 +277,21 @@ function BoardColumn({ status, label, dotClass, count, dropState, onCreate, chil
 
 interface TaskBoardSectionProps {
   tasks: Task[];
+  subtaskProgress: Map<string, SubtaskProgress>;
   onCreate?: () => void;
+  onOpen: (task: Task) => void;
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
 }
 
-export function TaskBoardSection({ tasks, onCreate, onEdit, onDelete }: TaskBoardSectionProps) {
+export function TaskBoardSection({ tasks, subtaskProgress, onCreate, onOpen, onEdit, onDelete }: TaskBoardSectionProps) {
   const { user } = useAuth();
   const { data: epics = [] } = useEpics();
   const changeStatus = useChangeTaskStatus();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   // A small drag distance lets a plain click open the task instead of starting a drag
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor));
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, KEYBOARD_OPTIONS));
 
   const findEpic = (task: Task) => epics.find((epic) => epic.id === task.epicId);
 
@@ -317,7 +343,15 @@ export function TaskBoardSection({ tasks, onCreate, onEdit, onDelete }: TaskBoar
               onCreate={column.status === 'todo' ? onCreate : undefined}
             >
               {columnTasks.map((task) => (
-                <BoardCard key={task.id} task={task} epic={findEpic(task)} onEdit={onEdit} onDelete={onDelete} />
+                <BoardCard
+                  key={task.id}
+                  task={task}
+                  epic={findEpic(task)}
+                  progress={subtaskProgress.get(task.id)}
+                  onOpen={onOpen}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                />
               ))}
             </BoardColumn>
           );
@@ -327,7 +361,7 @@ export function TaskBoardSection({ tasks, onCreate, onEdit, onDelete }: TaskBoar
       <DragOverlay dropAnimation={null}>
         {activeTask && (
           <div className={cn(cardClass(activeTask), 'w-72 rotate-2 cursor-grabbing shadow-xl ring-2 ring-[#464EB8]/40')}>
-            <BoardCardContent task={activeTask} epic={findEpic(activeTask)} />
+            <BoardCardContent task={activeTask} epic={findEpic(activeTask)} progress={subtaskProgress.get(activeTask.id)} />
           </div>
         )}
       </DragOverlay>

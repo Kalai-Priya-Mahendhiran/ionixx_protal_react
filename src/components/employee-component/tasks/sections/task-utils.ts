@@ -54,16 +54,69 @@ export function matchesSearch(task: Task, term: string): boolean {
 }
 
 // Narrows the already permission-filtered task list to what the current view is about
+// Sub-tasks never appear on their own here: they're shown inside their parent
 export function filterTasksForView(view: TaskView, tasks: Task[], userId: string): Task[] {
+  const topLevel = tasks.filter((task) => !task.parentId);
   switch (view) {
     case 'my-tasks':
-      return tasks.filter((task) => task.assigneeId === userId || task.reporterId === userId);
+      return topLevel.filter(
+        (task) => task.assigneeId === userId || task.reporterId === userId || task.watcherIds.includes(userId),
+      );
     case 'hr-tasks':
-      return tasks.filter((task) => task.type === 'hr');
+      return topLevel.filter((task) => task.type === 'hr');
     default:
-      return tasks;
+      return topLevel;
   }
 }
+
+/* ---------- My Tasks tabs ---------- */
+
+export type MyTasksTab = 'assigned' | 'created' | 'watching' | 'completed';
+
+export const MY_TASKS_TABS: { value: MyTasksTab; label: string }[] = [
+  { value: 'assigned', label: 'Assigned to me' },
+  { value: 'created', label: 'Created by me' },
+  { value: 'watching', label: 'Watching' },
+  { value: 'completed', label: 'Completed' },
+];
+
+export function isMyTasksTab(value: string | null): value is MyTasksTab {
+  return MY_TASKS_TABS.some((tab) => tab.value === value);
+}
+
+// Open work in the first three tabs; finished work assigned to me in "Completed"
+export function matchesMyTasksTab(task: Task, tab: MyTasksTab, userId: string): boolean {
+  switch (tab) {
+    case 'assigned':
+      return task.assigneeId === userId && task.status !== 'done';
+    case 'created':
+      return task.reporterId === userId && task.status !== 'done';
+    case 'watching':
+      return task.watcherIds.includes(userId) && task.status !== 'done';
+    case 'completed':
+      return task.assigneeId === userId && task.status === 'done';
+  }
+}
+
+/* ---------- Sub-tasks ---------- */
+
+export interface SubtaskProgress {
+  done: number;
+  total: number;
+}
+
+// Done / total sub-tasks per parent ID
+export function getSubtaskProgress(tasks: Task[]): Map<string, SubtaskProgress> {
+  const progress = new Map<string, SubtaskProgress>();
+  tasks.forEach((task) => {
+    if (!task.parentId) return;
+    const current = progress.get(task.parentId) ?? { done: 0, total: 0 };
+    progress.set(task.parentId, { done: current.done + (task.status === 'done' ? 1 : 0), total: current.total + 1 });
+  });
+  return progress;
+}
+
+export const progressPercent = ({ done, total }: SubtaskProgress) => (total === 0 ? 0 : Math.round((done / total) * 100));
 
 export type DueState = 'overdue' | 'due-soon' | 'upcoming' | 'done';
 

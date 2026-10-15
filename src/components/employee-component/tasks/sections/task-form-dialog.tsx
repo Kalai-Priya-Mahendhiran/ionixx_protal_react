@@ -462,7 +462,7 @@ export function TaskFormDialog({ open, task, projects, onOpenChange }: TaskFormD
               </FormSection>
 
               <FormSection title="Attachments">
-                <TaskAttachmentsField value={attachments} onChange={setAttachments} />
+                <TaskAttachmentsField value={attachments} onChange={setAttachments} taskId={task?.id} />
               </FormSection>
 
               {form.formState.errors.root && (

@@ -461,3 +461,35 @@ export const timeTrackerTaskFormSchema = z.object({
 
 export type TimeTrackerTaskFormValues = z.infer<typeof timeTrackerTaskFormSchema>;
 export type TimeTrackerTaskFormRow = TimeTrackerTaskFormValues["tasks"][number];
+
+// "Log Work" on a task; the entry also goes to the Time Tracker, so it must fit inside the day
+export const logWorkSchema = z
+  .object({
+    date: z
+      .string()
+      .min(1, "Date is required")
+      .refine((value) => value <= todayAsDateInput(), "You can't log work in the future"),
+    startTime: z.string().regex(/^\d{2}:\d{2}$/, "Start time is required"),
+    hours: z
+      .string()
+      .trim()
+      .min(1, "Hours are required")
+      .refine((value) => Number(value) > 0 && Number(value) <= 24, "Enter between 0.25 and 24 hours")
+      .refine((value) => Number.isInteger(Number(value) * 4), "Use quarter hours, e.g. 1.25 or 2.5"),
+    note: z.string().trim().max(500, "Keep the note under 500 characters"),
+  })
+  .refine(
+    ({ startTime, hours }) => {
+      const [h, m] = startTime.split(":").map(Number);
+      return h * 60 + m + Number(hours) * 60 <= 24 * 60;
+    },
+    { path: ["hours"], message: "This would run past midnight — split it across two days" },
+  );
+
+export type LogWorkFormValues = z.infer<typeof logWorkSchema>;
+
+export const flagBlockedSchema = z.object({
+  reason: z.string().trim().min(5, "Tell your manager what's blocking you (at least 5 characters)").max(300, "Keep it under 300 characters"),
+});
+
+export type FlagBlockedFormValues = z.infer<typeof flagBlockedSchema>;

@@ -8,22 +8,26 @@ import {
   Upload
 } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
-import { sampleFiles } from '@/lib/sample-data/file-sample-data';
+import { TASK_ATTACHMENT_CATEGORY } from '@/services/apis/files/file-service';
+import { useFiles } from '@/services/apis/files/use-files';
 import { CategoriesSidebarSection, FilesContentSection, type FileCategory } from './sections';
 
 export default function Files() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  // Shared with task attachments, so files uploaded to a task appear under "Task Attachments"
+  const { data: files = [] } = useFiles();
 
   const categories: FileCategory[] = [
-    { id: 'all', label: 'All Files', count: sampleFiles.length },
-    { id: 'hr-policies', label: 'HR Policies', count: sampleFiles.filter(f => f.category === 'hr-policies').length },
-    { id: 'training', label: 'Training', count: sampleFiles.filter(f => f.category === 'training').length },
-    { id: 'salary', label: 'Salary', count: sampleFiles.filter(f => f.category === 'salary').length },
-    { id: 'general', label: 'General', count: sampleFiles.filter(f => f.category === 'general').length },
+    { id: 'all', label: 'All Files', count: files.length },
+    { id: 'hr-policies', label: 'HR Policies', count: files.filter(f => f.category === 'hr-policies').length },
+    { id: 'training', label: 'Training', count: files.filter(f => f.category === 'training').length },
+    { id: 'salary', label: 'Salary', count: files.filter(f => f.category === 'salary').length },
+    { id: 'general', label: 'General', count: files.filter(f => f.category === 'general').length },
+    { id: TASK_ATTACHMENT_CATEGORY, label: 'Task Attachments', count: files.filter(f => f.category === TASK_ATTACHMENT_CATEGORY).length },
   ];
 
-  const filteredFiles = sampleFiles.filter(file => {
+  const filteredFiles = files.filter(file => {
     const matchesCategory = selectedCategory === 'all' || file.category === selectedCategory;
     const matchesSearch = file.name.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
@@ -54,7 +58,7 @@ export default function Files() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Files</p>
-                  <p className="text-2xl font-bold text-gray-900">{sampleFiles.length}</p>
+                  <p className="text-2xl font-bold text-gray-900">{files.length}</p>
                 </div>
               </div>
             </CardContent>
