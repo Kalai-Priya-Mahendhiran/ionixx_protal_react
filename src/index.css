@@ -116,3 +116,19 @@
 .ionixx_icon-gradient {
   background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
 }
+
+/* Slim themed scrollbar for fixed-height panels */
+.ionixx-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #c7caf0 transparent;
+}
+
+.ionixx-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.ionixx-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #c7caf0;
+  border-radius: 9999px;
+}

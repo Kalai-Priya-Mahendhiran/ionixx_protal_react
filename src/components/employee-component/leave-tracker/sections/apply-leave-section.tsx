@@ -1,55 +1,153 @@
+import { useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { CalendarPlus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-import { LEAVE_TYPES } from '@/lib/constants';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { RequiredLabel, SelectField, fieldClass } from '@/components/ui/form-fields';
+import { LEAVE_DAY_PARTS, LEAVE_TYPES } from '@/lib/constants';
+import { leaveRequestSchema, type LeaveRequestFormValues } from '@/lib/schemas';
+import type { Holiday, LeaveRequest } from '@/types';
+import { countLeaveDays, getDatesInRange, isActiveLeaveOn, isWeekend } from './leave-utils';
 
-export function ApplyLeaveSection() {
+const LEAVE_TYPE_OPTIONS = LEAVE_TYPES.map((type) => ({ value: type.id, label: type.label }));
+
+const emptyLeaveRequest: Partial<LeaveRequestFormValues> = {
+  leaveType: undefined,
+  startDate: '',
+  startDayPart: 'full-day',
+  endDate: '',
+  endDayPart: 'full-day',
+  reason: '',
+};
+
+interface ApplyLeaveSectionProps {
+  requests: LeaveRequest[];
+  holidays: Holiday[];
+  onApply: (values: LeaveRequestFormValues, days: number) => void;
+}
+
+export function ApplyLeaveSection({ requests, holidays, onApply }: ApplyLeaveSectionProps) {
+  const form = useForm<LeaveRequestFormValues>({
+    resolver: zodResolver(leaveRequestSchema),
+    defaultValues: emptyLeaveRequest,
+  });
+  const { control } = form;
+
+  const [startDate, startDayPart, endDate, endDayPart] = useWatch({
+    control,
+    name: ['startDate', 'startDayPart', 'endDate', 'endDayPart'],
+  });
+  const totalDays = countLeaveDays(startDate, startDayPart, endDate, endDayPart, holidays);
+
+  const submit = (values: LeaveRequestFormValues) => {
+    const days = countLeaveDays(values.startDate, values.startDayPart, values.endDate, values.endDayPart, holidays);
+    if (days === 0) {
+      form.setError('startDate', { message: 'Selected dates fall on weekends or public holidays' });
+      return;
+    }
+    const leaveDates = getDatesInRange(values.startDate, values.endDate);
+    if (values.leaveType === 'restricted-holiday') {
+      const restrictedDates = new Set(holidays.filter((holiday) => holiday.type === 'restricted').map((holiday) => holiday.date));
+      if (!leaveDates.every((date) => isWeekend(date) || restrictedDates.has(date))) {
+        form.setError('startDate', { message: 'Restricted Holiday can be applied only on restricted holiday dates' });
+        return;
+      }
+    }
+    if (requests.some((request) => leaveDates.some((date) => isActiveLeaveOn(request, date)))) {
+      form.setError('startDate', { message: 'You already have a leave request for these dates' });
+      return;
+    }
+    onApply(values, days);
+    form.reset(emptyLeaveRequest);
+  };
+
   return (
-    <Card>
+    <Card className="border-0 shadow-xl">
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <Plus className="h-5 w-5" />
-          <span>Apply for Leave</span>
+          <div className="p-2 rounded-lg bg-indigo-100">
+            <CalendarPlus className="h-5 w-5 text-indigo-600" />
+          </div>
+          <span>Apply Leave</span>
         </CardTitle>
-        <CardDescription>Submit a new leave request</CardDescription>
+        <CardDescription>Submit a new leave request for approval</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Leave Type</label>
-          <select className="w-full p-2 border border-gray-300 rounded-md">
-            <option value="">Select leave type</option>
-            {LEAVE_TYPES.map(type => (
-              <option key={type.id} value={type.id}>{type.label}</option>
-            ))}
-          </select>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Start Date</label>
-            <input 
-              type="date" 
-              className="w-full p-2 border border-gray-300 rounded-md"
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
+            <SelectField control={control} name="leaveType" label="Leave Type" placeholder="Select Leave Type" options={LEAVE_TYPE_OPTIONS} />
+
+            <div className="grid grid-cols-5 gap-3">
+              <FormField
+                control={control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem className="col-span-3">
+                    <RequiredLabel>From Date</RequiredLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="date"
+                        className={fieldClass}
+                        onChange={(event) => {
+                          field.onChange(event);
+                          // Default the end date to the start date for quicker single-day requests
+                          if (!form.getValues('endDate')) form.setValue('endDate', event.target.value);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <SelectField control={control} name="startDayPart" label="Part of day" options={LEAVE_DAY_PARTS} required={false} className="col-span-2" />
+            </div>
+
+            <div className="grid grid-cols-5 gap-3">
+              <FormField
+                control={control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem className="col-span-3">
+                    <RequiredLabel>To Date</RequiredLabel>
+                    <FormControl>
+                      <Input {...field} type="date" min={startDate || undefined} className={fieldClass} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <SelectField control={control} name="endDayPart" label="Part of day" options={LEAVE_DAY_PARTS} required={false} className="col-span-2" />
+            </div>
+
+            <FormField
+              control={control}
+              name="reason"
+              render={({ field }) => (
+                <FormItem>
+                  <RequiredLabel>Reason</RequiredLabel>
+                  <FormControl>
+                    <Textarea {...field} rows={3} placeholder="Enter Reason" className={fieldClass} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">End Date</label>
-            <input 
-              type="date" 
-              className="w-full p-2 border border-gray-300 rounded-md"
-            />
-          </div>
-        </div>
-        
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Reason</label>
-          <textarea 
-            className="w-full p-2 border border-gray-300 rounded-md h-20"
-            placeholder="Enter reason for leave..."
-          />
-        </div>
-        
-        <Button className="w-full">Submit Request</Button>
+
+            <div className="flex items-center justify-between rounded-lg bg-indigo-50 px-3 py-2 text-sm">
+              <span className="text-gray-600">Total leave days</span>
+              <span className="font-semibold text-[#464EB8]">{totalDays}</span>
+            </div>
+
+            <div className="flex justify-end gap-2 border-t pt-4">
+              <Button type="button" variant="outline" onClick={() => form.reset(emptyLeaveRequest)}>Cancel</Button>
+              <Button type="submit" className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">Submit</Button>
+            </div>
+          </form>
+        </Form>
       </CardContent>
     </Card>
   );

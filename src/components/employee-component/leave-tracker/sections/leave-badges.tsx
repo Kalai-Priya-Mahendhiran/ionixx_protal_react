@@ -1,8 +1,9 @@
 import { Badge } from '@/components/ui/badge';
 import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { LEAVE_TYPES } from '@/lib/constants';
+import { DEFAULT_BADGE_COLOR, LEAVE_STATUS_COLORS, LEAVE_STATUS_LABELS, LEAVE_TYPES } from '@/lib/constants';
+import type { LeaveRequest } from '@/types';
 
-export const getStatusIcon = (status: string) => {
+export const getStatusIcon = (status: LeaveRequest['status']) => {
   switch (status) {
     case 'approved':
       return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -15,25 +16,17 @@ export const getStatusIcon = (status: string) => {
   }
 };
 
-export const getStatusBadge = (status: string) => {
-  const colors = {
-    approved: 'bg-green-100 text-green-800',
-    rejected: 'bg-red-100 text-red-800',
-    pending: 'bg-yellow-100 text-yellow-800'
-  };
-  
-  return (
-    <Badge className={colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800'}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </Badge>
-  );
-};
+export const getStatusBadge = (status: LeaveRequest['status']) => (
+  <Badge variant="outline" className={`border-transparent ${LEAVE_STATUS_COLORS[status] ?? DEFAULT_BADGE_COLOR}`}>
+    {LEAVE_STATUS_LABELS[status] ?? status}
+  </Badge>
+);
 
 export const getLeaveTypeBadge = (type: string) => {
   const leaveType = LEAVE_TYPES.find(lt => lt.id === type);
   return (
-    <Badge className={leaveType?.color || 'bg-gray-100 text-gray-800'}>
-      {leaveType?.label || type}
+    <Badge variant="outline" className={`border-transparent ${leaveType?.color ?? DEFAULT_BADGE_COLOR}`}>
+      {leaveType?.label ?? type}
     </Badge>
   );
 };

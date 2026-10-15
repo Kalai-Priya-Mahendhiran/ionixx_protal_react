@@ -10,7 +10,7 @@ import { PROJECTS, MODULES, TASK_TYPES, TASK_STATUS_OPTIONS } from '@/lib/sample
 import { todayAsDateInput } from '@/lib/utils';
 import { timeTrackerTaskFormSchema, timeTrackerTaskSchema, type TimeTrackerTaskFormValues } from '@/lib/schemas';
 import { emptyTask, type TaskRecord } from './task-form';
-import { RequiredLabel, SelectField, fieldClass, toOptions } from './form-fields';
+import { RequiredLabel, SelectField, fieldClass, toOptions } from '@/components/ui/form-fields';
 
 type TaskFieldName = FieldPath<TimeTrackerTaskFormValues>;
 

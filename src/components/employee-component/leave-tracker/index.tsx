@@ -1,74 +1,70 @@
-﻿import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { CalendarDays } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
-import { sampleLeaveRequests } from '@/lib/sample-data/leave-tracker-sample-data';
-import { LEAVE_TYPES } from '@/lib/constants';
+import { HOLIDAYS_BY_COUNTRY, sampleLeaveRequests } from '@/lib/sample-data/leave-tracker-sample-data';
+import { DEFAULT_LEAVE_COUNTRY } from '@/lib/constants';
+import type { LeaveRequestFormValues } from '@/lib/schemas';
+import { todayAsDateInput } from '@/lib/utils';
+import type { LeaveCountry, LeaveRequest } from '@/types';
 import {
   ApplyLeaveSection,
   LeaveCalendarSection,
-  LeaveRequestsSection,
-  LeaveHistorySection
+  LeaveHistorySection,
+  LeaveBalanceSection
 } from './sections';
 
 export default function Leave() {
-  const [showApplyForm, setShowApplyForm] = useState(false);
+  const [requests, setRequests] = useState<LeaveRequest[]>(sampleLeaveRequests);
+  const [country, setCountry] = useState<LeaveCountry>(DEFAULT_LEAVE_COUNTRY);
+  const holidays = HOLIDAYS_BY_COUNTRY[country];
 
-  const leaveBalance = {
-    casual: 12,
-    sick: 7,
-    earned: 15,
-    maternity: 90,
-    paternity: 15
+  const applyLeave = (values: LeaveRequestFormValues, days: number) => {
+    setRequests((current) => [
+      {
+        ...values,
+        reason: values.reason.trim(),
+        id: crypto.randomUUID(),
+        userId: '1',
+        days,
+        status: 'pending',
+        appliedDate: todayAsDateInput(),
+      },
+      ...current,
+    ]);
+    toast.success('Leave request submitted for approval');
   };
 
   return (
     <MainLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Leave Management</h1>
-            <p className="text-gray-600 mt-2">Manage your leave requests and track your leave balance</p>
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl px-6 py-4 text-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-black/10" />
+          <div className="relative z-10 flex items-center gap-4">
+            <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">
+              <CalendarDays className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold">Leave Tracker</h1>
+              <p className="text-sm text-white/90 mt-0.5">Manage your leave requests and track your leave balance</p>
+            </div>
           </div>
-          <Button onClick={() => setShowApplyForm(true)} className="flex items-center space-x-2">
-            <Plus className="h-4 w-4" />
-            <span>Apply for Leave</span>
-          </Button>
         </div>
 
         {/* Leave Balance */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {Object.entries(leaveBalance).map(([type, balance]) => {
-            const leaveType = LEAVE_TYPES.find(lt => lt.id === type);
-            return (
-              <Card key={type}>
-                <CardContent className="p-6">
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-gray-600">{leaveType?.label}</p>
-                    <p className="text-2xl font-bold text-gray-900">{balance}</p>
-                    <p className="text-xs text-gray-500">days remaining</p>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        <LeaveBalanceSection requests={requests} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Apply for Leave */}
-          <ApplyLeaveSection />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Apply Leave */}
+          <ApplyLeaveSection requests={requests} holidays={holidays} onApply={applyLeave} />
 
           {/* Leave Calendar */}
-          <LeaveCalendarSection requests={sampleLeaveRequests} />
+          <LeaveCalendarSection requests={requests} holidays={holidays} country={country} onCountryChange={setCountry} />
         </div>
 
-        {/* Leave Requests */}
-        <LeaveRequestsSection requests={sampleLeaveRequests} />
-
         {/* Leave History */}
-        <LeaveHistorySection requests={sampleLeaveRequests} />
+        <LeaveHistorySection requests={requests} />
       </div>
     </MainLayout>
   );

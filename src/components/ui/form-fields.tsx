@@ -10,7 +10,7 @@ export interface Option {
 
 export const toOptions = (values: readonly string[]): Option[] => values.map((value) => ({ value, label: value }));
 
-// Theme focus ring shared by inputs, selects and textareas in the Time Tracker dialogs
+// Theme focus ring shared by inputs, selects and textareas in the Time Tracker and Leave Tracker forms
 export const fieldClass = 'bg-white focus-visible:ring-2 focus-visible:ring-[#464EB8]/30 focus:ring-2 focus:ring-[#464EB8]/30';
 
 export function RequiredLabel({ children }: { children: ReactNode }) {
@@ -29,6 +29,7 @@ export function SelectField<T extends FieldValues>({
   placeholder,
   className,
   onValueChange,
+  required = true,
 }: {
   control: Control<T>;
   name: FieldPath<T>;
@@ -37,6 +38,7 @@ export function SelectField<T extends FieldValues>({
   placeholder?: string;
   className?: string;
   onValueChange?: (value: string) => void;
+  required?: boolean;
 }) {
   return (
     <FormField
@@ -44,7 +46,7 @@ export function SelectField<T extends FieldValues>({
       name={name}
       render={({ field }) => (
         <FormItem className={className}>
-          <RequiredLabel>{label}</RequiredLabel>
+          {required ? <RequiredLabel>{label}</RequiredLabel> : <FormLabel className="text-gray-700">{label}</FormLabel>}
           <Select
             value={field.value ?? ''}
             onValueChange={(value) => {

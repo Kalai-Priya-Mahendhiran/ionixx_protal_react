@@ -1,5 +1,6 @@
 import {
   Award,
+  Baby,
   BarChart3,
   Briefcase,
   Building,
@@ -16,6 +17,7 @@ import {
   Folder,
   Gauge,
   Gift,
+  Heart,
   GraduationCap,
   HeartHandshake,
   Home,
@@ -28,6 +30,7 @@ import {
   Settings,
   ShieldCheck,
   Star,
+  Stethoscope,
   Sun,
   Sunset,
   Target,
@@ -39,6 +42,7 @@ import {
   Users,
   Users2,
   UtensilsCrossed,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -99,12 +103,81 @@ export const QUICK_ADD_OPTIONS = [
 ] ;
 
 export const LEAVE_TYPES = [
-  { id: "casual", label: "Casual Leave", color: "bg-blue-100 text-blue-800" },
-  { id: "sick", label: "Sick Leave", color: "bg-red-100 text-red-800" },
-  { id: "earned", label: "Earned Leave", color: "bg-green-100 text-green-800" },
-  { id: "maternity", label: "Maternity Leave", color: "bg-pink-100 text-pink-800" },
-  { id: "paternity", label: "Paternity Leave", color: "bg-purple-100 text-purple-800" },
+  { id: "casual", label: "Casual Leave", color: "bg-blue-100 text-blue-800", icon: "Coffee", iconClass: "bg-blue-100 text-blue-600" },
+  { id: "sick", label: "Sick Leave", color: "bg-red-100 text-red-800", icon: "Stethoscope", iconClass: "bg-red-100 text-red-600" },
+  { id: "earned", label: "Earned Leave", color: "bg-green-100 text-green-800", icon: "Award", iconClass: "bg-green-100 text-green-600" },
+  { id: "loss-of-pay", label: "Loss Of Pay", color: "bg-slate-200 text-slate-800", icon: "Wallet", iconClass: "bg-slate-200 text-slate-600" },
+  { id: "competency", label: "Competency Leave", color: "bg-teal-100 text-teal-800", icon: "Briefcase", iconClass: "bg-teal-100 text-teal-600" },
+  { id: "permission", label: "Permission", color: "bg-cyan-100 text-cyan-800", icon: "Clock", iconClass: "bg-cyan-100 text-cyan-600" },
+  { id: "marriage", label: "Marriage Leave", color: "bg-rose-100 text-rose-800", icon: "Heart", iconClass: "bg-rose-100 text-rose-600" },
+  { id: "paternity", label: "Paternity Leave", color: "bg-purple-100 text-purple-800", icon: "Users", iconClass: "bg-purple-100 text-purple-600" },
+  { id: "maternity", label: "Maternity Leave", color: "bg-pink-100 text-pink-800", icon: "Baby", iconClass: "bg-pink-100 text-pink-600" },
+  { id: "restricted-holiday", label: "Restricted Holiday", color: "bg-amber-100 text-amber-800", icon: "CalendarDays", iconClass: "bg-amber-100 text-amber-600" },
 ] ;
+
+// Leave Tracker
+export const LEAVE_DAY_PARTS = [
+  { value: "full-day", label: "Full Day" },
+  { value: "first-half", label: "First Half" },
+  { value: "second-half", label: "Second Half" },
+];
+
+export const LEAVE_STATUS_COLORS = {
+  approved: "bg-green-100 text-green-800",
+  rejected: "bg-red-100 text-red-800",
+  pending: "bg-yellow-100 text-yellow-800",
+};
+
+export const LEAVE_STATUS_LABELS = {
+  approved: "Approved",
+  rejected: "Rejected",
+  pending: "Pending",
+};
+
+export const LEAVE_STATUS_FILTER_OPTIONS = [
+  { value: "pending", label: "Pending Requests" },
+  { value: "approved", label: "Approved Requests" },
+  { value: "rejected", label: "Rejected Requests" },
+] as const;
+
+// Leave Calendar matches the Apply Leave height on large screens and scrolls internally
+export const LEAVE_CALENDAR_PANEL_CLASS = "flex flex-col max-h-[680px] lg:max-h-none lg:absolute lg:inset-0";
+export const LEAVE_HISTORY_MAX_HEIGHT_CLASS = "max-h-[440px]";
+
+export const LEAVE_COUNTRIES = [
+  { value: "india", label: "India" },
+  { value: "canada", label: "Canada" },
+  { value: "united-states", label: "United States" },
+];
+
+export const DEFAULT_LEAVE_COUNTRY = "india" as const;
+
+export const WEEKDAY_SHORT_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Leave calendar day markers, listed in legend order
+export const LEAVE_CALENDAR_DAY_STYLES = {
+  "on-leave": { label: "On Leave", cell: "bg-[#464EB8] text-white border-[#464EB8]", swatch: "bg-[#464EB8] border-[#464EB8]" },
+  "working-day": { label: "Working Day", cell: "bg-emerald-50 text-emerald-800 border-emerald-200", swatch: "bg-emerald-50 border-emerald-300" },
+  "public-holiday": { label: "Public Holiday", cell: "bg-rose-100 text-rose-800 border-rose-200", swatch: "bg-rose-100 border-rose-300" },
+  "restricted-holiday": { label: "Restricted Holiday", cell: "bg-amber-100 text-amber-800 border-amber-200", swatch: "bg-amber-100 border-amber-300" },
+  weekend: { label: "Weekend", cell: "bg-gray-100 text-gray-400 border-gray-200", swatch: "bg-gray-100 border-gray-300" },
+};
+
+export const RESTRICTED_HOLIDAY_NOTE = {
+  title: "Important Note - Restricted Holidays",
+  description: "In addition to the public holidays, associates are entitled to avail any one restricted holiday in a year from the restricted holiday list.",
+  warning: "Prior approval is required at least 10 working days in advance from your reporting authority.",
+};
+
+export const HOLIDAY_TYPE_COLORS = {
+  public: "bg-rose-100 text-rose-800",
+  restricted: "bg-amber-100 text-amber-800",
+};
+
+export const HOLIDAY_TYPE_LABELS = {
+  public: "Public",
+  restricted: "Restricted",
+};
 
 export const TASK_STATUS = [
   { id: "pending", label: "Pending", color: "bg-yellow-100 text-yellow-800" },
@@ -473,6 +546,7 @@ export const formatDuration = (ms: number) => {
 // Icons - resolve icon names stored in constants/sample data to components
 export const ICON_MAP: Record<string, LucideIcon> = {
   Award,
+  Baby,
   BarChart3,
   Briefcase,
   Building,
@@ -489,6 +563,7 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   Folder,
   Gauge,
   Gift,
+  Heart,
   GraduationCap,
   HeartHandshake,
   Home,
@@ -501,6 +576,7 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   Settings,
   ShieldCheck,
   Star,
+  Stethoscope,
   Sun,
   Sunset,
   Target,
@@ -512,6 +588,7 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   Users,
   Users2,
   UtensilsCrossed,
+  Wallet,
 };
 
 export const getIcon = (iconName: string, fallback: LucideIcon = CheckCircle): LucideIcon =>

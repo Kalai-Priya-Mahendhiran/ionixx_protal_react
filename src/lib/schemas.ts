@@ -290,13 +290,60 @@ export const profileSchema = personalInfoSchema
 
 export type ProfileFormData = z.infer<typeof profileSchema>;
 
+// Leave Tracker
+export const LEAVE_TYPE_IDS = [
+  "casual", "sick", "earned", "loss-of-pay", "competency", "permission",
+  "marriage", "paternity", "maternity", "restricted-holiday",
+] as const;
+export const LEAVE_DAY_PART_IDS = ["full-day", "first-half", "second-half"] as const;
+
 export const leaveRequestSchema = z.object({
-  leaveType: z.string().min(1, "Leave type is required"),
-  startDate: z.string().min(1, "Start date is required"),
-  endDate: z.string().min(1, "End date is required"),
-  reason: z.string().min(1, "Reason is required"),
-  attachment: z.string().optional(),
+  leaveType: z.enum(LEAVE_TYPE_IDS, { required_error: "Select a leave type", invalid_type_error: "Select a leave type" }),
+  startDate: z.string().min(1, "Select a from date"),
+  startDayPart: z.enum(LEAVE_DAY_PART_IDS),
+  endDate: z.string().min(1, "Select a to date"),
+  endDayPart: z.enum(LEAVE_DAY_PART_IDS),
+  reason: z.string()
+    .trim()
+    .min(1, "Enter a reason")
+    .max(500, "Reason must be less than 500 characters"),
+}).superRefine((leave, context) => {
+  if (!leave.startDate || !leave.endDate) return;
+  if (leave.endDate < leave.startDate) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["endDate"],
+      message: "To date cannot be before from date",
+    });
+    return;
+  }
+  if (leave.startDate === leave.endDate) {
+    if (leave.startDayPart !== leave.endDayPart) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endDayPart"],
+        message: "Use the same part of day for a single-day leave",
+      });
+    }
+    return;
+  }
+  if (leave.startDayPart === "first-half") {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["startDayPart"],
+      message: "A multi-day leave can start only on a full day or second half",
+    });
+  }
+  if (leave.endDayPart === "second-half") {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["endDayPart"],
+      message: "A multi-day leave can end only on a full day or first half",
+    });
+  }
 });
+
+export type LeaveRequestFormValues = z.infer<typeof leaveRequestSchema>;
 
 export const taskSchema = z.object({
   title: z.string().min(1, "Task title is required"),

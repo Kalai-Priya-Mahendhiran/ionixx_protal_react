@@ -10,7 +10,7 @@ import type { TimeEntry } from '@/types';
 import { todayAsDateInput } from '@/lib/utils';
 import { timeEntrySchema, type TimeEntryFormValues } from '@/lib/schemas';
 import { emptyTimeEntry, hoursBetween } from './time-entry-form';
-import { RequiredLabel, SelectField, fieldClass, toOptions } from './form-fields';
+import { RequiredLabel, SelectField, fieldClass, toOptions } from '@/components/ui/form-fields';
 
 const PROJECT_OPTIONS = toOptions(PROJECTS);
 const MODULE_OPTIONS = toOptions(MODULES);

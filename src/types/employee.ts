@@ -1,3 +1,4 @@
+import type { LEAVE_TYPE_IDS } from '@/lib/schemas'
 export interface User {
   id: string
   name: string
@@ -26,17 +27,30 @@ export interface Attendance {
   hoursWorked: number
 }
 
+export type LeaveDayPart = 'full-day' | 'first-half' | 'second-half'
+
 export interface LeaveRequest {
   id: string
   userId: string
-  leaveType: 'casual' | 'sick' | 'earned' | 'maternity' | 'paternity'
+  leaveType: (typeof LEAVE_TYPE_IDS)[number]
   startDate: string
+  startDayPart?: LeaveDayPart
   endDate: string
+  endDayPart?: LeaveDayPart
+  days?: number
   reason: string
   status: 'pending' | 'approved' | 'rejected'
   appliedDate: string
   approvedBy?: string
   approvedDate?: string
+}
+
+export type LeaveCountry = 'india' | 'canada' | 'united-states'
+
+export interface Holiday {
+  date: string
+  name: string
+  type: 'public' | 'restricted'
 }
 
 export interface Task {
