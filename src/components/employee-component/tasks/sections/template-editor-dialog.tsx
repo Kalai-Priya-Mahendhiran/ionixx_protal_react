@@ -11,7 +11,7 @@ import { RequiredLabel, SelectField, fieldClass, type Option } from '@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TASK_PRIORITIES, TEMPLATE_KINDS, TEMPLATE_OWNERS, templateSchema, type TemplateFormValues } from '@/lib/schemas';
 import { TEMPLATE_ANCHOR_LABELS, TEMPLATE_KIND_LABELS, TEMPLATE_OWNER_LABELS } from '@/lib/task-templates';
-import { USER_DIRECTORY } from '@/lib/user-directory';
+import { getActiveUsers } from '@/lib/user-directory';
 import { REQUEST_CATEGORIES, REQUEST_CATEGORY_LABELS } from '@/lib/desk-config';
 import { cn } from '@/lib/utils';
 import { useCreateTemplate, useUpdateTemplate } from '@/services/apis/templates/use-templates';
@@ -112,7 +112,7 @@ function ItemRow({ control, index, count, onMove, onRemove }: { control: Control
                   onChange={field.onChange}
                   label={`Item ${index + 1} person`}
                   invalid={!!fieldState.error}
-                  options={USER_DIRECTORY.map((member) => ({ value: member.id, label: `${member.name} · ${member.designation}` }))}
+                  options={getActiveUsers().map((member) => ({ value: member.id, label: `${member.name} · ${member.designation}` }))}
                 />
                 <FormMessage className="text-xs" />
               </FormItem>

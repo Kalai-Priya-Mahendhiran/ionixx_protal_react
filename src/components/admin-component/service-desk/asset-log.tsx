@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import MainLayout from '@/components/layout/main-layout';
 import { ASSET_STATUS_LABELS, ASSET_TAG_PREFIX, ASSET_TYPES, ASSET_TYPE_LABELS } from '@/lib/desk-config';
 import { ASSET_TYPE_VALUES, assetSchema, type AssetFormValues } from '@/lib/schemas';
-import { USER_DIRECTORY, getUserById } from '@/lib/user-directory';
+import { getActiveUsers, getUserById } from '@/lib/user-directory';
 import { cn, formatDate, formatDateTime } from '@/lib/utils';
 import { useAssets, useCreateAsset, useIssueAsset, useReturnAsset, useSetAssetStatus } from '@/services/apis/service-desk/use-service-desk';
 import type { Asset, AssetStatus, AssetType } from '@/types';
@@ -127,7 +127,7 @@ function IssueDialog({ asset, onOpenChange }: { asset: Asset | null; onOpenChang
         <div className="space-y-3">
           <select value={userId} onChange={(event) => setUserId(event.target.value)} aria-label="Issue to" className="h-10 w-full rounded-md border border-input bg-white px-3 text-sm">
             <option value="">Choose a person…</option>
-            {[...USER_DIRECTORY]
+            {getActiveUsers()
               .sort((a, b) => a.name.localeCompare(b.name))
               .map((member) => (
                 <option key={member.id} value={member.id}>

@@ -1,4 +1,4 @@
-import { USER_DIRECTORY } from '@/lib/user-directory';
+import { getActiveUsers } from '@/lib/user-directory';
 import type { AdminRequest, RequestStatus, TaskUser } from '@/types';
 import { can, getScope, type PermissionUser, type TaskScopeTarget } from './task-permissions';
 
@@ -62,9 +62,9 @@ export function canChangeRequestStatus(user: PermissionUser | null | undefined, 
   return isRequester && request.status === 'resolved' && to === 'in-progress' && withinWindow;
 }
 
-// The Admin team: everyone whose role works the queue
+// The Admin team: everyone (active) whose role works the queue
 export function getDeskTeam(): TaskUser[] {
-  return USER_DIRECTORY.filter((member) => getScope({ id: member.id, role: member.role }, 'request.manage') !== 'none');
+  return getActiveUsers().filter((member) => getScope({ id: member.id, role: member.role }, 'request.manage') !== 'none');
 }
 
 export const canManageAssets = (user: PermissionUser | null | undefined) => can(user, 'asset.manage');

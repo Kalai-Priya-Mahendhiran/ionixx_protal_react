@@ -110,6 +110,7 @@ export const taskSettingsService = {
     assertCanConfigure(actor);
     // Never let System Admins lock themselves (and everyone) out of Settings
     if (permissions['workflow.configure']?.system_admin !== 'all') throw new Error('System Admin must keep access to Settings');
+    if (permissions['user.manage']?.system_admin !== 'all') throw new Error('System Admin must keep access to User Management');
     const changed = Object.entries(permissions).flatMap(([action, roles]) =>
       Object.entries(roles)
         .filter(([role, scope]) => getTaskSettings().permissions[action as keyof PermissionMatrix]?.[role as keyof PermissionMatrix['task.view']] !== scope)

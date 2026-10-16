@@ -12,7 +12,7 @@ import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { can, canTransition, type PermissionUser } from '@/lib/permissions/task-permissions';
 import { ROUTES } from '@/lib/constants';
 import { getWorkflowStatuses } from '@/lib/workflow';
-import { USER_DIRECTORY, getUserById } from '@/lib/user-directory';
+import { getActiveUsers, getUserById } from '@/lib/user-directory';
 import { cn, formatDateTime, formatRelativeTime } from '@/lib/utils';
 import {
   useAddAttachments,
@@ -235,7 +235,7 @@ function TaskDetailView({ task, allTasks, user, backTo, onEdit, onDelete }: Task
     task.watcherIds.forEach((id) => tags.set(id, 'Watcher'));
     tags.set(task.reporterId, 'Reporter');
     tags.set(task.assigneeId, 'Assignee');
-    return USER_DIRECTORY.filter((member) => can(member, 'task.view', task) || (!!parent && can(member, 'task.view', parent)))
+    return getActiveUsers().filter((member) => can(member, 'task.view', task) || (!!parent && can(member, 'task.view', parent)))
       .map((member) => ({ member, tag: tags.get(member.id) }))
       .sort((a, b) => Number(!!b.tag) - Number(!!a.tag));
   }, [task, parent]);

@@ -1,6 +1,7 @@
 import type { UserRole } from '@/lib/mock-users';
-import { USER_DIRECTORY, getTeamOf } from '@/lib/user-directory';
+import { getActiveUsers, getTeamOf } from '@/lib/user-directory';
 import { getTaskSettings } from '@/lib/task-settings-store';
+import { isUserActive } from '@/lib/user-access-store';
 import { isTransitionAllowed } from '@/lib/workflow';
 import type { PermissionScope, Project, Task, TaskAction, TaskStatus, TaskUser } from '@/types';
 
@@ -63,6 +64,8 @@ function isInScope(user: PermissionUser, scope: PermissionScope, action: TaskAct
 export function can(user: PermissionUser | null | undefined, action: TaskAction, task?: TaskScopeTarget): boolean {
   const scope = getScope(user, action);
   if (!user || scope === 'none') return false;
+  // Deactivated accounts can't be given work
+  if (task && ASSIGNEE_ACTIONS.has(action) && task.assigneeId && !isUserActive(task.assigneeId)) return false;
   return task ? isInScope(user, scope, action, task) : true;
 }
 
@@ -110,17 +113,17 @@ export function canCreateSubtask(user: PermissionUser | null | undefined, parent
   return can(user, 'task.edit', parent) && canCreateTask(user, { assigneeId, type: getSubtaskType(parent) });
 }
 
-// People the user may pick in the Assignee field
+// People the user may pick in the Assignee field (deactivated accounts never appear)
 export function getAssignableUsers(user: PermissionUser | null | undefined): TaskUser[] {
   if (!user) return [];
   switch (getScope(user, 'task.assign')) {
     case 'all':
     case 'hr':
-      return USER_DIRECTORY;
+      return getActiveUsers();
     case 'team':
       return getTeamOf(user.id);
     default:
-      return USER_DIRECTORY.filter((member) => member.id === user.id);
+      return getActiveUsers().filter((member) => member.id === user.id);
   }
 }
 

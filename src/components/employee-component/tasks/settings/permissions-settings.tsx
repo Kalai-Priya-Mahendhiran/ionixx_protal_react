@@ -35,7 +35,8 @@ const ACTION_GROUPS: { title: string; actions: { action: TaskAction; label: stri
       { action: 'sprint.manage', label: 'Plan sprints', hint: 'Create, start and complete sprints' },
       { action: 'template.manage', label: 'HR templates', hint: 'Edit and apply checklist templates' },
       { action: 'project.manage', label: 'Manage projects', hint: 'Create projects, members, move tasks' },
-      { action: 'workflow.configure', label: 'Task settings', hint: 'This page' },
+      { action: 'workflow.configure', label: 'Task settings', hint: 'Workflow, fields, automation, audit log' },
+      { action: 'user.manage', scopes: YES_NO, label: 'Manage users', hint: 'Accounts, roles, page and project access' },
       { action: 'reports.view', label: 'Reports', hint: 'Which work appears in their reports' },
     ],
   },
@@ -70,8 +71,8 @@ const SCOPE_STYLE: Record<PermissionScope, string> = {
   all: 'text-green-700',
 };
 
-// Settings access for System Admin can't be removed, or nobody could undo it
-const isLocked = (action: TaskAction, role: UserRole) => action === 'workflow.configure' && role === 'system_admin';
+// System Admin keeps Settings and User Management, or nobody could undo a mistake
+const isLocked = (action: TaskAction, role: UserRole) => (action === 'workflow.configure' || action === 'user.manage') && role === 'system_admin';
 
 export function PermissionsSettingsSection() {
   const { data: settings } = useTaskSettings();

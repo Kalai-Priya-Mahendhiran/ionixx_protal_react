@@ -47,7 +47,6 @@ import SystemConfig from '@/components/system_admin-component/system-config';
 import Integrations from '@/components/system_admin-component/integrations';
 import Logs from '@/components/system_admin-component/logs';
 
-import { ROLE_ROUTE_ACCESS } from '@/lib/mock-users';
 import { ROUTES } from '@/lib/constants';
 
 export default function App() {
@@ -74,7 +73,7 @@ export default function App() {
       <Route
         path={ROUTES.Dashboard}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Dashboard]}>
+          <ProtectedRoute module={ROUTES.Dashboard}>
             <Dashboard />
           </ProtectedRoute>
         }
@@ -82,7 +81,7 @@ export default function App() {
       <Route
         path={ROUTES.Profile}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Profile]}>
+          <ProtectedRoute module={ROUTES.Profile}>
             <Profile />
           </ProtectedRoute>
         }
@@ -90,7 +89,7 @@ export default function App() {
       <Route
         path={ROUTES.Reports}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Reports]}>
+          <ProtectedRoute module={ROUTES.Reports}>
             <Reports />
           </ProtectedRoute>
         }
@@ -100,7 +99,7 @@ export default function App() {
       <Route
         path={ROUTES.Attendance}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Attendance]}>
+          <ProtectedRoute module={ROUTES.Attendance}>
             <Attendance />
           </ProtectedRoute>
         }
@@ -108,7 +107,7 @@ export default function App() {
       <Route
         path={ROUTES.TimeTracker}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.TimeTracker]}>
+          <ProtectedRoute module={ROUTES.TimeTracker}>
             <TimeTracker />
           </ProtectedRoute>
         }
@@ -116,7 +115,7 @@ export default function App() {
       <Route
         path={ROUTES.Leave}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Leave]}>
+          <ProtectedRoute module={ROUTES.Leave}>
             <Leave />
           </ProtectedRoute>
         }
@@ -124,7 +123,7 @@ export default function App() {
       <Route
         path={ROUTES.Tasks}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Tasks]}>
+          <ProtectedRoute module={ROUTES.Tasks}>
             <Tasks />
           </ProtectedRoute>
         }
@@ -133,7 +132,7 @@ export default function App() {
       <Route
         path={ROUTES.ServiceDesk}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.ServiceDesk]}>
+          <ProtectedRoute module={ROUTES.ServiceDesk}>
             <ServiceDesk />
           </ProtectedRoute>
         }
@@ -141,7 +140,7 @@ export default function App() {
       <Route
         path={ROUTES.AssetLog}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.AssetLog]}>
+          <ProtectedRoute module={ROUTES.AssetLog}>
             <AssetLog />
           </ProtectedRoute>
         }
@@ -149,7 +148,7 @@ export default function App() {
       <Route
         path={ROUTES.Expenses}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Expenses]}>
+          <ProtectedRoute module={ROUTES.Expenses}>
             <Expenses />
           </ProtectedRoute>
         }
@@ -157,7 +156,7 @@ export default function App() {
       <Route
         path={ROUTES.DeskReports}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.DeskReports]}>
+          <ProtectedRoute module={ROUTES.DeskReports}>
             <DeskReports />
           </ProtectedRoute>
         }
@@ -166,7 +165,7 @@ export default function App() {
       <Route
         path={`${ROUTES.ServiceDesk}/:requestKey`}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.ServiceDesk]}>
+          <ProtectedRoute module={ROUTES.ServiceDesk}>
             <RequestDetail />
           </ProtectedRoute>
         }
@@ -175,7 +174,7 @@ export default function App() {
       <Route
         path={`${ROUTES.Tasks}/project/:projectKey`}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Tasks]}>
+          <ProtectedRoute module={ROUTES.Tasks}>
             <ProjectSummary />
           </ProtectedRoute>
         }
@@ -184,7 +183,7 @@ export default function App() {
       <Route
         path={`${ROUTES.Tasks}/:taskKey`}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Tasks]}>
+          <ProtectedRoute module={ROUTES.Tasks}>
             <TaskDetail />
           </ProtectedRoute>
         }
@@ -192,7 +191,7 @@ export default function App() {
       <Route
         path={ROUTES.Files}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Files]}>
+          <ProtectedRoute module={ROUTES.Files}>
             <Files />
           </ProtectedRoute>
         }
@@ -200,7 +199,7 @@ export default function App() {
       <Route
         path={ROUTES.Organization}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Organization]}>
+          <ProtectedRoute module={ROUTES.Organization}>
             <Organization />
           </ProtectedRoute>
         }
@@ -210,7 +209,7 @@ export default function App() {
       <Route
         path={ROUTES.TeamOverview}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.TeamOverview]}>
+          <ProtectedRoute module={ROUTES.TeamOverview}>
             <TeamOverview />
           </ProtectedRoute>
         }
@@ -218,7 +217,7 @@ export default function App() {
       <Route
         path={ROUTES.Approvals}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Approvals]}>
+          <ProtectedRoute module={ROUTES.Approvals}>
             <Approvals />
           </ProtectedRoute>
         }
@@ -226,7 +225,7 @@ export default function App() {
       <Route
         path={ROUTES.AttendanceMonitoring}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.AttendanceMonitoring]}>
+          <ProtectedRoute module={ROUTES.AttendanceMonitoring}>
             <AttendanceMonitoring />
           </ProtectedRoute>
         }
@@ -234,7 +233,7 @@ export default function App() {
       <Route
         path={ROUTES.PerformanceReview}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.PerformanceReview]}>
+          <ProtectedRoute module={ROUTES.PerformanceReview}>
             <PerformanceReview />
           </ProtectedRoute>
         }
@@ -244,7 +243,7 @@ export default function App() {
       <Route
         path={ROUTES.EmployeeManagement}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.EmployeeManagement]}>
+          <ProtectedRoute module={ROUTES.EmployeeManagement}>
             <EmployeeManagement />
           </ProtectedRoute>
         }
@@ -252,7 +251,7 @@ export default function App() {
       <Route
         path={ROUTES.Recruitment}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Recruitment]}>
+          <ProtectedRoute module={ROUTES.Recruitment}>
             <Recruitment />
           </ProtectedRoute>
         }
@@ -260,7 +259,7 @@ export default function App() {
       <Route
         path={ROUTES.Training}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Training]}>
+          <ProtectedRoute module={ROUTES.Training}>
             <Training />
           </ProtectedRoute>
         }
@@ -268,7 +267,7 @@ export default function App() {
       <Route
         path={ROUTES.Compliance}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Compliance]}>
+          <ProtectedRoute module={ROUTES.Compliance}>
             <Compliance />
           </ProtectedRoute>
         }
@@ -278,7 +277,7 @@ export default function App() {
       <Route
         path={ROUTES.Analytics}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Analytics]}>
+          <ProtectedRoute module={ROUTES.Analytics}>
             <Analytics />
           </ProtectedRoute>
         }
@@ -286,7 +285,7 @@ export default function App() {
       <Route
         path={ROUTES.KpiMonitoring}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.KpiMonitoring]}>
+          <ProtectedRoute module={ROUTES.KpiMonitoring}>
             <KpiMonitoring />
           </ProtectedRoute>
         }
@@ -296,7 +295,7 @@ export default function App() {
       <Route
         path={ROUTES.UserManagement}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.UserManagement]}>
+          <ProtectedRoute module={ROUTES.UserManagement}>
             <UserManagement />
           </ProtectedRoute>
         }
@@ -304,7 +303,7 @@ export default function App() {
       <Route
         path={ROUTES.RolesPermissions}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.RolesPermissions]}>
+          <ProtectedRoute module={ROUTES.RolesPermissions}>
             <RolesPermissions />
           </ProtectedRoute>
         }
@@ -312,7 +311,7 @@ export default function App() {
       <Route
         path={ROUTES.SystemConfig}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.SystemConfig]}>
+          <ProtectedRoute module={ROUTES.SystemConfig}>
             <SystemConfig />
           </ProtectedRoute>
         }
@@ -320,7 +319,7 @@ export default function App() {
       <Route
         path={ROUTES.Integrations}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Integrations]}>
+          <ProtectedRoute module={ROUTES.Integrations}>
             <Integrations />
           </ProtectedRoute>
         }
@@ -328,7 +327,7 @@ export default function App() {
       <Route
         path={ROUTES.Logs}
         element={
-          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Logs]}>
+          <ProtectedRoute module={ROUTES.Logs}>
             <Logs />
           </ProtectedRoute>
         }

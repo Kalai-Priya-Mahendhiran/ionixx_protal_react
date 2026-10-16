@@ -2,7 +2,8 @@ import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
-import { ROLE_LABELS, ROLE_SIDEBAR_ITEMS } from "@/lib/mock-users";
+import { ROLE_LABELS } from "@/lib/mock-users";
+import { getSidebarItems } from "@/lib/modules";
 import { getIcon } from "@/lib/constants";
 
 interface SidebarProps {
@@ -15,7 +16,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   const { pathname } = useLocation();
   const { user } = useAuth();
 
-  const items = user ? ROLE_SIDEBAR_ITEMS[user.role] : [];
+  // Role defaults plus any pages System Admin added or removed for this person
+  const items = getSidebarItems(user);
 
   const handleNavigation = (path: string) => {
     navigate(path);

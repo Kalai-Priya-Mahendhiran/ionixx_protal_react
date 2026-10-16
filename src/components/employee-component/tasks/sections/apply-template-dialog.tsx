@@ -10,7 +10,7 @@ import { RequiredLabel, SelectField, fieldClass, type Option } from '@/component
 import { useAuth } from '@/context/auth-context';
 import { applyTemplateSchema, type ApplyTemplateFormValues } from '@/lib/schemas';
 import { TEMPLATE_ANCHOR_LABELS, formatOffset, planChecklist } from '@/lib/task-templates';
-import { USER_DIRECTORY, getUserById } from '@/lib/user-directory';
+import { getActiveUsers, getUserById } from '@/lib/user-directory';
 import { cn, toDateInput, todayAsDateInput } from '@/lib/utils';
 import { findAbsence, useAbsences } from '@/services/apis/leave/use-leave';
 import { useApplyTemplate } from '@/services/apis/tasks/use-tasks';
@@ -48,7 +48,7 @@ export function ApplyTemplateDialog({ template, onOpenChange, onApplied }: Apply
 
   // New joiners first for onboarding: people whose joining date is still ahead
   const today = todayAsDateInput();
-  const people = [...USER_DIRECTORY].sort((a, b) => {
+  const people = getActiveUsers().sort((a, b) => {
     if (template?.kind !== 'onboarding') return a.name.localeCompare(b.name);
     return Number((b.joiningDate ?? '') >= today) - Number((a.joiningDate ?? '') >= today) || a.name.localeCompare(b.name);
   });

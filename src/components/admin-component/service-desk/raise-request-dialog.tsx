@@ -11,7 +11,7 @@ import { useAuth } from '@/context/auth-context';
 import { REQUEST_CATEGORIES, REQUEST_CATEGORY_HINTS, REQUEST_CATEGORY_LABELS } from '@/lib/desk-config';
 import { canRaiseRequest } from '@/lib/permissions/desk-permissions';
 import { TASK_PRIORITIES, adminRequestSchema, type AdminRequestFormValues } from '@/lib/schemas';
-import { USER_DIRECTORY } from '@/lib/user-directory';
+import { getActiveUsers } from '@/lib/user-directory';
 import { cn } from '@/lib/utils';
 import { getPriorityLabel } from '@/lib/workflow';
 import { useRaiseRequest } from '@/services/apis/service-desk/use-service-desk';
@@ -29,7 +29,7 @@ export function RaiseRequestDialog({ open, onOpenChange, onRaised }: { open: boo
   const form = useForm<AdminRequestFormValues>({ resolver: zodResolver(adminRequestSchema), defaultValues: DEFAULTS });
   const category = form.watch('category');
   // HR (and Admin) can raise requests for someone else, e.g. a new joiner
-  const canRaiseForOthers = !!user && USER_DIRECTORY.some((member) => member.id !== user.id && canRaiseRequest(user, member.id));
+  const canRaiseForOthers = !!user && getActiveUsers().some((member) => member.id !== user.id && canRaiseRequest(user, member.id));
 
   useEffect(() => {
     if (!open) return;
@@ -141,7 +141,7 @@ export function RaiseRequestDialog({ open, onOpenChange, onRaised }: { open: boo
                         className={cn('h-10 w-full rounded-md border border-input px-3 text-sm', fieldClass)}
                       >
                         <option value="">Myself</option>
-                        {[...USER_DIRECTORY]
+                        {getActiveUsers()
                           .filter((member) => member.id !== user?.id)
                           .sort((a, b) => a.name.localeCompare(b.name))
                           .map((member) => (

@@ -321,6 +321,26 @@ export const requestService = {
   },
 };
 
+const isOpenFor = (userId: string) => (request: AdminRequest) => request.assigneeId === userId && request.status !== 'resolved' && request.status !== 'closed';
+
+export const countOpenRequestsAssignedTo = (userId: string) => requests.filter(isOpenFor(userId)).length;
+
+// When someone on the Admin team is deactivated, their open requests go back to the queue for the team
+export function releaseRequestsAssignedTo(userId: string, actorId: string): string[] {
+  const released = requests.filter(isOpenFor(userId));
+  released.forEach((request) => {
+    const updated = save({ ...request, assigneeId: undefined });
+    log(updated, actorId, `Unassigned: ${nameOf(userId)}'s account was deactivated`);
+    notificationService.notify(handlers(updated), actorId, {
+      type: 'warning',
+      title: `${request.key} is back in the queue`,
+      message: `${nameOf(userId)} was deactivated. ${request.title}`,
+      actionUrl: requestPath(request.key),
+    });
+  });
+  return released.map((request) => request.key);
+}
+
 // Test helpers
 export function resetRequests(seed: AdminRequest[] = sampleRequests, seedComments: RequestComment[] = sampleRequestComments) {
   requests = seed.map((request) => ({ ...request }));

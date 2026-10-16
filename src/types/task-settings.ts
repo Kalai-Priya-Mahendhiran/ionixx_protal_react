@@ -28,6 +28,8 @@ export type TaskAction =
   | 'expense.manage'
   | 'desk.configure'
   | 'desk.reports'
+  // User Management: accounts, roles, page and project access
+  | 'user.manage'
 
 // none: never · own: tasks assigned to (or reported by) the user · team: the user's direct reports
 // hr: HR-type tasks only (not project work, even the user's own) · all: every task
@@ -126,7 +128,7 @@ export interface AutomationRule {
 
 /* ---------- Audit ---------- */
 
-export type AuditEntity = 'task' | 'project' | 'template' | 'settings' | 'automation' | 'request' | 'asset' | 'expense'
+export type AuditEntity = 'task' | 'project' | 'template' | 'settings' | 'automation' | 'request' | 'asset' | 'expense' | 'user'
 
 export interface AuditEntry {
   id: string

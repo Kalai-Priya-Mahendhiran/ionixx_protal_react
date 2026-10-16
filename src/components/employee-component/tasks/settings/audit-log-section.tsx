@@ -23,6 +23,7 @@ const ENTITY_LABELS: Record<AuditEntity, string> = {
   request: 'Admin request',
   asset: 'Asset',
   expense: 'Expense',
+  user: 'User access',
 };
 
 const ENTITY_STYLE: Record<AuditEntity, string> = {
@@ -34,6 +35,7 @@ const ENTITY_STYLE: Record<AuditEntity, string> = {
   request: 'bg-teal-100 text-teal-800',
   asset: 'bg-violet-100 text-violet-700',
   expense: 'bg-emerald-100 text-emerald-800',
+  user: 'bg-rose-100 text-rose-800',
 };
 
 const actorName = (actorId: string) => (actorId === 'system' ? 'Automation' : (getUserById(actorId)?.name ?? actorId));

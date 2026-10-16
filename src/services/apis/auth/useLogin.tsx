@@ -3,6 +3,7 @@ import type { NavigateFunction } from "react-router-dom";
 import Storage from "../../storage/storage";
 import { toast } from "sonner";
 import { validateCredentials, type UserRole } from "@/lib/mock-users";
+import { getAccessRecord, setAccessRecord } from "@/lib/user-access-store";
 
 interface AuthUser {
   id: string;
@@ -36,6 +37,12 @@ export const useLogin = ({ onAuthenticated, navigate, setLoading }: UseLoginProp
       if (!matched) {
         throw new Error("Invalid login ID or password");
       }
+      // The backend must refuse deactivated accounts too
+      if (getAccessRecord(matched.id).status === "deactivated") {
+        throw new Error("This account has been deactivated. Contact your System Administrator.");
+      }
+      // First sign-in completes an invitation; every sign-in shows in User Management
+      setAccessRecord(matched.id, { ...getAccessRecord(matched.id), status: "active", lastSignInAt: new Date().toISOString() });
 
       return {
         data: {

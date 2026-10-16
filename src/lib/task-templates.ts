@@ -1,4 +1,4 @@
-import { USER_DIRECTORY, getUserById } from '@/lib/user-directory';
+import { getActiveUsers, getUserById } from '@/lib/user-directory';
 import { toDateInput } from '@/lib/utils';
 import type { TaskTemplate, TaskTemplateItem, TemplateKind, TemplateOwner } from '@/types';
 
@@ -48,7 +48,7 @@ const addDays = (anchor: string, days: number) => {
   return toDateInput(new Date(year, month - 1, day + days));
 };
 
-const firstWithRole = (role: string) => USER_DIRECTORY.find((user) => user.role === role)?.id;
+const firstWithRole = (role: string) => getActiveUsers().find((user) => user.role === role)?.id;
 
 // HR items go to the person applying the template when they're in HR, else to the HR team;
 // IT items to the system administrators; manager items to the employee's reporting manager

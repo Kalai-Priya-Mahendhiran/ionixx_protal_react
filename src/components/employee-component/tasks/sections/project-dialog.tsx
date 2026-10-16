@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RequiredLabel, SelectField, fieldClass, type Option } from '@/components/ui/form-fields';
 import { TASK_ISSUE_TYPES, projectSchema, type ProjectFormValues } from '@/lib/schemas';
-import { USER_DIRECTORY, getUserById } from '@/lib/user-directory';
+import { getActiveUsers, getUserById } from '@/lib/user-directory';
 import { cn, getInitials } from '@/lib/utils';
 import { useCreateProject, useUpdateProject } from '@/services/apis/tasks/use-tasks';
 import type { Project, Task } from '@/types';
@@ -17,7 +17,6 @@ import { TASK_TYPE_CONFIG } from './task-config';
 import { suggestProjectKey } from './task-utils';
 
 const TYPE_OPTIONS: Option[] = TASK_ISSUE_TYPES.filter((type) => type !== 'sub-task').map((value) => ({ value, label: TASK_TYPE_CONFIG[value].label }));
-const LEAD_OPTIONS: Option[] = USER_DIRECTORY.map((member) => ({ value: member.id, label: member.name, hint: member.designation }));
 
 interface ProjectDialogProps {
   open: boolean;
@@ -56,7 +55,10 @@ export function ProjectDialog({ open, project, tasks, existingKeys, onOpenChange
   const toggleMember = (id: string) =>
     form.setValue('memberIds', memberIds.includes(id) ? memberIds.filter((item) => item !== id) : [...memberIds, id], { shouldDirty: true });
 
-  const visibleMembers = USER_DIRECTORY.filter((member) => member.name.toLowerCase().includes(memberSearch.toLowerCase()));
+  // Active people, plus any current members who have since been deactivated so they can be removed
+  const pickable = [...getActiveUsers(), ...memberIds.filter((id) => !getActiveUsers().some((member) => member.id === id)).map((id) => getUserById(id)).filter((member) => !!member)];
+  const visibleMembers = pickable.filter((member) => member.name.toLowerCase().includes(memberSearch.toLowerCase()));
+  const leadOptions: Option[] = getActiveUsers().map((member) => ({ value: member.id, label: member.name, hint: member.designation }));
 
   // People being removed who still have open work in this project
   const removedWithWork = useMemo(() => {
@@ -143,7 +145,7 @@ export function ProjectDialog({ open, project, tasks, existingKeys, onOpenChange
                 )}
               />
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <SelectField control={form.control} name="leadId" label="Project lead" options={LEAD_OPTIONS} placeholder="Choose the lead" />
+                <SelectField control={form.control} name="leadId" label="Project lead" options={leadOptions} placeholder="Choose the lead" />
                 <SelectField control={form.control} name="defaultIssueType" label="Default task type" options={TYPE_OPTIONS} />
               </div>
 

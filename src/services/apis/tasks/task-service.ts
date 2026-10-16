@@ -23,6 +23,7 @@ import {
   sampleWorkLogs,
 } from '@/lib/sample-data/tasks-sample-data';
 import { getUserById } from '@/lib/user-directory';
+import { isUserActive } from '@/lib/user-access-store';
 import { generateId, toDateInput } from '@/lib/utils';
 import type {
   AutomationTrigger,
@@ -616,6 +617,7 @@ export const taskService = {
     if (projects.some((project) => project.key === key)) throw new Error(`The key ${key} is already used`);
     if (projects.some((project) => project.name.toLowerCase() === name.toLowerCase())) throw new Error(`A project called "${name}" already exists`);
     if (!getUserById(input.leadId)) throw new Error('Choose a project lead');
+    if ([input.leadId, ...input.memberIds].some((memberId) => !isUserActive(memberId))) throw new Error("Deactivated accounts can't be added to a project");
 
     const project: Project = {
       ...input,
@@ -642,6 +644,9 @@ export const taskService = {
       throw new Error(`A project called "${name}" already exists`);
     }
     if (!getUserById(input.leadId)) throw new Error('Choose a project lead');
+    // Deactivated people already on the project may stay (for history); nobody inactive can be added or made lead
+    const newPeople = [input.leadId, ...input.memberIds].filter((memberId) => !existing.memberIds.includes(memberId) || memberId === input.leadId);
+    if (newPeople.some((memberId) => !isUserActive(memberId))) throw new Error("Deactivated accounts can't lead or join a project");
     const updated: Project = {
       ...existing,
       ...input,

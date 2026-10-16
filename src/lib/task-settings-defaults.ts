@@ -32,6 +32,8 @@ export const DEFAULT_PERMISSION_MATRIX: PermissionMatrix = {
   'expense.manage':     { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },
   'desk.configure':     { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },
   'desk.reports':       { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },
+  // Accounts, roles and page/project access stay with System Admin
+  'user.manage':        { employee: 'none', project_manager: 'none', hr: 'none', admin: 'none', system_admin: 'all',  executive: 'none' },
 };
 
 export const DEFAULT_WORKFLOW: WorkflowSettings = {

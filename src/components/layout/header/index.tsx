@@ -14,6 +14,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { QUICK_ADD_OPTIONS, ROUTES } from "@/lib/constants";
+import { MODULE_CATALOG } from "@/lib/modules";
 import { useLocation, useNavigate } from "react-router-dom";
 import { NotificationsPanel } from "./notifications-panel";
 import { useUnreadNotificationCount } from "@/services/apis/notifications/use-notifications";
@@ -63,7 +64,8 @@ interface HeaderProps {
         return user?.role === 'admin' ? 'Service Desk' : 'My Requests';
       }
       default:
-        return 'Dashboard';
+        // Any other page uses its name from the page list (e.g. User Management)
+        return MODULE_CATALOG.find((module) => module.path === section)?.label ?? 'Dashboard';
     }
   };
 

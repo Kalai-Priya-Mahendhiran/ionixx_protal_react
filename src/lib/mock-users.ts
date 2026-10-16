@@ -119,7 +119,7 @@ export interface SidebarItem {
   path: string;
 }
 
-const ITEM = {
+export const SIDEBAR_ITEMS = {
   // Common
   dashboard: { id: "dashboard", label: "Dashboard", icon: "Home", path: ROUTES.Dashboard },
   profile: { id: "profile", label: "Profile", icon: "User", path: ROUTES.Profile },
@@ -158,11 +158,12 @@ const ITEM = {
 
   // System Admin
   userManagement: { id: "user-management", label: "User Management", icon: "Users2", path: ROUTES.UserManagement },
-  rolesPermissions: { id: "roles-permissions", label: "Role & Permissions", icon: "Lock", path: ROUTES.RolesPermissions },
+  rolesPermissions: { id: "roles-permissions", label: "Roles & Permissions", icon: "Lock", path: ROUTES.RolesPermissions },
   systemConfig: { id: "system-config", label: "System Config", icon: "Settings", path: ROUTES.SystemConfig },
   integrations: { id: "integrations", label: "Integrations", icon: "Plug", path: ROUTES.Integrations },
   logs: { id: "logs", label: "Logs", icon: "ScrollText", path: ROUTES.Logs },
 } as const satisfies Record<string, SidebarItem>;
+const ITEM = SIDEBAR_ITEMS;
 
 export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
   employee: [
