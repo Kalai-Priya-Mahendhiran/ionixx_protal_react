@@ -6,6 +6,8 @@ import {
   can,
   canApprove,
   canManageSprints,
+  canManageProjects,
+  canMoveToProject,
   canReassign,
   getManagerSections,
   getSectionsForView,
@@ -218,8 +220,8 @@ describe('Phase 3 manager rules', () => {
 
   it('shows manager tools by role', () => {
     expect(getManagerSections(manager)).toEqual(['board', 'workload', 'sprints', 'approvals']);
-    expect(getManagerSections(admin)).toEqual(['board', 'workload', 'sprints', 'approvals']);
-    expect(getManagerSections(sysAdmin)).toEqual(['board', 'workload', 'sprints']);
+    expect(getManagerSections(admin)).toEqual(['board', 'workload', 'sprints', 'approvals', 'projects']);
+    expect(getManagerSections(sysAdmin)).toEqual(['board', 'workload', 'sprints', 'projects']);
     expect(getManagerSections(employee)).toEqual(['board']);
     expect(getManagerSections(executive)).toEqual(['board']);
   });
@@ -239,5 +241,23 @@ describe('Phase 4 HR rules', () => {
     expect(getSectionsForView(admin, 'hr-tasks')).toEqual(['board', 'checklists', 'templates']);
     expect(getSectionsForView(manager, 'team-board')).toEqual(['board', 'workload', 'sprints', 'approvals']);
     expect(getSectionsForView(manager, 'my-tasks')).toEqual(['board']);
+  });
+});
+
+describe('Phase 5 admin rules', () => {
+  it('lets only admins and system admins manage projects', () => {
+    expect(canManageProjects(admin)).toBe(true);
+    expect(canManageProjects(sysAdmin)).toBe(true);
+    expect(canManageProjects(manager)).toBe(false);
+    expect(canManageProjects(hr)).toBe(false);
+    expect(canManageProjects(employee)).toBe(false);
+  });
+
+  it('moves only top-level tasks to a different project', () => {
+    const task = makeTask({ projectId: 'PRJ-IXP' });
+    expect(canMoveToProject(admin, task, 'PRJ-HR')).toBe(true);
+    expect(canMoveToProject(admin, task, 'PRJ-IXP')).toBe(false);
+    expect(canMoveToProject(admin, { ...task, parentId: 'P' }, 'PRJ-HR')).toBe(false);
+    expect(canMoveToProject(manager, teamTask, 'PRJ-HR')).toBe(false);
   });
 });

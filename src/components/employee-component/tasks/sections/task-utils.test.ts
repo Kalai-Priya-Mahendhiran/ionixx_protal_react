@@ -13,6 +13,11 @@ import {
   parseLabels,
   getTeamAlerts,
   getWorkload,
+  EMPTY_FILTERS,
+  filtersToParams,
+  matchesAdvancedFilters,
+  parseFilters,
+  suggestProjectKey,
 } from './task-utils';
 
 const today = new Date(2026, 9, 15); // Oct 15, 2026 (local time)
@@ -122,4 +127,36 @@ describe('workload and alerts', () => {
     expect(alerts.overdue.map((item) => item.id)).toEqual(['B']);
     expect(alerts.blocked.map((item) => item.id)).toEqual(['B']);
   });
+});
+
+describe('advanced filters', () => {
+  it('round-trips through the URL', () => {
+    const filters = { ...EMPTY_FILTERS, projectIds: ['PRJ-IXP'], priorities: ['high' as const, 'urgent' as const], due: 'overdue' as const };
+    const params = new URLSearchParams();
+    Object.entries(filtersToParams(filters)).forEach(([key, value]) => value && params.set(key, value));
+    expect(params.toString()).toBe('project=PRJ-IXP&priority=high%2Curgent&due=overdue');
+    expect(parseFilters(params)).toEqual(filters);
+  });
+
+  it('ignores unknown due values', () => {
+    expect(parseFilters(new URLSearchParams('due=someday')).due).toBe('any');
+  });
+
+  it('matches any value within a filter and all filters together', () => {
+    const sample = task({ projectId: 'PRJ-IXP', assigneeId: 'EMP001', priority: 'high', type: 'bug', status: 'todo', dueDate: '2026-10-14' });
+    expect(matchesAdvancedFilters(sample, EMPTY_FILTERS, today)).toBe(true);
+    expect(matchesAdvancedFilters(sample, { ...EMPTY_FILTERS, priorities: ['low', 'high'] }, today)).toBe(true);
+    expect(matchesAdvancedFilters(sample, { ...EMPTY_FILTERS, departments: ['Engineering'] }, today)).toBe(true);
+    expect(matchesAdvancedFilters(sample, { ...EMPTY_FILTERS, departments: ['Quality'] }, today)).toBe(false);
+    expect(matchesAdvancedFilters(sample, { ...EMPTY_FILTERS, priorities: ['high'], types: ['story'] }, today)).toBe(false);
+    expect(matchesAdvancedFilters(sample, { ...EMPTY_FILTERS, due: 'overdue' }, today)).toBe(true);
+    expect(matchesAdvancedFilters(sample, { ...EMPTY_FILTERS, due: 'next-7' }, today)).toBe(false);
+  });
+});
+
+it('suggestProjectKey() builds a key from the project name', () => {
+  expect(suggestProjectKey('Mobile App')).toBe('MA');
+  expect(suggestProjectKey('Payroll')).toBe('PAY');
+  expect(suggestProjectKey('Customer Success Team Portal Revamp Two')).toBe('CSTPR');
+  expect(suggestProjectKey('')).toBe('');
 });

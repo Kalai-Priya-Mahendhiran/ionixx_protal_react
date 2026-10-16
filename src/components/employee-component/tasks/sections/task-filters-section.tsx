@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Columns3, List, Rows3, Search, X, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -20,6 +21,9 @@ interface TaskFiltersSectionProps {
   groupByAssignee?: boolean;
   // Only passed for people who can reassign work (managers, admins)
   onGroupByAssigneeChange?: (groupByAssignee: boolean) => void;
+  // Extra controls next to the layout switch (e.g. Filters, Export) and a row below (active filter chips)
+  actions?: ReactNode;
+  footer?: ReactNode;
 }
 
 export function TaskFiltersSection({
@@ -31,6 +35,8 @@ export function TaskFiltersSection({
   onLayoutChange,
   groupByAssignee = false,
   onGroupByAssigneeChange,
+  actions,
+  footer,
 }: TaskFiltersSectionProps) {
   return (
     <Card>
@@ -40,7 +46,7 @@ export function TaskFiltersSection({
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="search"
-              placeholder="Search by key, title, label or person…"
+              placeholder="Search key, title, label, person…"
               value={searchTerm}
               onChange={(event) => onSearchChange(event.target.value)}
               aria-label="Search tasks"
@@ -77,6 +83,7 @@ export function TaskFiltersSection({
               </span>
             )}
           </div>
+          {actions}
           {onGroupByAssigneeChange && layout === 'board' && (
             <button
               type="button"
@@ -110,6 +117,7 @@ export function TaskFiltersSection({
             ))}
           </div>
         </div>
+        {footer && <div className="mt-3">{footer}</div>}
       </CardContent>
     </Card>
   );

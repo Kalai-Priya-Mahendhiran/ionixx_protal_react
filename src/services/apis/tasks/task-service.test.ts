@@ -163,3 +163,48 @@ describe('taskService Phase 4', () => {
     await expect(taskService.applyTemplate(employee, 'TPL-OFFBOARDING', 'EMP002', '2026-11-01')).rejects.toThrow("can't apply");
   });
 });
+
+describe('taskService Phase 5', () => {
+  const admin = { id: 'ADM001', role: 'admin' as const };
+  const employee = { id: 'EMP001', role: 'employee' as const };
+  const byKey = async (key: string) => (await taskService.list(admin)).find((task) => task.key === key)!;
+
+  it('creates projects with a unique, valid key; the lead is always a member', async () => {
+    const project = await taskService.createProject(admin, { name: 'Mobile App', key: 'mob', leadId: 'PM001', memberIds: ['EMP002'], defaultIssueType: 'task' });
+    expect(project).toMatchObject({ key: 'MOB', memberIds: ['PM001', 'EMP002'] });
+    await expect(taskService.createProject(admin, { name: 'Other', key: 'MOB', leadId: 'PM001', memberIds: [], defaultIssueType: 'task' })).rejects.toThrow('already used');
+    await expect(taskService.createProject(admin, { name: 'Bad', key: '1X', leadId: 'PM001', memberIds: [], defaultIssueType: 'task' })).rejects.toThrow('capital letters');
+    await expect(taskService.createProject(employee, { name: 'Mine', key: 'MINE', leadId: 'EMP001', memberIds: [], defaultIssueType: 'task' })).rejects.toThrow("can't create");
+  });
+
+  it('updates members without changing the key', async () => {
+    const project = (await taskService.listProjects()).find((item) => item.key === 'MOB')!;
+    const updated = await taskService.updateProject(admin, project.id, { name: 'Mobile App', leadId: 'PM001', memberIds: ['EMP003'], defaultIssueType: 'bug' });
+    expect(updated).toMatchObject({ key: 'MOB', memberIds: ['PM001', 'EMP003'], defaultIssueType: 'bug' });
+  });
+
+  it('bulk-updates what it can and explains what it skipped', async () => {
+    const [todo, inReview] = [await byKey('IXP-107'), await byKey('IXP-104')];
+    const result = await taskService.bulkUpdate(employee, [todo.id, inReview.id], { kind: 'status', status: 'done' });
+    // EMP001 only watches IXP-107 (Arjun's), and IXP-104 needs a manager's approval
+    expect(result.updated).toEqual([]);
+    expect(result.skipped).toEqual([
+      { key: 'IXP-107', reason: "You can't move it to that status" },
+      { key: 'IXP-104', reason: 'Needs approval' },
+    ]);
+
+    const assigned = await taskService.bulkUpdate(admin, [todo.id, inReview.id], { kind: 'assign', assigneeId: 'EMP006' });
+    expect(assigned.updated).toEqual(['IXP-107', 'IXP-104']);
+  });
+
+  it('moves tasks to another project with new keys and keeps the old key for links', async () => {
+    const project = (await taskService.listProjects()).find((item) => item.key === 'MOB')!;
+    const parent = await byKey('IXP-102'); // has 3 sub-tasks
+    const result = await taskService.bulkUpdate(admin, [parent.id], { kind: 'project', projectId: project.id });
+    expect(result.updated).toEqual(['MOB-1']);
+
+    const moved = (await taskService.list(admin)).filter((task) => task.id === parent.id || task.parentId === parent.id);
+    expect(moved.every((task) => task.projectId === project.id && task.key.startsWith('MOB-') && !task.sprintId)).toBe(true);
+    expect(moved.find((task) => task.id === parent.id)?.previousKeys).toEqual(['IXP-102']);
+  });
+});

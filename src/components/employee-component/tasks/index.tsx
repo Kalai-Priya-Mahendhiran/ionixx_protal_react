@@ -1,8 +1,10 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Eye, Plus } from 'lucide-react';
+import { Download, Eye, FileSpreadsheet, FileText, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import MainLayout from '@/components/layout/main-layout';
 import { useAuth } from '@/context/auth-context';
 import {
@@ -16,10 +18,15 @@ import {
   type TaskSection,
   type PermissionUser,
 } from '@/lib/permissions/task-permissions';
-import { useDeleteTask, useProjects, useTasks } from '@/services/apis/tasks/use-tasks';
+import { downloadCsv, downloadXlsx } from '@/lib/task-export';
+import { useDeleteTask, useEpics, useProjects, useSprints, useTasks } from '@/services/apis/tasks/use-tasks';
 import type { Task } from '@/types';
 import {
+  ActiveFilterChips,
+  AdvancedFiltersButton,
   ApprovalsSection,
+  BulkActionsBar,
+  ProjectsSection,
   ChecklistsSection,
   SectionTabs,
   TemplatesSection,
@@ -38,6 +45,7 @@ import {
 } from './sections';
 import { TASK_VIEW_META } from './sections/task-config';
 import { taskPath } from './sections/task-link';
+import { getFilterOptions } from './sections/filter-options';
 import {
   MY_TASKS_TABS,
   countByStatusFilter,
@@ -49,6 +57,11 @@ import {
   matchesStatusFilter,
   type MyTasksTab,
   type TaskStatusFilter,
+  EMPTY_FILTERS,
+  filtersToParams,
+  matchesAdvancedFilters,
+  parseFilters,
+  type AdvancedFilters,
 } from './sections/task-utils';
 
 // The task is kept while the dialog closes so its title doesn't flicker
@@ -84,6 +97,8 @@ function TasksPage({ user }: { user: PermissionUser }) {
 
   const { data: tasks = [], isLoading, isError, refetch } = useTasks();
   const { data: projects = [] } = useProjects();
+  const { data: sprints = [] } = useSprints();
+  const { data: epics = [] } = useEpics();
   const deleteTask = useDeleteTask();
 
   const [statusFilter, setStatusFilter] = useState<TaskStatusFilter>('all');
@@ -106,7 +121,29 @@ function TasksPage({ user }: { user: PermissionUser }) {
   );
   const counts = useMemo(() => countByStatusFilter(scopedTasks), [scopedTasks]);
   const subtaskProgress = useMemo(() => getSubtaskProgress(tasks), [tasks]);
-  const visibleTasks = scopedTasks.filter((task) => matchesStatusFilter(task, statusFilter) && matchesSearch(task, searchTerm));
+  // Project, department, assignee, priority, type and due-date filters live in the URL so the view can be shared
+  const advancedFilters = useMemo(() => parseFilters(searchParams), [searchParams]);
+  const setAdvancedFilters = (filters: AdvancedFilters) => updateParams(filtersToParams(filters), true);
+  const filterOptions = useMemo(() => getFilterOptions(scopedTasks, projects), [scopedTasks, projects]);
+  const visibleTasks = scopedTasks.filter(
+    (task) => matchesStatusFilter(task, statusFilter) && matchesSearch(task, searchTerm) && matchesAdvancedFilters(task, advancedFilters),
+  );
+
+  // Bulk selection (list layout); only tasks still on screen count as selected
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectedTasks = visibleTasks.filter((task) => selectedIds.has(task.id));
+  const canBulkEdit = can(user, 'task.changeStatus') || can(user, 'task.assign');
+
+  const exportTasks = async (format: 'csv' | 'xlsx') => {
+    const lookups = { projects, sprints, epics };
+    try {
+      if (format === 'csv') downloadCsv(visibleTasks, lookups);
+      else await downloadXlsx(visibleTasks, lookups);
+      toast.success(`Exported ${visibleTasks.length} ${visibleTasks.length === 1 ? 'task' : 'tasks'}`);
+    } catch {
+      toast.error("Couldn't create the export. Please try again.");
+    }
+  };
 
   // Links from before tasks had their own page (?task=IXP-102) go to /tasks/IXP-102
   useEffect(() => {
@@ -139,6 +176,7 @@ function TasksPage({ user }: { user: PermissionUser }) {
   const clearFilters = () => {
     setStatusFilter('all');
     setSearchTerm('');
+    setAdvancedFilters(EMPTY_FILTERS);
   };
 
   const taskToDeleteSubtasks = taskToDelete ? tasks.filter((task) => task.parentId === taskToDelete.id).length : 0;
@@ -184,7 +222,9 @@ function TasksPage({ user }: { user: PermissionUser }) {
           />
         )}
 
-        {section === 'templates' ? (
+        {section === 'projects' ? (
+          <ProjectsSection projects={projects} tasks={tasks} />
+        ) : section === 'templates' ? (
           <TemplatesSection />
         ) : section === 'checklists' ? (
           <ChecklistsSection tasks={tasks} subtaskProgress={subtaskProgress} onBrowseTemplates={() => updateParams({ section: 'templates' })} />
@@ -213,6 +253,33 @@ function TasksPage({ user }: { user: PermissionUser }) {
               onLayoutChange={(next) => updateParams({ layout: next })}
               groupByAssignee={groupByAssignee}
               onGroupByAssigneeChange={canGroupByAssignee ? (next) => updateParams({ group: next ? 'assignee' : null, focus: null }) : undefined}
+              actions={
+                <>
+                  <AdvancedFiltersButton filters={advancedFilters} options={filterOptions} onChange={setAdvancedFilters} />
+                  <DropdownMenu modal={false}>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-9 gap-1.5" disabled={isLoading || visibleTasks.length === 0}>
+                        <Download className="h-4 w-4" />
+                        Export
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 bg-white">
+                      <DropdownMenuLabel className="text-xs text-gray-500">
+                        {visibleTasks.length} {visibleTasks.length === 1 ? 'task' : 'tasks'} as shown
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem onSelect={() => void exportTasks('csv')}>
+                        <FileText className="text-gray-500" />
+                        CSV (.csv)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => void exportTasks('xlsx')}>
+                        <FileSpreadsheet className="text-green-600" />
+                        Excel (.xlsx)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              }
+              footer={<ActiveFilterChips filters={advancedFilters} options={filterOptions} onChange={setAdvancedFilters} />}
             />
 
             {isLoading || isError || (visibleTasks.length === 0 && !groupByAssignee) ? (
@@ -247,7 +314,24 @@ function TasksPage({ user }: { user: PermissionUser }) {
                 onDelete={setTaskToDelete}
               />
             ) : (
-              <TaskListSection tasks={visibleTasks} subtaskProgress={subtaskProgress} onEdit={openEdit} onDelete={setTaskToDelete} />
+              <>
+                {selectedTasks.length > 0 && (
+                  <BulkActionsBar
+                    selected={selectedTasks}
+                    projects={projects}
+                    onDone={() => setSelectedIds(new Set())}
+                    onClear={() => setSelectedIds(new Set())}
+                  />
+                )}
+                <TaskListSection
+                  tasks={visibleTasks}
+                  subtaskProgress={subtaskProgress}
+                  onEdit={openEdit}
+                  onDelete={setTaskToDelete}
+                  selectedIds={canBulkEdit ? selectedIds : undefined}
+                  onSelectionChange={canBulkEdit ? setSelectedIds : undefined}
+                />
+              </>
             )}
           </>
         )}

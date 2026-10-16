@@ -19,6 +19,8 @@ export interface TaskAttachment {
 export interface Task {
   id: string
   key: string // e.g. IXP-101, derived from the project key
+  // Keys from projects the task was moved out of, so old links still work
+  previousKeys?: string[]
   projectId: string
   type: TaskType
   title: string

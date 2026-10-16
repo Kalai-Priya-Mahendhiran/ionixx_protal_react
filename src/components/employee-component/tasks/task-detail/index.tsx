@@ -1,4 +1,5 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { toast } from 'sonner';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Ban, ChevronDown, ChevronRight, Clock, Eye, EyeOff, Pencil, SearchX, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -92,6 +93,13 @@ function TaskDetailContent({ user }: { user: PermissionUser }) {
   // Coming from the task list keeps its filters, view and layout on the way back
   const backTo = `${ROUTES.Tasks}${(location.state as { from?: string } | null)?.from ?? ''}`;
   const task = tasks.find((item) => item.key.toLowerCase() === taskKey.toLowerCase());
+  // Tasks moved to another project get a new key; old links forward to it
+  const movedTo = task ? undefined : tasks.find((item) => item.previousKeys?.some((key) => key.toLowerCase() === taskKey.toLowerCase()));
+  useEffect(() => {
+    if (!movedTo) return;
+    toast.info(`${taskKey.toUpperCase()} is now ${movedTo.key}`);
+    navigate(taskPath(movedTo.key), { replace: true, state: location.state });
+  }, [movedTo, taskKey, navigate, location.state]);
 
   const subtaskCount = task ? tasks.filter((item) => item.parentId === task.id).length : 0;
 
@@ -116,7 +124,7 @@ function TaskDetailContent({ user }: { user: PermissionUser }) {
               </Button>
             </CardContent>
           </Card>
-        ) : !task ? (
+        ) : !task && movedTo ? null : !task ? (
           <Card>
             <CardContent className="p-12 text-center">
               <SearchX className="mx-auto mb-4 h-12 w-12 text-gray-400" />

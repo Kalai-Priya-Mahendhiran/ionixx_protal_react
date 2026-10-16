@@ -21,6 +21,7 @@ export type TaskAction =
   | 'task.watch'
   | 'sprint.manage'
   | 'template.manage'
+  | 'project.manage'
   | 'workflow.configure'
   | 'reports.view';
 
@@ -41,6 +42,7 @@ export const TASK_PERMISSION_MATRIX: Record<TaskAction, Record<UserRole, Permiss
   'task.watch':         { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'all' },
   'sprint.manage':      { employee: 'none', project_manager: 'team', hr: 'none', admin: 'all',  system_admin: 'all',  executive: 'none' },
   'template.manage':    { employee: 'none', project_manager: 'none', hr: 'all',  admin: 'all',  system_admin: 'all',  executive: 'none' },
+  'project.manage':     { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'all',  executive: 'none' },
   'workflow.configure': { employee: 'none', project_manager: 'none', hr: 'none', admin: 'none', system_admin: 'all',  executive: 'none' },
   'reports.view':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'all' },
 };
@@ -204,13 +206,14 @@ export function canReassign(user: PermissionUser | null | undefined, task: Task,
   return task.assigneeId !== assigneeId && can(user, 'task.edit', task) && can(user, 'task.assign', { ...task, assigneeId });
 }
 
-export type ManagerSection = 'board' | 'workload' | 'sprints' | 'approvals';
+export type ManagerSection = 'board' | 'workload' | 'sprints' | 'approvals' | 'projects';
 
 const MANAGER_SECTION_REQUIREMENTS: Record<ManagerSection, (user: PermissionUser) => boolean> = {
   board: () => true,
   workload: (user) => ['team', 'all'].includes(getScope(user, 'task.view')) && can(user, 'task.assign'),
   sprints: (user) => can(user, 'sprint.manage'),
   approvals: (user) => can(user, 'task.approve'),
+  projects: (user) => can(user, 'project.manage'),
 };
 
 // Sections shown as tabs on the Tasks page; just ['board'] means no tabs
@@ -239,4 +242,16 @@ export function getSectionsForView(user: PermissionUser | null | undefined, view
     );
   }
   return getManagerSections(user);
+}
+
+/* ---------- Admin tools (Phase 5) ---------- */
+
+// Creating projects and managing their members
+export function canManageProjects(user: PermissionUser | null | undefined): boolean {
+  return can(user, 'project.manage');
+}
+
+// Moving a task changes its key, so it needs both edit rights on the task and project management rights
+export function canMoveToProject(user: PermissionUser | null | undefined, task: Task, projectId: string): boolean {
+  return task.projectId !== projectId && !task.parentId && can(user, 'task.edit', task) && canManageProjects(user);
 }

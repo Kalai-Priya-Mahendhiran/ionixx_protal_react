@@ -1,6 +1,8 @@
 import {
   can,
   canApprove,
+  canManageProjects,
+  canMoveToProject,
   canManageSprints,
   canReassign,
   canCreateSubtask,
@@ -56,6 +58,21 @@ export class TaskPermissionError extends Error {
   }
 }
 
+export type ProjectInput = Pick<Project, 'name' | 'key' | 'description' | 'leadId' | 'memberIds' | 'defaultIssueType'>;
+
+// One change applied to many tasks from the list's bulk actions bar
+export type BulkChange =
+  | { kind: 'assign'; assigneeId: string }
+  | { kind: 'status'; status: TaskStatus }
+  | { kind: 'project'; projectId: string };
+
+export interface BulkResult {
+  updated: string[]; // task keys after the change
+  skipped: { key: string; reason: string }[];
+}
+
+export const PROJECT_KEY_PATTERN = /^[A-Z][A-Z0-9]{1,9}$/;
+
 export interface LogWorkInput {
   date: string; // YYYY-MM-DD
   startTime: string; // HH:MM
@@ -67,7 +84,7 @@ const MOCK_LATENCY_MS = 250;
 
 // Shallow copies are enough: the mock replaces objects instead of mutating them
 let tasks: Task[] = sampleTasks.map((task) => ({ ...task }));
-const projects: Project[] = sampleProjects.map((project) => ({ ...project }));
+let projects: Project[] = sampleProjects.map((project) => ({ ...project }));
 let sprints: Sprint[] = sampleSprints.map((sprint) => ({ ...sprint }));
 const activities: TaskActivity[] = sampleActivities.map((activity) => ({ ...activity }));
 let comments: TaskComment[] = sampleComments.map((comment) => ({ ...comment }));
@@ -439,6 +456,124 @@ export const taskService = {
     assertCan(actor, 'task.delete', existing);
     tasks = tasks.filter((task) => task.id !== id && task.parentId !== id);
     recordActivity({ taskId: id, actorId: actor.id, type: 'deleted', from: existing.key });
+  },
+
+  /* ---------- Projects ---------- */
+
+  // POST /api/projects — the key drives task keys (IXP -> IXP-1) and can't change later
+  async createProject(actor: PermissionUser, input: ProjectInput): Promise<Project> {
+    await delay();
+    if (!canManageProjects(actor)) throw new TaskPermissionError("You can't create projects");
+    const key = input.key.trim().toUpperCase();
+    const name = input.name.trim();
+    if (!name) throw new Error('Give the project a name');
+    if (!PROJECT_KEY_PATTERN.test(key)) throw new Error('Keys are 2–10 capital letters or digits, starting with a letter (e.g. IXP)');
+    if (projects.some((project) => project.key === key)) throw new Error(`The key ${key} is already used`);
+    if (projects.some((project) => project.name.toLowerCase() === name.toLowerCase())) throw new Error(`A project called "${name}" already exists`);
+    if (!getUserById(input.leadId)) throw new Error('Choose a project lead');
+
+    const project: Project = {
+      ...input,
+      id: generateId(),
+      key,
+      name,
+      description: input.description?.trim() || undefined,
+      // The lead is always a member
+      memberIds: [...new Set([input.leadId, ...input.memberIds])],
+    };
+    projects = [...projects, project];
+    return project;
+  },
+
+  // PATCH /api/projects/:id — name, lead, members and default type; the key stays
+  async updateProject(actor: PermissionUser, id: string, input: Omit<ProjectInput, 'key'>): Promise<Project> {
+    await delay();
+    if (!canManageProjects(actor)) throw new TaskPermissionError("You can't edit projects");
+    const existing = findProject(id);
+    const name = input.name.trim();
+    if (!name) throw new Error('Give the project a name');
+    if (projects.some((project) => project.id !== id && project.name.toLowerCase() === name.toLowerCase())) {
+      throw new Error(`A project called "${name}" already exists`);
+    }
+    if (!getUserById(input.leadId)) throw new Error('Choose a project lead');
+    const updated: Project = {
+      ...existing,
+      ...input,
+      name,
+      description: input.description?.trim() || undefined,
+      memberIds: [...new Set([input.leadId, ...input.memberIds])],
+    };
+    projects = projects.map((project) => (project.id === id ? updated : project));
+    return updated;
+  },
+
+  /* ---------- Bulk actions ---------- */
+
+  // POST /api/tasks/bulk { ids, change } — every task is checked on its own; the rest are skipped with a reason
+  async bulkUpdate(actor: PermissionUser, ids: string[], change: BulkChange): Promise<BulkResult> {
+    await delay();
+    const result: BulkResult = { updated: [], skipped: [] };
+    const assignedCount = new Map<string, number>();
+    const target = change.kind === 'project' ? projects.find((project) => project.id === change.projectId) : undefined;
+    if (change.kind === 'project' && !target) throw new Error('Choose a project');
+
+    ids.forEach((id) => {
+      const task = getVisibleTasks(actor, tasks).find((item) => item.id === id);
+      if (!task) return;
+      const skip = (reason: string) => result.skipped.push({ key: task.key, reason });
+
+      if (change.kind === 'assign') {
+        if (task.assigneeId === change.assigneeId) return skip('Already assigned to them');
+        if (!canReassign(actor, task, change.assigneeId)) return skip(`You can't assign it to ${nameOf(change.assigneeId)}`);
+        recordActivity({ taskId: id, actorId: actor.id, type: 'assigned', from: task.assigneeId, to: change.assigneeId });
+        saveTask({ ...task, assigneeId: change.assigneeId, updatedAt: now() });
+        assignedCount.set(change.assigneeId, (assignedCount.get(change.assigneeId) ?? 0) + 1);
+        result.updated.push(task.key);
+        return;
+      }
+
+      if (change.kind === 'status') {
+        if (task.status === change.status) return skip('Already in that status');
+        if (!canTransition(actor, task, change.status)) {
+          return skip(task.status === 'in-review' && change.status === 'done' ? 'Needs approval' : "You can't move it to that status");
+        }
+        recordActivity({ taskId: id, actorId: actor.id, type: 'status-changed', field: 'status', from: task.status, to: change.status });
+        saveTask({ ...task, status: change.status, updatedAt: now() });
+        result.updated.push(task.key);
+        return;
+      }
+
+      // Move to another project: the task (and its sub-tasks) get keys in the new project
+      if (task.projectId === target!.id) return skip('Already in that project');
+      if (!canMoveToProject(actor, task, target!.id)) return skip("You can't move it");
+      const family = [task, ...tasks.filter((item) => item.parentId === task.id)];
+      family.forEach((member) => {
+        const moved: Task = {
+          ...member,
+          projectId: target!.id,
+          key: nextTaskKey(target!),
+          previousKeys: [...(member.previousKeys ?? []), member.key],
+          // Sprints and epics belong to the old project
+          sprintId: undefined,
+          epicId: undefined,
+          updatedAt: now(),
+        };
+        saveTask(moved);
+        recordActivity({ taskId: member.id, actorId: actor.id, type: 'updated', field: 'project', from: member.key, to: moved.key });
+        if (member.id === task.id) result.updated.push(moved.key);
+      });
+    });
+
+    // One notification per new assignee
+    assignedCount.forEach((count, assigneeId) =>
+      notificationService.notify([assigneeId], actor.id, {
+        type: 'info',
+        title: `${count} ${count === 1 ? 'task' : 'tasks'} assigned to you`,
+        message: `${nameOf(actor.id)} assigned you work from the task list`,
+        actionUrl: '/tasks?view=my-tasks',
+      }),
+    );
+    return result;
   },
 
   /* ---------- HR checklists from templates ---------- */

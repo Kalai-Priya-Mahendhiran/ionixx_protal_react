@@ -6,7 +6,7 @@ import type { Task, TaskAttachment, TaskInput, TaskStatus } from '@/types';
 import { FILES_KEY } from '../files/use-files';
 import { NOTIFICATIONS_KEY } from '../notifications/use-notifications';
 import { TIME_ENTRIES_KEY } from '../time-tracker/use-time-entries';
-import { taskService, type LogWorkInput } from './task-service';
+import { taskService, type BulkChange, type LogWorkInput, type ProjectInput } from './task-service';
 
 // Detail queries (comments, history, work log) live under this key too, so any task change refreshes them
 const TASKS_KEY = ['tasks'] as const;
@@ -267,3 +267,28 @@ export const useApplyTemplate = () =>
       taskService.applyTemplate(actor, template.id, subjectId, anchorDate),
     ({ template }) => `Checklist created from "${template.name}"`,
   );
+
+/* ---------- Admin tools ---------- */
+
+export const useCreateProject = () =>
+  useTaskMutation((actor, input: ProjectInput) => taskService.createProject(actor, input), (input) => `Project ${input.key.toUpperCase()} created`, [
+    PROJECTS_KEY,
+  ]);
+
+export const useUpdateProject = () =>
+  useTaskMutation(
+    (actor, { id, input }: { id: string; input: Omit<ProjectInput, 'key'> }) => taskService.updateProject(actor, id, input),
+    ({ input }) => `${input.name} saved`,
+    [PROJECTS_KEY],
+  );
+
+// The caller shows the result (how many were updated or skipped), so no toast here
+export function useBulkUpdate() {
+  const actor = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ids, change }: { ids: string[]; change: BulkChange }) => taskService.bulkUpdate(actor, ids, change),
+    onSuccess: () => [TASKS_KEY, EPICS_KEY, NOTIFICATIONS_KEY, SPRINTS_KEY].forEach((queryKey) => queryClient.invalidateQueries({ queryKey })),
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+}

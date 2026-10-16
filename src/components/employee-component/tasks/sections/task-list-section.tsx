@@ -86,9 +86,27 @@ interface TaskListSectionProps {
   subtaskProgress: Map<string, SubtaskProgress>;
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
+  // Bulk selection; the checkbox column only shows when these are passed
+  selectedIds?: Set<string>;
+  onSelectionChange?: (ids: Set<string>) => void;
 }
 
-export function TaskListSection({ tasks, subtaskProgress, onEdit, onDelete }: TaskListSectionProps) {
+function SelectBox({ checked, indeterminate = false, label, onChange }: { checked: boolean; indeterminate?: boolean; label: string; onChange: () => void }) {
+  return (
+    <input
+      type="checkbox"
+      checked={checked}
+      ref={(element) => {
+        if (element) element.indeterminate = indeterminate;
+      }}
+      onChange={onChange}
+      aria-label={label}
+      className="h-4 w-4 cursor-pointer rounded border-gray-300 accent-[#464EB8]"
+    />
+  );
+}
+
+export function TaskListSection({ tasks, subtaskProgress, onEdit, onDelete, selectedIds, onSelectionChange }: TaskListSectionProps) {
   const location = useLocation();
   const { data: sprints = [] } = useSprints();
   const [sort, setSort] = useState<SortState>(null);
@@ -110,6 +128,17 @@ export function TaskListSection({ tasks, subtaskProgress, onEdit, onDelete }: Ta
   // The task page links back to the list with the same view, tab, layout and filters
   const linkState = { from: location.search };
 
+  const selectable = !!selectedIds && !!onSelectionChange;
+  const selectedCount = rows.filter((task) => selectedIds?.has(task.id)).length;
+  const toggleRow = (id: string) => {
+    if (!selectedIds || !onSelectionChange) return;
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    onSelectionChange(next);
+  };
+  const toggleAll = () => onSelectionChange?.(selectedCount === rows.length ? new Set() : new Set(rows.map((task) => task.id)));
+
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
       {/* relative: keeps the visually hidden header label inside the scroll area */}
@@ -117,6 +146,16 @@ export function TaskListSection({ tasks, subtaskProgress, onEdit, onDelete }: Ta
         <table className="w-full text-sm">
           <thead className="border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600">
             <tr>
+              {selectable && (
+                <th scope="col" className="w-10 py-2.5 pl-4">
+                  <SelectBox
+                    checked={rows.length > 0 && selectedCount === rows.length}
+                    indeterminate={selectedCount > 0 && selectedCount < rows.length}
+                    label="Select all tasks"
+                    onChange={toggleAll}
+                  />
+                </th>
+              )}
               {COLUMNS.map((column) => {
                 const active = sort?.key === column.key;
                 const Icon = !active ? ArrowUpDown : sort.direction === 'asc' ? ArrowUp : ArrowDown;
@@ -145,7 +184,12 @@ export function TaskListSection({ tasks, subtaskProgress, onEdit, onDelete }: Ta
               const progress = subtaskProgress.get(task.id);
               const sprint = sprints.find((item) => item.id === task.sprintId);
               return (
-                <tr key={task.id} className="group hover:bg-indigo-50/40">
+                <tr key={task.id} className={cn('group hover:bg-indigo-50/40', selectedIds?.has(task.id) && 'bg-indigo-50/70')}>
+                  {selectable && (
+                    <td className="py-2.5 pl-4">
+                      <SelectBox checked={!!selectedIds?.has(task.id)} label={`Select ${task.key}`} onChange={() => toggleRow(task.id)} />
+                    </td>
+                  )}
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2">
                       <TaskTypeIcon type={task.type} />

@@ -208,3 +208,98 @@ export function getTeamAlerts(tasks: Task[], today: Date = new Date()): TeamAler
 export function daysSince(iso: string, today: Date = new Date()): number {
   return Math.max(0, Math.floor((today.getTime() - new Date(iso).getTime()) / MS_PER_DAY));
 }
+
+/* ---------- Advanced filters (shareable in the URL) ---------- */
+
+export type DueFilter = 'any' | 'overdue' | 'today' | 'next-7' | 'next-30';
+
+export const DUE_FILTER_OPTIONS: { value: DueFilter; label: string }[] = [
+  { value: 'any', label: 'Any time' },
+  { value: 'overdue', label: 'Overdue' },
+  { value: 'today', label: 'Due today' },
+  { value: 'next-7', label: 'Due in the next 7 days' },
+  { value: 'next-30', label: 'Due in the next 30 days' },
+];
+
+export interface AdvancedFilters {
+  projectIds: string[];
+  departments: string[];
+  assigneeIds: string[];
+  priorities: Task['priority'][];
+  types: Task['type'][];
+  due: DueFilter;
+}
+
+export const EMPTY_FILTERS: AdvancedFilters = { projectIds: [], departments: [], assigneeIds: [], priorities: [], types: [], due: 'any' };
+
+// URL parameter for each list filter, e.g. ?priority=high,urgent&project=PRJ-IXP
+const FILTER_PARAMS = { projectIds: 'project', departments: 'dept', assigneeIds: 'assignee', priorities: 'priority', types: 'type' } as const;
+
+export function parseFilters(params: URLSearchParams): AdvancedFilters {
+  const list = (name: string) => (params.get(name) ?? '').split(',').map((value) => value.trim()).filter(Boolean);
+  const due = params.get('due') as DueFilter | null;
+  return {
+    projectIds: list(FILTER_PARAMS.projectIds),
+    departments: list(FILTER_PARAMS.departments),
+    assigneeIds: list(FILTER_PARAMS.assigneeIds),
+    priorities: list(FILTER_PARAMS.priorities) as Task['priority'][],
+    types: list(FILTER_PARAMS.types) as Task['type'][],
+    due: due && DUE_FILTER_OPTIONS.some((option) => option.value === due) ? due : 'any',
+  };
+}
+
+// Changes to apply to the URL; empty filters remove their parameter
+export function filtersToParams(filters: AdvancedFilters): Record<string, string | null> {
+  const join = (values: string[]) => (values.length > 0 ? values.join(',') : null);
+  return {
+    [FILTER_PARAMS.projectIds]: join(filters.projectIds),
+    [FILTER_PARAMS.departments]: join(filters.departments),
+    [FILTER_PARAMS.assigneeIds]: join(filters.assigneeIds),
+    [FILTER_PARAMS.priorities]: join(filters.priorities),
+    [FILTER_PARAMS.types]: join(filters.types),
+    due: filters.due === 'any' ? null : filters.due,
+  };
+}
+
+export function countActiveFilters(filters: AdvancedFilters): number {
+  return (
+    filters.projectIds.length + filters.departments.length + filters.assigneeIds.length + filters.priorities.length + filters.types.length + (filters.due === 'any' ? 0 : 1)
+  );
+}
+
+function matchesDue(task: Task, due: DueFilter, today: Date): boolean {
+  if (due === 'any') return true;
+  if (task.status === 'done') return false;
+  const days = daysUntil(task.dueDate, today);
+  switch (due) {
+    case 'overdue':
+      return days < 0;
+    case 'today':
+      return days === 0;
+    case 'next-7':
+      return days >= 0 && days <= 7;
+    case 'next-30':
+      return days >= 0 && days <= 30;
+  }
+}
+
+// Within each filter any value matches; across filters all must match
+export function matchesAdvancedFilters(task: Task, filters: AdvancedFilters, today: Date = new Date()): boolean {
+  const department = getUserById(task.assigneeId)?.department ?? '';
+  return (
+    (filters.projectIds.length === 0 || filters.projectIds.includes(task.projectId)) &&
+    (filters.departments.length === 0 || filters.departments.includes(department)) &&
+    (filters.assigneeIds.length === 0 || filters.assigneeIds.includes(task.assigneeId)) &&
+    (filters.priorities.length === 0 || filters.priorities.includes(task.priority)) &&
+    (filters.types.length === 0 || filters.types.includes(task.type)) &&
+    matchesDue(task, filters.due, today)
+  );
+}
+
+// "Mobile App" -> "MA", "Payroll" -> "PAY": a starting point the admin can change
+export function suggestProjectKey(name: string): string {
+  const words = name.toUpperCase().replace(/[^A-Z0-9 ]/g, '').split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '';
+  const key = words.length === 1 ? words[0].slice(0, 3) : words.map((word) => word[0]).join('').slice(0, 5);
+  return /^[A-Z]/.test(key) ? key : `P${key}`.slice(0, 10);
+}

@@ -546,3 +546,17 @@ export const applyTemplateSchema = z.object({
 });
 
 export type ApplyTemplateFormValues = z.infer<typeof applyTemplateSchema>;
+
+export const projectSchema = z.object({
+  name: z.string().trim().min(1, "Give the project a name").max(60, "Keep the name under 60 characters"),
+  key: z
+    .string()
+    .trim()
+    .regex(/^[A-Z][A-Z0-9]{1,9}$/, "2–10 capital letters or digits, starting with a letter (e.g. IXP)"),
+  description: z.string().trim().max(300, "Keep the description under 300 characters"),
+  leadId: z.string().min(1, "Choose a project lead"),
+  defaultIssueType: z.enum(TASK_ISSUE_TYPES),
+  memberIds: z.array(z.string()),
+});
+
+export type ProjectFormValues = z.infer<typeof projectSchema>;
