@@ -21,6 +21,10 @@ import {
   GraduationCap,
   HeartHandshake,
   Home,
+  Laptop,
+  LifeBuoy,
+  PieChart,
+  Receipt,
   LineChart,
   Lock,
   Moon,
@@ -77,6 +81,11 @@ export const ROUTES = {
   SystemConfig: "/system-config",
   Integrations: "/integrations",
   Logs: "/logs",
+  // Admin (office operations) service desk
+  ServiceDesk: "/service-desk",
+  AssetLog: "/service-desk/assets",
+  Expenses: "/service-desk/expenses",
+  DeskReports: "/service-desk/reports",
 } ;
 
 export const QUICK_ADD_OPTIONS = [
@@ -84,6 +93,11 @@ export const QUICK_ADD_OPTIONS = [
     id: "task",
     label: "Add Task",
     icon: "Plus",
+  },
+  {
+    id: "admin-request",
+    label: "Raise Admin Request",
+    icon: "LifeBuoy",
   },
   {
     id: "event",
@@ -531,6 +545,10 @@ export const formatDuration = (ms: number) => {
 
 // Icons - resolve icon names stored in constants/sample data to components
 export const ICON_MAP: Record<string, LucideIcon> = {
+  Laptop,
+  LifeBuoy,
+  PieChart,
+  Receipt,
   Award,
   Baby,
   BarChart3,

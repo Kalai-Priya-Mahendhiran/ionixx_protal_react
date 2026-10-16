@@ -154,7 +154,8 @@ export function ApplyTemplateDialog({ template, onOpenChange, onApplied }: Apply
                                 <PriorityIndicator priority={item.priority} />
                               </td>
                               <td className="px-3 py-2">
-                                <span className="block text-gray-800">{getUserById(assigneeId)?.name ?? 'Unknown'}</span>
+                                <span className="block text-gray-800">{item.owner === 'admin' ? 'Admin team' : (getUserById(assigneeId)?.name ?? 'Unknown')}</span>
+                                {item.owner === 'admin' && <span className="block text-xs text-gray-500">Service desk request · you track it</span>}
                                 {onLeave && (
                                   <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
                                     <CalendarOff className="h-3 w-3" />

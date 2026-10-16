@@ -149,6 +149,13 @@ const ITEM = {
   analytics: { id: "analytics", label: "Analytics", icon: "LineChart", path: ROUTES.Analytics },
   kpiMonitoring: { id: "kpi-monitoring", label: "KPI Monitoring", icon: "Gauge", path: ROUTES.KpiMonitoring },
 
+  // Service desk: everyone follows their requests; Admin (office operations) works the queue
+  myRequests: { id: "my-requests", label: "My Requests", icon: "LifeBuoy", path: ROUTES.ServiceDesk },
+  serviceDesk: { id: "service-desk", label: "Service Desk", icon: "LifeBuoy", path: ROUTES.ServiceDesk },
+  assetLog: { id: "asset-log", label: "Asset Log", icon: "Laptop", path: ROUTES.AssetLog },
+  expenses: { id: "expenses", label: "Expenses", icon: "Receipt", path: ROUTES.Expenses },
+  deskReports: { id: "desk-reports", label: "Desk Reports", icon: "PieChart", path: ROUTES.DeskReports },
+
   // System Admin
   userManagement: { id: "user-management", label: "User Management", icon: "Users2", path: ROUTES.UserManagement },
   rolesPermissions: { id: "roles-permissions", label: "Role & Permissions", icon: "Lock", path: ROUTES.RolesPermissions },
@@ -165,6 +172,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.timeTracker,
     ITEM.leave,
     ITEM.tasks,
+    ITEM.myRequests,
     ITEM.files,
     ITEM.organization,
   ],
@@ -172,6 +180,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.dashboard,
     ITEM.profile,
     ITEM.tasks,
+    ITEM.myRequests,
     ITEM.teamOverview,
     ITEM.approvals,
     ITEM.attendanceMonitoring,
@@ -182,6 +191,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.dashboard,
     ITEM.profile,
     ITEM.tasks,
+    ITEM.myRequests,
     ITEM.employeeManagement,
     ITEM.recruitment,
     ITEM.training,
@@ -192,6 +202,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.dashboard,
     ITEM.profile,
     ITEM.tasks,
+    ITEM.myRequests,
     ITEM.analytics,
     ITEM.kpiMonitoring,
     ITEM.reports,
@@ -200,71 +211,59 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.dashboard,
     ITEM.profile,
     ITEM.tasks,
+    ITEM.myRequests,
     ITEM.userManagement,
     ITEM.rolesPermissions,
     ITEM.systemConfig,
     ITEM.integrations,
     ITEM.logs,
   ],
-  admin: [
-    ITEM.dashboard,
-    ITEM.profile,
-    ITEM.tasks,
-    ITEM.teamOverview,
-    ITEM.approvals,
-    ITEM.attendanceMonitoring,
-    ITEM.performanceReview,
-    ITEM.employeeManagement,
-    ITEM.recruitment,
-    ITEM.training,
-    ITEM.compliance,
-    ITEM.analytics,
-    ITEM.kpiMonitoring,
-    ITEM.userManagement,
-    ITEM.rolesPermissions,
-    ITEM.systemConfig,
-    ITEM.integrations,
-    ITEM.logs,
-    ITEM.reports,
-  ],
+  // Admin is office operations: the service desk, assets and expenses (no project tasks or system config)
+  admin: [ITEM.dashboard, ITEM.profile, ITEM.serviceDesk, ITEM.assetLog, ITEM.expenses, ITEM.deskReports],
 };
 
 export const ROLE_ROUTE_ACCESS: Record<string, UserRole[]> = {
   // Common
   [ROUTES.Dashboard]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
   [ROUTES.Profile]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
-  [ROUTES.Reports]: ["hr", "project_manager", "admin", "executive"],
+  [ROUTES.Reports]: ["hr", "project_manager", "executive"],
 
   // Employee
-  [ROUTES.Attendance]: ["employee", "admin"],
-  [ROUTES.TimeTracker]: ["employee", "admin"],
-  [ROUTES.Leave]: ["employee", "admin"],
-  [ROUTES.Tasks]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
-  [ROUTES.Files]: ["employee", "admin"],
-  [ROUTES.Organization]: ["employee", "admin"],
+  [ROUTES.Attendance]: ["employee"],
+  [ROUTES.TimeTracker]: ["employee"],
+  [ROUTES.Leave]: ["employee"],
+  [ROUTES.Tasks]: ["employee", "hr", "project_manager", "system_admin", "executive"],
+  [ROUTES.Files]: ["employee"],
+  [ROUTES.Organization]: ["employee"],
 
   // Manager (MSS)
-  [ROUTES.TeamOverview]: ["project_manager", "admin"],
-  [ROUTES.Approvals]: ["project_manager", "admin"],
-  [ROUTES.AttendanceMonitoring]: ["project_manager", "admin"],
-  [ROUTES.PerformanceReview]: ["project_manager", "admin"],
+  [ROUTES.TeamOverview]: ["project_manager"],
+  [ROUTES.Approvals]: ["project_manager"],
+  [ROUTES.AttendanceMonitoring]: ["project_manager"],
+  [ROUTES.PerformanceReview]: ["project_manager"],
 
   // HR
-  [ROUTES.EmployeeManagement]: ["hr", "admin"],
-  [ROUTES.Recruitment]: ["hr", "admin"],
-  [ROUTES.Training]: ["hr", "admin"],
-  [ROUTES.Compliance]: ["hr", "admin"],
+  [ROUTES.EmployeeManagement]: ["hr"],
+  [ROUTES.Recruitment]: ["hr"],
+  [ROUTES.Training]: ["hr"],
+  [ROUTES.Compliance]: ["hr"],
 
   // Executive
-  [ROUTES.Analytics]: ["executive", "admin"],
-  [ROUTES.KpiMonitoring]: ["executive", "admin"],
+  [ROUTES.Analytics]: ["executive"],
+  [ROUTES.KpiMonitoring]: ["executive"],
 
   // System Admin
-  [ROUTES.UserManagement]: ["system_admin", "admin"],
-  [ROUTES.RolesPermissions]: ["system_admin", "admin"],
-  [ROUTES.SystemConfig]: ["system_admin", "admin"],
-  [ROUTES.Integrations]: ["system_admin", "admin"],
-  [ROUTES.Logs]: ["system_admin", "admin"],
+  [ROUTES.UserManagement]: ["system_admin"],
+  [ROUTES.RolesPermissions]: ["system_admin"],
+  [ROUTES.SystemConfig]: ["system_admin"],
+  [ROUTES.Integrations]: ["system_admin"],
+  [ROUTES.Logs]: ["system_admin"],
+
+  // Service desk
+  [ROUTES.ServiceDesk]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
+  [ROUTES.AssetLog]: ["admin"],
+  [ROUTES.Expenses]: ["admin"],
+  [ROUTES.DeskReports]: ["admin"],
 };
 
 export const DEMO_ACCOUNTS: Array<{ role: UserRole; loginId: string; password: string }> =

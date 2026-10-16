@@ -9,7 +9,11 @@ import { SettingsPanel } from './settings-panel';
 
 const ROLES: UserRole[] = ['employee', 'project_manager', 'hr', 'admin', 'system_admin', 'executive'];
 
-const ACTION_GROUPS: { title: string; actions: { action: TaskAction; label: string; hint: string }[] }[] = [
+// Service desk rows only make sense as yes/no or own/everyone, so they offer fewer scopes
+const OWN_OR_ALL: PermissionScope[] = ['none', 'own', 'all'];
+const YES_NO: PermissionScope[] = ['none', 'all'];
+
+const ACTION_GROUPS: { title: string; actions: { action: TaskAction; label: string; hint: string; scopes?: PermissionScope[] }[] }[] = [
   {
     title: 'Tasks',
     actions: [
@@ -33,6 +37,19 @@ const ACTION_GROUPS: { title: string; actions: { action: TaskAction; label: stri
       { action: 'project.manage', label: 'Manage projects', hint: 'Create projects, members, move tasks' },
       { action: 'workflow.configure', label: 'Task settings', hint: 'This page' },
       { action: 'reports.view', label: 'Reports', hint: 'Which work appears in their reports' },
+    ],
+  },
+  {
+    title: 'Admin service desk',
+    actions: [
+      { action: 'request.create', scopes: OWN_OR_ALL, label: 'Raise requests', hint: 'Own = for themselves, All = for anyone (e.g. new joiners)' },
+      { action: 'request.view', scopes: OWN_OR_ALL, label: 'See requests', hint: 'Own = theirs, All = the whole queue' },
+      { action: 'request.comment', scopes: OWN_OR_ALL, label: 'Reply on requests', hint: 'Comment on requests they can see' },
+      { action: 'request.manage', scopes: YES_NO, label: 'Work the queue', hint: 'Assign, change status, internal notes' },
+      { action: 'asset.manage', scopes: YES_NO, label: 'Asset log', hint: 'Add, issue and return assets' },
+      { action: 'expense.manage', scopes: YES_NO, label: 'Office expenses', hint: 'Record expenses' },
+      { action: 'desk.configure', scopes: YES_NO, label: 'SLA & budgets', hint: 'Set SLA targets and monthly budgets' },
+      { action: 'desk.reports', scopes: YES_NO, label: 'Desk reports', hint: 'Requests, SLA and spend reports' },
     ],
   },
 ];
@@ -112,7 +129,7 @@ export function PermissionsSettingsSection() {
                   {group.title}
                 </th>
               </tr>
-              {group.actions.map(({ action, label, hint }) => (
+              {group.actions.map(({ action, label, hint, scopes }) => (
                 <tr key={action}>
                   <th scope="row" className="px-3 py-2 text-left font-normal">
                     <span className="block font-medium text-gray-900">{label}</span>
@@ -140,7 +157,7 @@ export function PermissionsSettingsSection() {
                               SCOPE_STYLE[scope],
                             )}
                           >
-                            {SCOPE_OPTIONS.map((option) => (
+                            {SCOPE_OPTIONS.filter((option) => !scopes || scopes.includes(option.value)).map((option) => (
                               <option key={option.value} value={option.value} title={option.hint}>
                                 {option.label}
                               </option>

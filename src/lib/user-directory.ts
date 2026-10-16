@@ -1,5 +1,6 @@
 import { MOCK_USERS } from '@/lib/mock-users';
 import { teamMembers } from '@/lib/team-data';
+import { deskStaff } from '@/lib/sample-data/service-desk-sample-data';
 import type { TaskUser } from '@/types';
 
 // Login users plus the team roster, merged into one directory keyed by user ID.
@@ -28,9 +29,11 @@ const rosterUsers: TaskUser[] = teamMembers.map((member) => ({
 }));
 
 // Roster entries win for people in both lists, since they carry the reporting manager
+// Admin (office operations) team members without a demo login come last
 export const USER_DIRECTORY: TaskUser[] = [
   ...rosterUsers,
   ...loginUsers.filter((user) => !rosterUsers.some((member) => member.id === user.id)),
+  ...deskStaff,
 ];
 
 const usersById = new Map(USER_DIRECTORY.map((user) => [user.id, user]));

@@ -1,6 +1,7 @@
 import type { TaskInput } from '@/types';
 import { notificationService } from '../notifications/notification-service';
 import { timeEntryService } from '../time-tracker/time-entry-service';
+import { requestService } from '../service-desk/request-service';
 import { taskService } from './task-service';
 
 const manager = { id: 'PM001', role: 'project_manager' as const };
@@ -150,9 +151,26 @@ describe('taskService Phase 4', () => {
     expect(items.every((task) => task.type === 'hr')).toBe(true);
     expect(new Set(items.map((task) => task.assigneeId))).toEqual(new Set(['SYS001', 'HR001', 'PM001', 'EMP007']));
 
-    // The IT owner gets one notification covering all three of their items
+    // The IT owner gets one notification covering both of their items
     const [latest] = await notificationService.list({ id: 'SYS001', role: 'system_admin' });
-    expect(latest.title).toBe('3 onboarding tasks for Sneha Reddy');
+    expect(latest.title).toBe('2 onboarding tasks for Sneha Reddy');
+  });
+
+  it('turns Admin items into service desk requests that tick their checklist item off when resolved', async () => {
+    const desk = { id: 'ADM001', role: 'admin' as const };
+    const requests = (await requestService.list(desk)).filter((request) => request.source === 'onboarding' && request.onBehalfOfId === 'EMP007');
+    expect(requests.map((request) => request.title).sort()).toEqual([
+      'Allocate seating and welcome kit for Sneha Reddy',
+      'Issue ID and access cards for Sneha Reddy',
+      'Issue laptop and accessories for Sneha Reddy',
+    ]);
+    expect(requests.every((request) => request.requesterId === 'HR001' && !!request.linkedTaskId)).toBe(true);
+
+    const laptop = requests.find((request) => request.title.startsWith('Issue laptop'))!;
+    const linked = () => taskService.list(hrUser).then((tasks) => tasks.find((task) => task.id === laptop.linkedTaskId)!);
+    expect((await linked()).description).toContain(laptop.key);
+    await requestService.changeStatus(desk, laptop.id, { to: 'resolved' });
+    expect((await linked()).status).toBe('done');
   });
 
   it('refuses a second open checklist from the same template for the same person', async () => {
@@ -165,21 +183,21 @@ describe('taskService Phase 4', () => {
 });
 
 describe('taskService Phase 5', () => {
-  const admin = { id: 'ADM001', role: 'admin' as const };
+  const sysAdmin = { id: 'SYS001', role: 'system_admin' as const };
   const employee = { id: 'EMP001', role: 'employee' as const };
-  const byKey = async (key: string) => (await taskService.list(admin)).find((task) => task.key === key)!;
+  const byKey = async (key: string) => (await taskService.list(sysAdmin)).find((task) => task.key === key)!;
 
   it('creates projects with a unique, valid key; the lead is always a member', async () => {
-    const project = await taskService.createProject(admin, { name: 'Mobile App', key: 'mob', leadId: 'PM001', memberIds: ['EMP002'], defaultIssueType: 'task' });
+    const project = await taskService.createProject(sysAdmin, { name: 'Mobile App', key: 'mob', leadId: 'PM001', memberIds: ['EMP002'], defaultIssueType: 'task' });
     expect(project).toMatchObject({ key: 'MOB', memberIds: ['PM001', 'EMP002'] });
-    await expect(taskService.createProject(admin, { name: 'Other', key: 'MOB', leadId: 'PM001', memberIds: [], defaultIssueType: 'task' })).rejects.toThrow('already used');
-    await expect(taskService.createProject(admin, { name: 'Bad', key: '1X', leadId: 'PM001', memberIds: [], defaultIssueType: 'task' })).rejects.toThrow('capital letters');
+    await expect(taskService.createProject(sysAdmin, { name: 'Other', key: 'MOB', leadId: 'PM001', memberIds: [], defaultIssueType: 'task' })).rejects.toThrow('already used');
+    await expect(taskService.createProject(sysAdmin, { name: 'Bad', key: '1X', leadId: 'PM001', memberIds: [], defaultIssueType: 'task' })).rejects.toThrow('capital letters');
     await expect(taskService.createProject(employee, { name: 'Mine', key: 'MINE', leadId: 'EMP001', memberIds: [], defaultIssueType: 'task' })).rejects.toThrow("can't create");
   });
 
   it('updates members without changing the key', async () => {
     const project = (await taskService.listProjects()).find((item) => item.key === 'MOB')!;
-    const updated = await taskService.updateProject(admin, project.id, { name: 'Mobile App', leadId: 'PM001', memberIds: ['EMP003'], defaultIssueType: 'bug' });
+    const updated = await taskService.updateProject(sysAdmin, project.id, { name: 'Mobile App', leadId: 'PM001', memberIds: ['EMP003'], defaultIssueType: 'bug' });
     expect(updated).toMatchObject({ key: 'MOB', memberIds: ['PM001', 'EMP003'], defaultIssueType: 'bug' });
   });
 
@@ -193,17 +211,17 @@ describe('taskService Phase 5', () => {
       { key: 'IXP-104', reason: 'Needs approval' },
     ]);
 
-    const assigned = await taskService.bulkUpdate(admin, [todo.id, inReview.id], { kind: 'assign', assigneeId: 'EMP006' });
+    const assigned = await taskService.bulkUpdate(sysAdmin, [todo.id, inReview.id], { kind: 'assign', assigneeId: 'EMP006' });
     expect(assigned.updated).toEqual(['IXP-107', 'IXP-104']);
   });
 
   it('moves tasks to another project with new keys and keeps the old key for links', async () => {
     const project = (await taskService.listProjects()).find((item) => item.key === 'MOB')!;
     const parent = await byKey('IXP-102'); // has 3 sub-tasks
-    const result = await taskService.bulkUpdate(admin, [parent.id], { kind: 'project', projectId: project.id });
+    const result = await taskService.bulkUpdate(sysAdmin, [parent.id], { kind: 'project', projectId: project.id });
     expect(result.updated).toEqual(['MOB-1']);
 
-    const moved = (await taskService.list(admin)).filter((task) => task.id === parent.id || task.parentId === parent.id);
+    const moved = (await taskService.list(sysAdmin)).filter((task) => task.id === parent.id || task.parentId === parent.id);
     expect(moved.every((task) => task.projectId === project.id && task.key.startsWith('MOB-') && !task.sprintId)).toBe(true);
     expect(moved.find((task) => task.id === parent.id)?.previousKeys).toEqual(['IXP-102']);
   });

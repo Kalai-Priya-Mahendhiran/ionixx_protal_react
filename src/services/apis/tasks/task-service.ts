@@ -35,6 +35,7 @@ import type {
   TaskComment,
   TaskInput,
   TaskStatus,
+  TaskTemplate,
   WorkLog,
 } from '@/types';
 import { fileService } from '../files/file-service';
@@ -45,6 +46,8 @@ import { automationService } from '../automation/automation-service';
 import { getStatusLabel } from '@/lib/workflow';
 import { templateService } from '../templates/template-service';
 import { planChecklist } from '@/lib/task-templates';
+import { onRequestResolved, requestService } from '../service-desk/request-service';
+import { getAssetsHeldBy } from '../service-desk/asset-service';
 
 /*
  * Task data access. Every method is async and mirrors a REST endpoint (see `endpoints.tasks*`),
@@ -250,6 +253,24 @@ function runDueDateChecks() {
 }
 
 // Every write goes through here, so the completion time stays right whichever path changed the status
+// What the Admin team needs to know for a checklist item turned into a request
+function adminRequestDescription(kind: TaskTemplate['kind'], itemTitle: string, subjectId: string, dueDate: string): string {
+  const subject = getUserById(subjectId);
+  const who = subject ? `${subject.name} (${subject.designation}, ${subject.department})` : 'the employee';
+  if (kind !== 'offboarding') return `${itemTitle} for ${who}. Needed by ${dueDate}.`;
+  const held = getAssetsHeldBy(subjectId);
+  const list = held.length ? held.map((asset) => `• ${asset.tag}: ${asset.model}`).join('\n') : '• No assets are recorded against them in the asset log.';
+  return `${itemTitle} from ${who} by ${dueDate}.\n\nCurrently issued to them:\n${list}`;
+}
+
+// A resolved Admin request ticks off the checklist item it was created for
+onRequestResolved((request) => {
+  const task = request.linkedTaskId ? tasks.find((item) => item.id === request.linkedTaskId) : undefined;
+  if (!task || task.status === 'done') return;
+  saveTask({ ...task, status: 'done', updatedAt: now() });
+  recordActivity({ taskId: task.id, actorId: 'system', type: 'status-changed', field: 'status', from: task.status, to: 'done', note: `${request.key} was resolved` });
+});
+
 function saveTask(updated: Task): Task {
   const previous = tasks.find((task) => task.id === updated.id);
   const finished = updated.status === 'done';
@@ -785,6 +806,19 @@ export const taskService = {
         parentId: parent.id,
       };
       tasks = [...tasks, subtask];
+      // Admin items are worked in the service desk; the sub-task tracks the request and ticks itself off when it's resolved
+      if (item.owner === 'admin') {
+        const request = requestService.createLinked(actor, {
+          category: item.requestCategory ?? 'other',
+          title: `${item.title} for ${subject.name}`,
+          description: adminRequestDescription(template.kind, item.title, subjectId, dueDate),
+          priority: item.priority,
+          onBehalfOfId: subjectId,
+          source: template.kind === 'custom' ? 'checklist' : template.kind,
+          linkedTaskId: subtask.id,
+        });
+        tasks = tasks.map((task) => (task.id === subtask.id ? { ...task, description: `Handled by the Admin team in ${request.key}. Ticked off automatically when the request is resolved.` } : task));
+      }
     });
     recordActivity({ taskId: parent.id, actorId: actor.id, type: 'created', note: `from the "${template.name}" template` });
 

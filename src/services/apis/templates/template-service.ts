@@ -1,5 +1,6 @@
 import { can, type PermissionUser } from '@/lib/permissions/task-permissions';
 import { sampleTaskTemplates } from '@/lib/sample-data/task-template-sample-data';
+import { REQUEST_CATEGORIES } from '@/lib/desk-config';
 import { generateId } from '@/lib/utils';
 import type { TaskTemplate } from '@/types';
 import { auditService } from '../audit/audit-service';
@@ -34,6 +35,7 @@ function validate(input: TaskTemplateInput, ignoreId?: string) {
   input.items.forEach((item, index) => {
     if (!item.title.trim()) throw new Error(`Item ${index + 1} needs a title`);
     if (item.owner === 'specific' && !item.ownerId) throw new Error(`Choose a person for "${item.title}"`);
+    if (item.owner === 'admin' && item.requestCategory && !REQUEST_CATEGORIES.includes(item.requestCategory)) throw new Error(`Choose a request category for "${item.title}"`);
   });
 }
 
@@ -46,6 +48,7 @@ const normalize = (input: TaskTemplateInput): TaskTemplateInput => ({
     id: item.id || generateId(),
     title: item.title.trim(),
     ownerId: item.owner === 'specific' ? item.ownerId : undefined,
+    requestCategory: item.owner === 'admin' ? (item.requestCategory ?? 'other') : undefined,
   })),
 });
 

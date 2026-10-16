@@ -24,10 +24,10 @@ export type TaskScopeTarget = Pick<Task, 'assigneeId' | 'reporterId' | 'type'> &
 
 // For these actions the task is judged by who it is (or will be) assigned to;
 // for the rest, being the reporter also counts as "own"
-const ASSIGNEE_ACTIONS = new Set<TaskAction>(['task.create', 'task.assign']);
+const ASSIGNEE_ACTIONS = new Set<TaskAction>(['task.create', 'task.assign', 'request.create']);
 
 // Watchers can follow the conversation on a task: see it, keep watching and comment
-const WATCHER_ACTIONS = new Set<TaskAction>(['task.view', 'task.watch', 'task.comment']);
+const WATCHER_ACTIONS = new Set<TaskAction>(['task.view', 'task.watch', 'task.comment', 'request.view', 'request.comment']);
 
 export function getScope(user: PermissionUser | null | undefined, action: TaskAction): PermissionScope {
   return user ? (getTaskSettings().permissions[action]?.[user.role] ?? 'none') : 'none';

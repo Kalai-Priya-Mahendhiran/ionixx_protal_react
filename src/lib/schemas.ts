@@ -510,7 +510,7 @@ export type SprintFormValues = z.infer<typeof sprintSchema>;
 
 // HR task templates
 export const TEMPLATE_KINDS = ["onboarding", "offboarding", "custom"] as const;
-export const TEMPLATE_OWNERS = ["hr", "it", "manager", "employee", "specific"] as const;
+export const TEMPLATE_OWNERS = ["hr", "it", "admin", "manager", "employee", "specific"] as const;
 
 const templateItemSchema = z
   .object({
@@ -518,6 +518,8 @@ const templateItemSchema = z
     title: z.string().trim().min(1, "Add a title").max(120, "Keep it under 120 characters"),
     owner: z.enum(TEMPLATE_OWNERS),
     ownerId: z.string(),
+    // Category of the Admin request, for 'admin' items
+    requestCategory: z.string(),
     // Number inputs give strings; checked and converted on save
     offsetDays: z
       .string()
@@ -560,3 +562,54 @@ export const projectSchema = z.object({
 });
 
 export type ProjectFormValues = z.infer<typeof projectSchema>;
+
+// Admin service desk
+export const REQUEST_CATEGORY_VALUES = ["asset", "facility", "supplies", "transport", "travel", "visitor", "other"] as const;
+
+export const adminRequestSchema = z.object({
+  category: z.enum(REQUEST_CATEGORY_VALUES, { required_error: "Choose a category", invalid_type_error: "Choose a category" }),
+  title: z.string().trim().min(1, "Add a short summary").max(120, "Keep it under 120 characters"),
+  description: z.string().trim().min(10, "Add a few details so the Admin team can act on it").max(2000, "Keep it under 2000 characters"),
+  priority: z.enum(TASK_PRIORITIES),
+  // Empty = for yourself
+  onBehalfOfId: z.string(),
+});
+
+export type AdminRequestFormValues = z.infer<typeof adminRequestSchema>;
+
+export const ASSET_TYPE_VALUES = ["laptop", "monitor", "headset", "phone", "id-card", "access-card", "other"] as const;
+
+export const assetSchema = z.object({
+  type: z.enum(ASSET_TYPE_VALUES),
+  model: z.string().trim().min(1, "Add the make and model").max(80, "Keep it under 80 characters"),
+  serialNumber: z.string().trim().max(40, "Keep it under 40 characters"),
+  // Empty = generate the next tag for the type
+  tag: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || /^[A-Za-z0-9][A-Za-z0-9-]{1,19}$/.test(value), "Letters, numbers and dashes, e.g. LAP-0012"),
+});
+
+export type AssetFormValues = z.infer<typeof assetSchema>;
+
+export const EXPENSE_CATEGORY_VALUES = ["asset", "facility", "maintenance", "supplies", "utilities", "transport", "travel", "visitor", "events", "other"] as const;
+
+export const expenseSchema = z.object({
+  date: z
+    .string()
+    .min(1, "Choose the date")
+    .refine((value) => value <= new Date().toISOString().slice(0, 10), "Can't be in the future"),
+  category: z.enum(EXPENSE_CATEGORY_VALUES),
+  vendor: z.string().trim().min(1, "Add the vendor or payee").max(80, "Keep it under 80 characters"),
+  amount: z
+    .string()
+    .trim()
+    .refine((value) => /^\d+(\.\d{1,2})?$/.test(value.replace(/,/g, "")) && Number(value.replace(/,/g, "")) > 0, "Enter an amount in rupees, e.g. 4500"),
+  description: z.string().trim().max(200, "Keep it under 200 characters"),
+  requestKey: z
+    .string()
+    .trim()
+    .refine((value) => value === "" || /^ADM-\d+$/i.test(value), "A request key, e.g. ADM-104"),
+});
+
+export type ExpenseFormValues = z.infer<typeof expenseSchema>;

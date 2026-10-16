@@ -1,3 +1,4 @@
+import type { RequestCategory } from './service-desk'
 import type { TASK_ISSUE_TYPES, TASK_PRIORITIES, TASK_WORKFLOW_STATUSES } from '@/lib/schemas'
 import type { UserRole } from '@/lib/mock-users'
 
@@ -114,7 +115,8 @@ export interface TaskUser {
 export type TemplateKind = 'onboarding' | 'offboarding' | 'custom'
 
 // Who gets an item when the template is applied
-export type TemplateOwner = 'hr' | 'it' | 'manager' | 'employee' | 'specific'
+// 'admin' items become Admin service desk requests, tracked on the checklist by HR
+export type TemplateOwner = 'hr' | 'it' | 'admin' | 'manager' | 'employee' | 'specific'
 
 export interface TaskTemplateItem {
   id: string
@@ -122,6 +124,7 @@ export interface TaskTemplateItem {
   description?: string
   owner: TemplateOwner
   ownerId?: string // only for 'specific'
+  requestCategory?: RequestCategory // only for 'admin'
   // Days from the anchor date (joining day for onboarding, last working day for offboarding); negative = before
   offsetDays: number
   priority: TaskPriority

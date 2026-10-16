@@ -96,17 +96,21 @@ describe('can()', () => {
     });
   });
 
-  it('gives admin everything except workflow configuration', () => {
-    for (const action of ['task.view', 'task.create', 'task.assign', 'task.edit', 'task.delete', 'task.approve'] as const) {
-      expect(can(admin, action, outsideTask)).toBe(true);
+  // Admin is office operations: the service desk, never project tasks
+  it('keeps admin out of project tasks entirely', () => {
+    for (const action of ['task.view', 'task.create', 'task.assign', 'task.edit', 'task.delete', 'task.approve', 'project.manage', 'template.manage', 'workflow.configure'] as const) {
+      expect(can(admin, action, outsideTask)).toBe(false);
     }
-    expect(can(admin, 'workflow.configure')).toBe(false);
+    expect(getVisibleTasks(admin, sampleTasks)).toHaveLength(0);
   });
 
   it('gives system admin workflow configuration but not approval', () => {
     expect(can(sysAdmin, 'workflow.configure')).toBe(true);
     expect(can(sysAdmin, 'task.edit', teamTask)).toBe(true);
     expect(can(sysAdmin, 'task.approve', teamTask)).toBe(false);
+    for (const action of ['task.view', 'task.create', 'task.assign', 'task.edit', 'task.delete', 'project.manage'] as const) {
+      expect(can(sysAdmin, action, outsideTask)).toBe(true);
+    }
   });
 
   it('keeps executive read only', () => {
@@ -129,7 +133,7 @@ describe('canTransition()', () => {
   });
 
   it('rejects moving to the current status', () => {
-    expect(canTransition(admin, inReview, 'in-review')).toBe(false);
+    expect(canTransition(sysAdmin, inReview, 'in-review')).toBe(false);
   });
 });
 
@@ -139,8 +143,8 @@ describe('getVisibleTasks()', () => {
     expect(can(hr, 'task.view', makeTask({ type: 'task', assigneeId: 'HR001', reporterId: 'HR001' }))).toBe(false);
   });
 
-  it('shows admin every task', () => {
-    expect(getVisibleTasks(admin, sampleTasks)).toHaveLength(sampleTasks.length);
+  it('shows system admin every task', () => {
+    expect(getVisibleTasks(sysAdmin, sampleTasks)).toHaveLength(sampleTasks.length);
   });
 });
 
@@ -151,7 +155,7 @@ describe('resolveTaskView()', () => {
 
   it('falls back to the default when the requested view is not allowed', () => {
     expect(resolveTaskView(employee, 'settings')).toBe('my-tasks');
-    expect(resolveTaskView(admin, 'team-board')).toBe('team-board');
+    expect(resolveTaskView(sysAdmin, 'team-board')).toBe('team-board');
   });
 });
 
@@ -196,10 +200,11 @@ describe('Phase 3 manager rules', () => {
   const ixp = { leadId: 'PM001', memberIds: ['PM001', 'EMP001'] };
   const hrProject = { leadId: 'HR001', memberIds: ['HR001'] };
 
-  it('lets managers plan sprints only in their projects; admins everywhere; employees nowhere', () => {
+  it('lets managers plan sprints only in their projects; system admins everywhere; employees nowhere', () => {
     expect(canManageSprints(manager, ixp)).toBe(true);
     expect(canManageSprints(manager, hrProject)).toBe(false);
-    expect(canManageSprints(admin, hrProject)).toBe(true);
+    expect(canManageSprints(sysAdmin, hrProject)).toBe(true);
+    expect(canManageSprints(admin, hrProject)).toBe(false);
     expect(canManageSprints(employee, ixp)).toBe(false);
     expect(canManageSprints(hr, hrProject)).toBe(false);
   });
@@ -220,7 +225,7 @@ describe('Phase 3 manager rules', () => {
 
   it('shows manager tools by role', () => {
     expect(getManagerSections(manager)).toEqual(['board', 'workload', 'sprints', 'approvals']);
-    expect(getManagerSections(admin)).toEqual(['board', 'workload', 'sprints', 'approvals', 'projects']);
+    expect(getManagerSections(admin)).toEqual(['board']);
     expect(getManagerSections(sysAdmin)).toEqual(['board', 'workload', 'sprints', 'projects']);
     expect(getManagerSections(employee)).toEqual(['board']);
     expect(getManagerSections(executive)).toEqual(['board']);
@@ -228,9 +233,9 @@ describe('Phase 3 manager rules', () => {
 });
 
 describe('Phase 4 HR rules', () => {
-  it('lets HR, admins and system admins manage templates', () => {
+  it('lets HR and system admins manage templates', () => {
     expect(can(hr, 'template.manage')).toBe(true);
-    expect(can(admin, 'template.manage')).toBe(true);
+    expect(can(admin, 'template.manage')).toBe(false);
     expect(can(sysAdmin, 'template.manage')).toBe(true);
     expect(can(manager, 'template.manage')).toBe(false);
     expect(can(employee, 'template.manage')).toBe(false);
@@ -238,15 +243,15 @@ describe('Phase 4 HR rules', () => {
 
   it('shows HR tools on the HR view and manager tools on team views', () => {
     expect(getSectionsForView(hr, 'hr-tasks')).toEqual(['board', 'checklists', 'templates']);
-    expect(getSectionsForView(admin, 'hr-tasks')).toEqual(['board', 'checklists', 'templates']);
+    expect(getSectionsForView(sysAdmin, 'hr-tasks')).toEqual(['board', 'checklists', 'templates']);
     expect(getSectionsForView(manager, 'team-board')).toEqual(['board', 'workload', 'sprints', 'approvals']);
     expect(getSectionsForView(manager, 'my-tasks')).toEqual(['board']);
   });
 });
 
 describe('Phase 5 admin rules', () => {
-  it('lets only admins and system admins manage projects', () => {
-    expect(canManageProjects(admin)).toBe(true);
+  it('lets only system admins manage projects', () => {
+    expect(canManageProjects(admin)).toBe(false);
     expect(canManageProjects(sysAdmin)).toBe(true);
     expect(canManageProjects(manager)).toBe(false);
     expect(canManageProjects(hr)).toBe(false);
@@ -255,9 +260,10 @@ describe('Phase 5 admin rules', () => {
 
   it('moves only top-level tasks to a different project', () => {
     const task = makeTask({ projectId: 'PRJ-IXP' });
-    expect(canMoveToProject(admin, task, 'PRJ-HR')).toBe(true);
-    expect(canMoveToProject(admin, task, 'PRJ-IXP')).toBe(false);
-    expect(canMoveToProject(admin, { ...task, parentId: 'P' }, 'PRJ-HR')).toBe(false);
+    expect(canMoveToProject(sysAdmin, task, 'PRJ-HR')).toBe(true);
+    expect(canMoveToProject(sysAdmin, task, 'PRJ-IXP')).toBe(false);
+    expect(canMoveToProject(sysAdmin, { ...task, parentId: 'P' }, 'PRJ-HR')).toBe(false);
+    expect(canMoveToProject(admin, task, 'PRJ-HR')).toBe(false);
     expect(canMoveToProject(manager, teamTask, 'PRJ-HR')).toBe(false);
   });
 });

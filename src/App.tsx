@@ -15,6 +15,11 @@ import TimeTracker from '@/components/employee-component/time-tracker';
 import Leave from '@/components/employee-component/leave-tracker';
 import Tasks from '@/components/employee-component/tasks';
 import ProjectSummary from '@/components/employee-component/tasks/reports/project-summary';
+import ServiceDesk from '@/components/admin-component/service-desk';
+import RequestDetail from '@/components/admin-component/service-desk/request-detail';
+import AssetLog from '@/components/admin-component/service-desk/asset-log';
+import Expenses from '@/components/admin-component/service-desk/expenses';
+import DeskReports from '@/components/admin-component/service-desk/desk-reports';
 import TaskDetail from '@/components/employee-component/tasks/task-detail';
 import Files from '@/components/employee-component/files';
 import Organization from '@/components/employee-component/organization';
@@ -121,6 +126,48 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Tasks]}>
             <Tasks />
+          </ProtectedRoute>
+        }
+      />
+      {/* Admin service desk: My Requests for everyone, the queue for the Admin team */}
+      <Route
+        path={ROUTES.ServiceDesk}
+        element={
+          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.ServiceDesk]}>
+            <ServiceDesk />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.AssetLog}
+        element={
+          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.AssetLog]}>
+            <AssetLog />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.Expenses}
+        element={
+          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Expenses]}>
+            <Expenses />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.DeskReports}
+        element={
+          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.DeskReports]}>
+            <DeskReports />
+          </ProtectedRoute>
+        }
+      />
+      {/* Each request has its own shareable page, e.g. /service-desk/ADM-104 */}
+      <Route
+        path={`${ROUTES.ServiceDesk}/:requestKey`}
+        element={
+          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.ServiceDesk]}>
+            <RequestDetail />
           </ProtectedRoute>
         }
       />

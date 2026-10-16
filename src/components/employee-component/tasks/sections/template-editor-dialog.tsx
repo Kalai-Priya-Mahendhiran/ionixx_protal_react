@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TASK_PRIORITIES, TEMPLATE_KINDS, TEMPLATE_OWNERS, templateSchema, type TemplateFormValues } from '@/lib/schemas';
 import { TEMPLATE_ANCHOR_LABELS, TEMPLATE_KIND_LABELS, TEMPLATE_OWNER_LABELS } from '@/lib/task-templates';
 import { USER_DIRECTORY } from '@/lib/user-directory';
+import { REQUEST_CATEGORIES, REQUEST_CATEGORY_LABELS } from '@/lib/desk-config';
 import { cn } from '@/lib/utils';
 import { useCreateTemplate, useUpdateTemplate } from '@/services/apis/templates/use-templates';
-import type { TaskTemplate } from '@/types';
+import type { RequestCategory, TaskTemplate } from '@/types';
 import { TASK_PRIORITY_CONFIG } from './task-config';
 
 const KIND_OPTIONS: Option[] = TEMPLATE_KINDS.map((value) => ({ value, label: TEMPLATE_KIND_LABELS[value] }));
@@ -24,6 +25,7 @@ const newItem = (): TemplateFormValues['items'][number] => ({
   title: '',
   owner: 'hr',
   ownerId: '',
+  requestCategory: 'asset',
   offsetDays: '0',
   priority: 'medium',
   estimateHours: '',
@@ -40,6 +42,7 @@ const toFormValues = (template?: TaskTemplate): TemplateFormValues =>
           title: item.title,
           owner: item.owner,
           ownerId: item.ownerId ?? '',
+          requestCategory: item.requestCategory ?? 'asset',
           offsetDays: String(item.offsetDays),
           priority: item.priority,
           estimateHours: item.estimateHours?.toString() ?? '',
@@ -113,6 +116,20 @@ function ItemRow({ control, index, count, onMove, onRemove }: { control: Control
                 />
                 <FormMessage className="text-xs" />
               </FormItem>
+            )}
+          />
+        )}
+        {owner === 'admin' && (
+          <FormField
+            control={control}
+            name={`items.${index}.requestCategory`}
+            render={({ field }) => (
+              <RowSelect
+                value={field.value}
+                onChange={field.onChange}
+                label={`Item ${index + 1} request category`}
+                options={REQUEST_CATEGORIES.map((value) => ({ value, label: `${REQUEST_CATEGORY_LABELS[value]} request` }))}
+              />
             )}
           />
         )}
@@ -192,6 +209,7 @@ export function TemplateEditorDialog({ open, template, initial, onOpenChange }: 
         title: item.title,
         owner: item.owner,
         ownerId: item.ownerId || undefined,
+        requestCategory: item.owner === 'admin' ? (item.requestCategory as RequestCategory) : undefined,
         offsetDays: Number(item.offsetDays),
         priority: item.priority,
         estimateHours: item.estimateHours ? Number(item.estimateHours) : undefined,

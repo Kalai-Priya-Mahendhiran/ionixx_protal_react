@@ -6,21 +6,32 @@ import type { LabelColor, PermissionMatrix, TaskSettings, WorkflowSettings } fro
  */
 
 export const DEFAULT_PERMISSION_MATRIX: PermissionMatrix = {
-  'task.view':          { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'all' },
-  'task.create':        { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'task.assign':        { employee: 'none', project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'task.edit':          { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'task.changeStatus':  { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'task.delete':        { employee: 'none', project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'task.approve':       { employee: 'none', project_manager: 'team', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },
-  'task.comment':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'task.logWork':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'task.watch':         { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'all' },
-  'sprint.manage':      { employee: 'none', project_manager: 'team', hr: 'none', admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'template.manage':    { employee: 'none', project_manager: 'none', hr: 'all',  admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'project.manage':     { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'all',  executive: 'none' },
+  // Admin is office operations: no project tasks (the service desk rows below are theirs)
+  'task.view':          { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'none', system_admin: 'all',  executive: 'all' },
+  'task.create':        { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'none', system_admin: 'all',  executive: 'none' },
+  'task.assign':        { employee: 'none', project_manager: 'team', hr: 'hr',   admin: 'none', system_admin: 'all',  executive: 'none' },
+  'task.edit':          { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'none', system_admin: 'all',  executive: 'none' },
+  'task.changeStatus':  { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'none', system_admin: 'all',  executive: 'none' },
+  'task.delete':        { employee: 'none', project_manager: 'team', hr: 'hr',   admin: 'none', system_admin: 'all',  executive: 'none' },
+  'task.approve':       { employee: 'none', project_manager: 'team', hr: 'none', admin: 'none', system_admin: 'none', executive: 'none' },
+  'task.comment':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'none', system_admin: 'all',  executive: 'none' },
+  'task.logWork':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'none', system_admin: 'all',  executive: 'none' },
+  'task.watch':         { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'none', system_admin: 'all',  executive: 'all' },
+  'sprint.manage':      { employee: 'none', project_manager: 'team', hr: 'none', admin: 'none', system_admin: 'all',  executive: 'none' },
+  'template.manage':    { employee: 'none', project_manager: 'none', hr: 'all',  admin: 'none', system_admin: 'all',  executive: 'none' },
+  'project.manage':     { employee: 'none', project_manager: 'none', hr: 'none', admin: 'none', system_admin: 'all',  executive: 'none' },
   'workflow.configure': { employee: 'none', project_manager: 'none', hr: 'none', admin: 'none', system_admin: 'all',  executive: 'none' },
-  'reports.view':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'all' },
+  'reports.view':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'none', system_admin: 'all',  executive: 'all' },
+  // Service desk: everyone raises and follows their own requests; HR also raises them for new joiners and leavers.
+  // The Admin team works the queue, the asset log and office expenses.
+  'request.create':     { employee: 'own',  project_manager: 'own',  hr: 'all',  admin: 'all',  system_admin: 'own',  executive: 'own' },
+  'request.view':       { employee: 'own',  project_manager: 'own',  hr: 'own',  admin: 'all',  system_admin: 'own',  executive: 'own' },
+  'request.comment':    { employee: 'own',  project_manager: 'own',  hr: 'own',  admin: 'all',  system_admin: 'own',  executive: 'own' },
+  'request.manage':     { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },
+  'asset.manage':       { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },
+  'expense.manage':     { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },
+  'desk.configure':     { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },
+  'desk.reports':       { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },
 };
 
 export const DEFAULT_WORKFLOW: WorkflowSettings = {

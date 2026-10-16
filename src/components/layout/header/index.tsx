@@ -14,7 +14,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { QUICK_ADD_OPTIONS, ROUTES } from "@/lib/constants";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { NotificationsPanel } from "./notifications-panel";
 import { useUnreadNotificationCount } from "@/services/apis/notifications/use-notifications";
 
@@ -26,6 +26,7 @@ interface HeaderProps {
  const Header: React.FC<HeaderProps> = ({ onMenuClick, showMenuButton = true }) => {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -54,6 +55,13 @@ interface HeaderProps {
         return 'Organization';
       case ROUTES.Reports:
         return 'Reports';
+      case ROUTES.ServiceDesk: {
+        const page = pathname.split('/')[2];
+        if (page === 'assets') return 'Asset Log';
+        if (page === 'expenses') return 'Expenses';
+        if (page === 'reports') return 'Desk Reports';
+        return user?.role === 'admin' ? 'Service Desk' : 'My Requests';
+      }
       default:
         return 'Dashboard';
     }
@@ -85,8 +93,9 @@ interface HeaderProps {
   }, []);
 
   const handleQuickAdd = (option: string) => {
-    console.log(`Quick add: ${option}`);
     setShowQuickAdd(false);
+    // The service desk opens its raise dialog from ?raise=1
+    if (option === "admin-request") navigate(`${ROUTES.ServiceDesk}?raise=1`);
   };
 
   const handleNotificationClick = () => {

@@ -20,6 +20,9 @@ const ENTITY_LABELS: Record<AuditEntity, string> = {
   template: 'Template',
   settings: 'Settings',
   automation: 'Automation',
+  request: 'Admin request',
+  asset: 'Asset',
+  expense: 'Expense',
 };
 
 const ENTITY_STYLE: Record<AuditEntity, string> = {
@@ -28,6 +31,9 @@ const ENTITY_STYLE: Record<AuditEntity, string> = {
   template: 'bg-pink-100 text-pink-700',
   settings: 'bg-gray-100 text-gray-700',
   automation: 'bg-amber-100 text-amber-800',
+  request: 'bg-teal-100 text-teal-800',
+  asset: 'bg-violet-100 text-violet-700',
+  expense: 'bg-emerald-100 text-emerald-800',
 };
 
 const actorName = (actorId: string) => (actorId === 'system' ? 'Automation' : (getUserById(actorId)?.name ?? actorId));
@@ -173,8 +179,8 @@ export function AuditLogSection() {
                         <span className={cn('rounded px-2 py-0.5 text-xs font-semibold', ENTITY_STYLE[entry.entity])}>{ENTITY_LABELS[entry.entity]}</span>
                       </td>
                       <td className="px-3 py-2 font-medium">
-                        {entry.entity === 'task' ? (
-                          <Link to={taskPath(entry.entityKey)} className="text-[#464EB8] hover:underline">
+                        {entry.entity === 'task' || entry.entity === 'request' ? (
+                          <Link to={entry.entity === 'task' ? taskPath(entry.entityKey) : `/service-desk/${entry.entityKey}`} className="text-[#464EB8] hover:underline">
                             {entry.entityKey}
                           </Link>
                         ) : (

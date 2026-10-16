@@ -16,6 +16,7 @@ export const TEMPLATE_KIND_LABELS: Record<TemplateKind, string> = {
 export const TEMPLATE_OWNER_LABELS: Record<TemplateOwner, string> = {
   hr: 'HR (you)',
   it: 'IT team',
+  admin: 'Admin team (service desk)',
   manager: "Employee's manager",
   employee: 'The employee',
   specific: 'Specific person',
@@ -53,7 +54,9 @@ const firstWithRole = (role: string) => USER_DIRECTORY.find((user) => user.role 
 // IT items to the system administrators; manager items to the employee's reporting manager
 export function resolveOwner(item: TaskTemplateItem, subjectId: string, actor: { id: string; role: string }): string {
   switch (item.owner) {
+    // Admin items become service desk requests; the checklist item stays with HR, who track it
     case 'hr':
+    case 'admin':
       return actor.role === 'hr' ? actor.id : (firstWithRole('hr') ?? actor.id);
     case 'it':
       return firstWithRole('system_admin') ?? actor.id;
