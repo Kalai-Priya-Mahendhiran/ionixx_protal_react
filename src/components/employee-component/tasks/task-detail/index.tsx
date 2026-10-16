@@ -8,6 +8,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import MainLayout from '@/components/layout/main-layout';
 import { useAuth } from '@/context/auth-context';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import { can, canTransition, type PermissionUser } from '@/lib/permissions/task-permissions';
 import { ROUTES } from '@/lib/constants';
 import { getWorkflowStatuses } from '@/lib/workflow';
@@ -38,6 +39,7 @@ import { TASK_TYPE_CONFIG, getLabelColor, getStatusMeta } from '../sections/task
 import { copyTaskLink, taskPath } from '../sections/task-link';
 import { TaskSubtasks } from '../sections/task-subtasks';
 import { OnLeaveBanner, OnLeaveChip } from '../sections/leave-warning';
+import { ShortcutsDialog } from '../sections/shortcuts-dialog';
 import { formatShortDate } from '../sections/task-utils';
 import { useTaskSettings } from '@/services/apis/settings/use-task-settings';
 
@@ -106,6 +108,11 @@ function TaskDetailContent({ user }: { user: PermissionUser }) {
 
   const subtaskCount = task ? tasks.filter((item) => item.parentId === task.id).length : 0;
 
+  // Keyboard: E edits (when allowed) · ? lists the shortcuts
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const canEditTask = !!task && can(user, 'task.edit', task);
+  useKeyboardShortcuts({ e: canEditTask ? () => setEditOpen(true) : undefined, '?': () => setShortcutsOpen(true) });
+
   return (
     <MainLayout>
       <div className="mx-auto max-w-7xl">
@@ -150,6 +157,12 @@ function TaskDetailContent({ user }: { user: PermissionUser }) {
           />
         )}
       </div>
+
+      <ShortcutsDialog
+        open={shortcutsOpen}
+        onOpenChange={setShortcutsOpen}
+        shortcuts={[...(canEditTask ? [{ keys: 'E', label: 'Edit this task' }] : []), { keys: '?', label: 'Show these shortcuts' }]}
+      />
 
       {task && (
         <>
@@ -309,7 +322,7 @@ function TaskDetailView({ task, allTasks, user, backTo, onEdit, onDelete }: Task
             Share
           </Button>
           {canEdit && (
-            <Button variant="outline" size="sm" onClick={onEdit} className="gap-1.5">
+            <Button variant="outline" size="sm" onClick={onEdit} title="Edit (E)" aria-keyshortcuts="e" className="gap-1.5">
               <Pencil className="h-4 w-4" />
               Edit
             </Button>

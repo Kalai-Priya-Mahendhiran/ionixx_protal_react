@@ -20,7 +20,10 @@ export const useGlobal = () => {
 export const GlobalContextProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Open by default on desktop; on phones and tablets the sidebar is a drawer that starts closed
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => typeof window === "undefined" || !window.matchMedia || window.matchMedia("(min-width: 1024px)").matches,
+  );
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   const value: GlobalContextType = {

@@ -107,6 +107,9 @@ export function AdvancedFiltersButton({ filters, options, onChange }: AdvancedFi
                   {option.label}
                 </label>
               ))}
+              <div className="mt-2 border-t border-gray-100 pt-2">
+                <CheckboxRow checked={filters.openOnly} label="Hide done work" onToggle={() => onChange({ ...filters, openOnly: !filters.openOnly })} />
+              </div>
             </section>
           </div>
           <div className="mt-3 flex justify-between border-t border-gray-100 pt-3">
@@ -140,6 +143,7 @@ export function ActiveFilterChips({ filters, options, onChange }: AdvancedFilter
       remove: () => onChange({ ...filters, due: 'any' }),
     });
   }
+  if (filters.openOnly) chips.push({ id: 'open', label: 'Open only', remove: () => onChange({ ...filters, openOnly: false }) });
   return (
     <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
       {chips.map((chip) => (

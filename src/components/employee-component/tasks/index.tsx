@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { BarChart3, Columns3, Download, Eye, FileSpreadsheet, FileText, Plus } from 'lucide-react';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import MainLayout from '@/components/layout/main-layout';
 import { useAuth } from '@/context/auth-context';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import {
   can,
   canApprove,
@@ -48,6 +49,9 @@ import { TASK_VIEW_META } from './sections/task-config';
 import { taskPath } from './sections/task-link';
 import { getFilterOptions } from './sections/filter-options';
 import { ExecutiveDashboard } from './reports/executive-dashboard';
+import { QuickFilters } from './sections/quick-filters';
+import { SavedFiltersMenu } from './sections/saved-filters-menu';
+import { ShortcutsDialog, type ShortcutHelp } from './sections/shortcuts-dialog';
 import { AuditLogSection } from './settings/audit-log-section';
 import { AutomationSettingsSection } from './settings/automation-settings';
 import { FieldsSettingsSection } from './settings/fields-settings';
@@ -69,7 +73,11 @@ import {
   filtersToParams,
   matchesAdvancedFilters,
   parseFilters,
+  parseStatusFilter,
+  filterStateToQuery,
+  queryToParamChanges,
   type AdvancedFilters,
+  type FilterState,
 } from './sections/task-utils';
 
 // The task is kept while the dialog closes so its title doesn't flicker
@@ -111,8 +119,12 @@ function TasksPage({ user }: { user: PermissionUser }) {
   const { data: epics = [] } = useEpics();
   const deleteTask = useDeleteTask();
 
-  const [statusFilter, setStatusFilter] = useState<TaskStatusFilter>('all');
+  // Status lives in the URL with the other filters so a shared link shows the same tasks
+  const statusFilter = parseStatusFilter(searchParams.get('status'));
+  const setStatusFilter = (filter: TaskStatusFilter) => updateParams({ status: filter === 'all' ? null : filter }, true);
   const [searchTerm, setSearchTerm] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [formState, setFormState] = useState<FormState>({ open: false });
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
 
@@ -134,6 +146,10 @@ function TasksPage({ user }: { user: PermissionUser }) {
   // Project, department, assignee, priority, type and due-date filters live in the URL so the view can be shared
   const advancedFilters = useMemo(() => parseFilters(searchParams), [searchParams]);
   const setAdvancedFilters = (filters: AdvancedFilters) => updateParams(filtersToParams(filters), true);
+  // Status and advanced filters together, in one URL update
+  const filterState: FilterState = { statusFilter, filters: advancedFilters };
+  const setFilterState = (next: FilterState) =>
+    updateParams({ status: next.statusFilter === 'all' ? null : next.statusFilter, ...filtersToParams(next.filters) }, true);
   const filterOptions = useMemo(() => getFilterOptions(scopedTasks, projects), [scopedTasks, projects]);
   const visibleTasks = scopedTasks.filter(
     (task) => matchesStatusFilter(task, statusFilter) && matchesSearch(task, searchTerm) && matchesAdvancedFilters(task, advancedFilters),
@@ -188,10 +204,23 @@ function TasksPage({ user }: { user: PermissionUser }) {
   // The task page links back here with the same view, tab, layout and filters
   const showTask = (task: Task) => navigate(taskPath(task.key), { state: { from: location.search } });
   const clearFilters = () => {
-    setStatusFilter('all');
     setSearchTerm('');
-    setAdvancedFilters(EMPTY_FILTERS);
+    setFilterState({ statusFilter: 'all', filters: EMPTY_FILTERS });
   };
+
+  // Keyboard: C create · / search · ? list of shortcuts (E edits on a task's own page)
+  const showsTaskList = !isOverview && section === 'board';
+  const createShortcut = canCreate && !isOverview && !isSettingsView ? openCreate : undefined;
+  const shortcutHelp: ShortcutHelp[] = [
+    ...(createShortcut ? [{ keys: 'C', label: 'Create a task' }] : []),
+    ...(showsTaskList ? [{ keys: '/', label: 'Search tasks' }] : []),
+    { keys: '?', label: 'Show these shortcuts' },
+  ];
+  useKeyboardShortcuts({
+    c: createShortcut,
+    '/': showsTaskList ? () => searchInputRef.current?.focus() : undefined,
+    '?': () => setShortcutsOpen(true),
+  });
 
   const taskToDeleteSubtasks = taskToDelete ? tasks.filter((task) => task.parentId === taskToDelete.id).length : 0;
   const confirmDelete = () => {
@@ -233,9 +262,10 @@ function TasksPage({ user }: { user: PermissionUser }) {
               )
             ) : (
               canCreate && (
-                <Button onClick={openCreate} className="flex items-center gap-2 bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
+                <Button onClick={openCreate} title="Create a task (C)" aria-keyshortcuts="c" className="flex items-center gap-2 bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
                   <Plus className="h-4 w-4" />
                   <span>Create Task</span>
+                  <span className="hidden rounded bg-white/20 px-1.5 font-mono text-xs sm:inline">C</span>
                 </Button>
               )
             )}
@@ -296,9 +326,18 @@ function TasksPage({ user }: { user: PermissionUser }) {
               onLayoutChange={(next) => updateParams({ layout: next })}
               groupByAssignee={groupByAssignee}
               onGroupByAssigneeChange={canGroupByAssignee ? (next) => updateParams({ group: next ? 'assignee' : null, focus: null }) : undefined}
+              searchInputRef={searchInputRef}
               actions={
                 <>
                   <AdvancedFiltersButton filters={advancedFilters} options={filterOptions} onChange={setAdvancedFilters} />
+                  <SavedFiltersMenu
+                    query={filterStateToQuery(filterState)}
+                    search={searchTerm}
+                    onApply={(saved) => {
+                      updateParams(queryToParamChanges(saved.query), true);
+                      setSearchTerm(saved.search ?? '');
+                    }}
+                  />
                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="sm" className="h-9 gap-1.5" disabled={isLoading || visibleTasks.length === 0}>
@@ -322,7 +361,12 @@ function TasksPage({ user }: { user: PermissionUser }) {
                   </DropdownMenu>
                 </>
               }
-              footer={<ActiveFilterChips filters={advancedFilters} options={filterOptions} onChange={setAdvancedFilters} />}
+              footer={
+                <>
+                  <QuickFilters state={filterState} userId={user.id} onChange={setFilterState} hidden={view === 'my-tasks' ? ['my-open'] : []} />
+                  <ActiveFilterChips filters={advancedFilters} options={filterOptions} onChange={setAdvancedFilters} />
+                </>
+              }
             />
 
             {isLoading || isError || (visibleTasks.length === 0 && !groupByAssignee) ? (
@@ -379,6 +423,8 @@ function TasksPage({ user }: { user: PermissionUser }) {
           </>
         )}
       </div>
+
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} shortcuts={shortcutHelp} />
 
       <TaskFormDialog
         open={formState.open}

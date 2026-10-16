@@ -18,6 +18,12 @@ import {
   matchesAdvancedFilters,
   parseFilters,
   suggestProjectKey,
+  filterStateToQuery,
+  isQuickFilterActive,
+  parseStatusFilter,
+  queryToParamChanges,
+  toggleQuickFilter,
+  type FilterState,
 } from './task-utils';
 
 const today = new Date(2026, 9, 15); // Oct 15, 2026 (local time)
@@ -159,4 +165,68 @@ it('suggestProjectKey() builds a key from the project name', () => {
   expect(suggestProjectKey('Payroll')).toBe('PAY');
   expect(suggestProjectKey('Customer Success Team Portal Revamp Two')).toBe('CSTPR');
   expect(suggestProjectKey('')).toBe('');
+});
+
+describe('open-only filter', () => {
+  it('hides done work and round-trips through the URL', () => {
+    const filters = { ...EMPTY_FILTERS, openOnly: true };
+    expect(matchesAdvancedFilters(task({ status: 'done' }), filters, today)).toBe(false);
+    expect(matchesAdvancedFilters(task({ status: 'in-progress' }), filters, today)).toBe(true);
+    expect(filtersToParams(filters).open).toBe('1');
+    expect(parseFilters(new URLSearchParams('open=1')).openOnly).toBe(true);
+  });
+});
+
+describe('parseStatusFilter()', () => {
+  it('accepts board columns and blocked, and falls back to all', () => {
+    expect(parseStatusFilter('in-review')).toBe('in-review');
+    expect(parseStatusFilter('blocked')).toBe('blocked');
+    expect(parseStatusFilter('no-such-status')).toBe('all');
+    expect(parseStatusFilter(null)).toBe('all');
+  });
+});
+
+describe('quick filters', () => {
+  const none: FilterState = { statusFilter: 'all', filters: EMPTY_FILTERS };
+
+  it('turns each chip on and back off', () => {
+    for (const id of ['my-open', 'due-week', 'overdue', 'high-priority', 'blocked'] as const) {
+      const on = toggleQuickFilter(id, none, 'EMP001');
+      expect(isQuickFilterActive(id, on, 'EMP001')).toBe(true);
+      const off = toggleQuickFilter(id, on, 'EMP001');
+      expect(isQuickFilterActive(id, off, 'EMP001')).toBe(false);
+      expect(off).toEqual(none);
+    }
+  });
+
+  it('sets the underlying filters, so they show in the Filters panel too', () => {
+    expect(toggleQuickFilter('my-open', none, 'EMP001').filters).toMatchObject({ assigneeIds: ['EMP001'], openOnly: true });
+    expect(toggleQuickFilter('high-priority', none, 'EMP001').filters.priorities).toEqual(['high', 'urgent']);
+    expect(toggleQuickFilter('blocked', none, 'EMP001').statusFilter).toBe('blocked');
+  });
+
+  it('swaps between the two due-date chips', () => {
+    const overdue = toggleQuickFilter('overdue', none, 'EMP001');
+    const week = toggleQuickFilter('due-week', overdue, 'EMP001');
+    expect(isQuickFilterActive('overdue', week, 'EMP001')).toBe(false);
+    expect(isQuickFilterActive('due-week', week, 'EMP001')).toBe(true);
+  });
+
+  it('only counts My open for the same person', () => {
+    const mine = toggleQuickFilter('my-open', none, 'EMP001');
+    expect(isQuickFilterActive('my-open', mine, 'EMP002')).toBe(false);
+  });
+});
+
+describe('saved filter queries', () => {
+  it('is stable regardless of the order filters were set in', () => {
+    const state: FilterState = { statusFilter: 'blocked', filters: { ...EMPTY_FILTERS, due: 'overdue', priorities: ['high', 'urgent'] } };
+    expect(filterStateToQuery(state)).toBe('due=overdue&priority=high%2Curgent&status=blocked');
+    expect(filterStateToQuery({ statusFilter: 'all', filters: EMPTY_FILTERS })).toBe('');
+  });
+
+  it('applies a saved query and clears every other filter parameter', () => {
+    const changes = queryToParamChanges('due=overdue&priority=high%2Curgent');
+    expect(changes).toMatchObject({ due: 'overdue', priority: 'high,urgent', status: null, project: null, assignee: null, open: null });
+  });
 });

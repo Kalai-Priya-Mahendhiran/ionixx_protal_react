@@ -7,7 +7,7 @@ import type { Task, TaskStatus } from '@/types';
 // 'all', 'blocked', or a board column's status: filters follow the configured workflow
 export type TaskStatusFilter = 'all' | 'blocked' | TaskStatus;
 
-// Filter buttons: All plus one per board column; "Blocked" is applied from its stat card
+// Filter buttons: All plus one per board column; "Blocked" is applied from its stat card or quick chip
 export function getStatusFilterOptions(): { value: TaskStatusFilter; label: string }[] {
   return [{ value: 'all', label: 'All' }, ...getBoardColumns().map((column) => ({ value: column.status, label: column.label }))];
 }
@@ -20,6 +20,12 @@ export function matchesStatusFilter(task: Task, filter: TaskStatusFilter): boole
   if (filter === 'blocked') return task.isBlocked && task.status !== 'done';
   // A column filter includes the statuses grouped into it (e.g. Reopened under To Do)
   return getBoardColumn(task.status) === filter;
+}
+
+// ?status= in the URL; anything unknown (e.g. a status that was since removed) falls back to All
+export function parseStatusFilter(value: string | null): TaskStatusFilter {
+  if (!value) return 'all';
+  return value === 'blocked' || getStatusFilterOptions().some((option) => option.value === value) ? value : 'all';
 }
 
 export function countByStatusFilter(tasks: Task[]): Record<string, number> {
@@ -217,9 +223,11 @@ export interface AdvancedFilters {
   priorities: Task['priority'][];
   types: Task['type'][];
   due: DueFilter;
+  // Hide finished work
+  openOnly: boolean;
 }
 
-export const EMPTY_FILTERS: AdvancedFilters = { projectIds: [], departments: [], assigneeIds: [], priorities: [], types: [], due: 'any' };
+export const EMPTY_FILTERS: AdvancedFilters = { projectIds: [], departments: [], assigneeIds: [], priorities: [], types: [], due: 'any', openOnly: false };
 
 // URL parameter for each list filter, e.g. ?priority=high,urgent&project=PRJ-IXP
 const FILTER_PARAMS = { projectIds: 'project', departments: 'dept', assigneeIds: 'assignee', priorities: 'priority', types: 'type' } as const;
@@ -234,6 +242,7 @@ export function parseFilters(params: URLSearchParams): AdvancedFilters {
     priorities: list(FILTER_PARAMS.priorities) as Task['priority'][],
     types: list(FILTER_PARAMS.types) as Task['type'][],
     due: due && DUE_FILTER_OPTIONS.some((option) => option.value === due) ? due : 'any',
+    openOnly: params.get('open') === '1',
   };
 }
 
@@ -247,12 +256,13 @@ export function filtersToParams(filters: AdvancedFilters): Record<string, string
     [FILTER_PARAMS.priorities]: join(filters.priorities),
     [FILTER_PARAMS.types]: join(filters.types),
     due: filters.due === 'any' ? null : filters.due,
+    open: filters.openOnly ? '1' : null,
   };
 }
 
 export function countActiveFilters(filters: AdvancedFilters): number {
   return (
-    filters.projectIds.length + filters.departments.length + filters.assigneeIds.length + filters.priorities.length + filters.types.length + (filters.due === 'any' ? 0 : 1)
+    filters.projectIds.length + filters.departments.length + filters.assigneeIds.length + filters.priorities.length + filters.types.length + (filters.due === 'any' ? 0 : 1) + (filters.openOnly ? 1 : 0)
   );
 }
 
@@ -281,8 +291,84 @@ export function matchesAdvancedFilters(task: Task, filters: AdvancedFilters, tod
     (filters.assigneeIds.length === 0 || filters.assigneeIds.includes(task.assigneeId)) &&
     (filters.priorities.length === 0 || filters.priorities.includes(task.priority)) &&
     (filters.types.length === 0 || filters.types.includes(task.type)) &&
-    matchesDue(task, filters.due, today)
+    matchesDue(task, filters.due, today) &&
+    (!filters.openOnly || task.status !== 'done')
   );
+}
+
+/* ---------- Quick filter chips ---------- */
+
+// One-click presets over the status and advanced filters; a chip shows as on while its filters are set
+export type QuickFilterId = 'my-open' | 'due-week' | 'overdue' | 'high-priority' | 'blocked';
+
+export interface FilterState {
+  statusFilter: TaskStatusFilter;
+  filters: AdvancedFilters;
+}
+
+export const QUICK_FILTERS: { id: QuickFilterId; label: string }[] = [
+  { id: 'my-open', label: 'My open' },
+  { id: 'due-week', label: 'Due this week' },
+  { id: 'overdue', label: 'Overdue' },
+  { id: 'high-priority', label: 'High priority' },
+  { id: 'blocked', label: 'Blocked' },
+];
+
+const HIGH_PRIORITIES: Task['priority'][] = ['high', 'urgent'];
+const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((value) => b.includes(value));
+
+export function isQuickFilterActive(id: QuickFilterId, { statusFilter, filters }: FilterState, userId: string): boolean {
+  switch (id) {
+    case 'my-open':
+      return filters.openOnly && sameSet(filters.assigneeIds, [userId]);
+    case 'due-week':
+      return filters.due === 'next-7';
+    case 'overdue':
+      return filters.due === 'overdue';
+    case 'high-priority':
+      return sameSet(filters.priorities, HIGH_PRIORITIES);
+    case 'blocked':
+      return statusFilter === 'blocked';
+  }
+}
+
+// Turns a chip on or off; chips that share a filter (the two due-date chips) replace each other
+export function toggleQuickFilter(id: QuickFilterId, state: FilterState, userId: string): FilterState {
+  const on = !isQuickFilterActive(id, state, userId);
+  const { filters } = state;
+  switch (id) {
+    case 'my-open':
+      return { ...state, filters: { ...filters, assigneeIds: on ? [userId] : [], openOnly: on } };
+    case 'due-week':
+      return { ...state, filters: { ...filters, due: on ? 'next-7' : 'any' } };
+    case 'overdue':
+      return { ...state, filters: { ...filters, due: on ? 'overdue' : 'any' } };
+    case 'high-priority':
+      return { ...state, filters: { ...filters, priorities: on ? [...HIGH_PRIORITIES] : [] } };
+    case 'blocked':
+      return { ...state, statusFilter: on ? 'blocked' : 'all' };
+  }
+}
+
+/* ---------- Saved filters ---------- */
+
+// Every URL parameter a filter can use; applying a saved filter clears the rest
+export const FILTER_URL_KEYS = ['status', ...Object.values(FILTER_PARAMS), 'due', 'open'] as const;
+
+// A stable query string for the status + advanced filters, e.g. "due=overdue&priority=high,urgent"
+export function filterStateToQuery({ statusFilter, filters }: FilterState): string {
+  const params = { status: statusFilter === 'all' ? null : statusFilter, ...filtersToParams(filters) };
+  return Object.entries(params)
+    .filter((entry): entry is [string, string] => entry[1] !== null)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join('&');
+}
+
+// URL changes that apply a saved query: its parameters set, every other filter parameter removed
+export function queryToParamChanges(query: string): Record<string, string | null> {
+  const saved = new URLSearchParams(query);
+  return Object.fromEntries(FILTER_URL_KEYS.map((key) => [key, saved.get(key)]));
 }
 
 // "Mobile App" -> "MA", "Payroll" -> "PAY": a starting point the admin can change

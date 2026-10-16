@@ -14,6 +14,7 @@ import { TASK_PRIORITY_CONFIG } from '../sections/task-config';
 import { SettingsPanel } from './settings-panel';
 
 const LABEL_COLORS = Object.keys(LABEL_COLOR_CLASSES) as LabelColor[];
+const taskCount = (count: number) => `${count} ${count === 1 ? 'task' : 'tasks'}`;
 
 // A label row remembers its saved name, so a rename can be applied to existing tasks
 interface LabelRow {
@@ -159,13 +160,13 @@ function Labels() {
       )}
       <ul className="grid gap-2 md:grid-cols-2">
         {rows.map((row) => (
-          <li key={row.key} className="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2">
+          <li key={row.key} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-gray-200 px-3 py-2">
             <Input
               value={row.name}
               maxLength={30}
               onChange={(event) => update(row.key, { name: event.target.value.toLowerCase().replace(/\s+/g, '-') })}
               aria-label={`Label ${row.name}`}
-              className="h-8 w-40"
+              className="h-8 w-40 min-w-0"
             />
             <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={`Colour of ${row.name}`}>
               {LABEL_COLORS.map((color) => (
@@ -181,7 +182,7 @@ function Labels() {
               ))}
             </div>
             <span className={cn('ml-auto rounded px-1.5 py-0.5 text-xs font-semibold', LABEL_COLOR_CLASSES[row.color])}>{row.name || '…'}</span>
-            <span className="w-14 text-right text-xs text-gray-500">{usage.get(row.originalName ?? '') ?? 0} tasks</span>
+            <span className="w-14 text-right text-xs text-gray-500">{taskCount(usage.get(row.originalName ?? '') ?? 0)}</span>
             <button
               type="button"
               onClick={() => setRows(rows.filter((item) => item.key !== row.key))}

@@ -194,3 +194,13 @@ export interface WorkLog {
   date: string // YYYY-MM-DD
   createdAt: string
 }
+
+// A named set of task filters a person saved for themselves
+export interface SavedFilter {
+  id: string
+  ownerId: string
+  name: string
+  query: string // Filter URL parameters, e.g. "due=overdue&priority=high,urgent"
+  search?: string
+  createdAt: string
+}
