@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { TaskLayout } from './task-states';
-import { STATUS_FILTER_OPTIONS, type TaskStatusFilter } from './task-utils';
+import { getStatusFilterOptions, type TaskStatusFilter } from './task-utils';
 
 const LAYOUT_OPTIONS: { value: TaskLayout; label: string; icon: LucideIcon }[] = [
   { value: 'board', label: 'Board', icon: Columns3 },
@@ -54,7 +54,7 @@ export function TaskFiltersSection({
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {STATUS_FILTER_OPTIONS.map((option) => {
+            {getStatusFilterOptions().map((option) => {
               const isActive = statusFilter === option.value;
               return (
                 <Button

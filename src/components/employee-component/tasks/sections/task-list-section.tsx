@@ -4,7 +4,8 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Ban, ListChecks } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/context/auth-context';
 import { can, canTransition } from '@/lib/permissions/task-permissions';
-import { TASK_PRIORITIES, TASK_WORKFLOW_STATUSES } from '@/lib/schemas';
+import { TASK_PRIORITIES } from '@/lib/schemas';
+import { getWorkflowStatuses } from '@/lib/workflow';
 import { getUserById } from '@/lib/user-directory';
 import { cn, formatDateTime } from '@/lib/utils';
 import { useChangeTaskStatus, useSprints } from '@/services/apis/tasks/use-tasks';
@@ -12,7 +13,7 @@ import type { Sprint, Task, TaskStatus } from '@/types';
 import { TaskActionsMenu } from './task-actions-menu';
 import { DueDateChip, PriorityIndicator, TaskTypeIcon, UserChip } from './task-badges';
 import { OnLeaveChip } from './leave-warning';
-import { TASK_STATUS_CONFIG } from './task-config';
+import { getStatusMeta } from './task-config';
 import { taskPath } from './task-link';
 import type { SubtaskProgress } from './task-utils';
 
@@ -46,7 +47,7 @@ function sortValue(task: Task, key: SortKey, sprints: Sprint[]): string | number
     case 'priority':
       return TASK_PRIORITIES.indexOf(task.priority);
     case 'status':
-      return TASK_WORKFLOW_STATUSES.indexOf(task.status);
+      return getWorkflowStatuses(true).findIndex((status) => status.id === task.status);
     case 'sprint':
       return sprints.find((sprint) => sprint.id === task.sprintId)?.name ?? '';
     default:
@@ -57,7 +58,7 @@ function sortValue(task: Task, key: SortKey, sprints: Sprint[]): string | number
 function StatusCell({ task }: { task: Task }) {
   const { user } = useAuth();
   const changeStatus = useChangeTaskStatus();
-  const config = TASK_STATUS_CONFIG[task.status];
+  const config = getStatusMeta(task.status);
 
   if (!can(user, 'task.changeStatus', task)) {
     return <span className={cn('inline-flex rounded px-2 py-0.5 text-xs font-semibold uppercase', config.className)}>{config.label}</span>;
@@ -71,9 +72,9 @@ function StatusCell({ task }: { task: Task }) {
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {TASK_WORKFLOW_STATUSES.map((status) => (
+        {getWorkflowStatuses().map(({ id: status }) => (
           <SelectItem key={status} value={status} disabled={status !== task.status && !canTransition(user, task, status)}>
-            {TASK_STATUS_CONFIG[status].label}
+            {getStatusMeta(status).label}
           </SelectItem>
         ))}
       </SelectContent>

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { AlertCircle, CheckSquare, Plus, SearchX, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { BOARD_COLUMNS } from './task-config';
+import { getBoardColumns } from './task-config';
 
 export type TaskLayout = 'board' | 'list';
 
@@ -23,7 +23,7 @@ function LoadingState({ layout }: { layout: TaskLayout }) {
   if (layout === 'board') {
     return (
       <div className="flex gap-4 overflow-hidden" aria-busy="true" aria-label="Loading tasks">
-        {BOARD_COLUMNS.map((column) => (
+        {getBoardColumns().map((column) => (
           <div key={column.status} className="w-72 shrink-0 space-y-3 rounded-xl bg-indigo-50/50 p-3 xl:w-auto xl:flex-1">
             <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
             {[0, 1].map((item) => (

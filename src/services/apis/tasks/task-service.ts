@@ -23,8 +23,9 @@ import {
   sampleWorkLogs,
 } from '@/lib/sample-data/tasks-sample-data';
 import { getUserById } from '@/lib/user-directory';
-import { generateId } from '@/lib/utils';
+import { generateId, toDateInput } from '@/lib/utils';
 import type {
+  AutomationTrigger,
   EpicSummary,
   Project,
   Sprint,
@@ -39,6 +40,9 @@ import type {
 import { fileService } from '../files/file-service';
 import { notificationService } from '../notifications/notification-service';
 import { timeEntryService } from '../time-tracker/time-entry-service';
+import { auditService } from '../audit/audit-service';
+import { automationService } from '../automation/automation-service';
+import { getStatusLabel } from '@/lib/workflow';
 import { templateService } from '../templates/template-service';
 import { planChecklist } from '@/lib/task-templates';
 
@@ -140,8 +144,109 @@ function assertPlanningLinks(task: Pick<Task, 'projectId' | 'type' | 'epicId' | 
   }
 }
 
+// Plain-text line for the audit log, e.g. "Status: In Progress → In Review"
+function auditSummary(entry: Omit<TaskActivity, 'id' | 'createdAt'>): string {
+  const suffix = entry.note ? ` (${entry.note})` : '';
+  switch (entry.type) {
+    case 'created':
+      return `Created${suffix}`;
+    case 'updated':
+      if (entry.field === 'sprint') return `Moved to ${entry.to}`;
+      if (entry.field === 'project') return `Moved from ${entry.from} to ${entry.to}`;
+      if (entry.field === 'priority') return `Priority: ${entry.from} → ${entry.to}${suffix}`;
+      if (entry.field === 'labels') return `Label added: ${entry.to}${suffix}`;
+      return 'Details updated';
+    case 'status-changed':
+      return `Status: ${getStatusLabel(entry.from ?? '')} → ${getStatusLabel(entry.to ?? '')}${suffix}`;
+    case 'assigned':
+      return `Assignee: ${nameOf(entry.from ?? '')} → ${nameOf(entry.to ?? '')}`;
+    case 'duplicated':
+      return `Duplicated from ${entry.from}`;
+    case 'deleted':
+      return 'Deleted';
+    case 'commented':
+      return 'Comment added';
+    case 'subtask-added':
+      return `Sub-task ${entry.to} added`;
+    case 'attachment-added':
+      return `Attached ${entry.note}`;
+    case 'attachment-removed':
+      return `Removed attachment ${entry.note}`;
+    case 'work-logged':
+      return `Logged ${entry.to}h`;
+    case 'blocked':
+      return `Flagged as blocked${suffix}`;
+    case 'unblocked':
+      return 'Blocked flag removed';
+    case 'watched':
+      return 'Started watching';
+    case 'unwatched':
+      return 'Stopped watching';
+  }
+}
+
+// Task history, mirrored into the audit log
 function recordActivity(entry: Omit<TaskActivity, 'id' | 'createdAt'>) {
-  activities.push({ ...entry, id: generateId(), createdAt: now() });
+  const createdAt = now();
+  activities.push({ ...entry, id: generateId(), createdAt });
+  const key = tasks.find((task) => task.id === entry.taskId)?.key ?? entry.from ?? entry.taskId;
+  auditService.record({ at: createdAt, actorId: entry.actorId, entity: 'task', entityKey: key, action: entry.type, summary: auditSummary(entry) });
+}
+
+// History from before this session, so the audit log isn't empty on first open
+sampleActivities.forEach((activity) =>
+  auditService.record({
+    at: activity.createdAt,
+    actorId: activity.actorId,
+    entity: 'task',
+    entityKey: sampleTasks.find((task) => task.id === activity.taskId)?.key ?? activity.taskId,
+    action: activity.type,
+    summary: auditSummary(activity),
+  }),
+);
+
+/* ---------- Automation ---------- */
+
+const AUTOMATION_ACTOR = 'system';
+
+// Runs the rules that match an event and applies their actions. Actions never trigger further rules.
+function runAutomations(trigger: AutomationTrigger, taskId: string, toStatus?: TaskStatus) {
+  const task = tasks.find((item) => item.id === taskId);
+  if (!task) return;
+  automationService.match(trigger, task, toStatus).forEach((rule) => {
+    if (trigger === 'due-date-passed' && !automationService.claimOnce(rule, task)) return;
+    let current = tasks.find((item) => item.id === taskId)!;
+    rule.actions.forEach((action) => {
+      if (action.kind === 'notify') {
+        const recipients = {
+          assignee: [current.assigneeId],
+          reporter: [current.reporterId],
+          manager: [approverOf(current)],
+          watchers: current.watcherIds,
+        }[action.recipient];
+        notificationService.notify(recipients, AUTOMATION_ACTOR, {
+          type: trigger === 'due-date-passed' ? 'warning' : 'info',
+          title: `${rule.name}: ${current.key}`,
+          message: current.title,
+          actionUrl: taskUrl(current),
+        });
+      } else if (action.kind === 'set-priority' && current.priority !== action.priority) {
+        recordActivity({ taskId, actorId: AUTOMATION_ACTOR, type: 'updated', field: 'priority', from: current.priority, to: action.priority, note: rule.name });
+        current = saveTask({ ...current, priority: action.priority, updatedAt: now() });
+      } else if (action.kind === 'add-label' && !current.labels.includes(action.label)) {
+        recordActivity({ taskId, actorId: AUTOMATION_ACTOR, type: 'updated', field: 'labels', to: action.label, note: rule.name });
+        current = saveTask({ ...current, labels: [...current.labels, action.label], updatedAt: now() });
+      }
+    });
+    automationService.markRun(rule.id);
+    auditService.record({ actorId: AUTOMATION_ACTOR, entity: 'automation', entityKey: rule.name, action: 'ran', summary: `Ran on ${current.key}` });
+  });
+}
+
+// "Due date passed" rules. The backend runs this on a schedule; the mock checks whenever tasks are listed.
+function runDueDateChecks() {
+  const today = toDateInput(new Date());
+  tasks.filter((task) => task.status !== 'done' && task.dueDate < today).forEach((task) => runAutomations('due-date-passed', task.id));
 }
 
 function saveTask(updated: Task): Task {
@@ -215,6 +320,7 @@ export const taskService = {
   // GET /api/tasks — the server returns only tasks the caller may view
   async list(actor: PermissionUser): Promise<Task[]> {
     await delay();
+    runDueDateChecks();
     return getVisibleTasks(actor, tasks);
   },
 
@@ -264,7 +370,8 @@ export const taskService = {
     await fileService.linkToTask(input.attachments.flatMap((attachment) => attachment.fileId ?? []), task.id);
     recordActivity({ taskId: task.id, actorId: actor.id, type: 'created' });
     notifyAssigned(task, actor.id);
-    return task;
+    runAutomations('task-created', task.id);
+    return tasks.find((item) => item.id === task.id) ?? task;
   },
 
   // PATCH /api/tasks/:id — project changes are not supported here (task keys belong to a project)
@@ -283,7 +390,9 @@ export const taskService = {
     }
     await fileService.linkToTask(input.attachments.flatMap((attachment) => attachment.fileId ?? []), id);
     recordActivity({ taskId: id, actorId: actor.id, type: 'updated' });
-    return saveTask(updated);
+    saveTask(updated);
+    if (updated.assigneeId !== existing.assigneeId) runAutomations('assigned', id);
+    return tasks.find((item) => item.id === id) ?? updated;
   },
 
   // POST /api/tasks/:id/status
@@ -303,7 +412,9 @@ export const taskService = {
         actionUrl: taskUrl(existing),
       });
     }
-    return saveTask({ ...existing, status, updatedAt: now() });
+    saveTask({ ...existing, status, updatedAt: now() });
+    runAutomations('status-changed', id, status);
+    return tasks.find((item) => item.id === id)!;
   },
 
   /* ---------- Approvals ---------- */
@@ -320,7 +431,9 @@ export const taskService = {
       message: `${nameOf(actor.id)} approved "${task.title}" and moved it to Done`,
       actionUrl: taskUrl(task),
     });
-    return saveTask({ ...task, status: 'done', updatedAt: now() });
+    saveTask({ ...task, status: 'done', updatedAt: now() });
+    runAutomations('status-changed', id, 'done');
+    return tasks.find((item) => item.id === id)!;
   },
 
   // POST /api/tasks/:id/send-back { comment } — In Review -> In Progress, with the reason posted as a comment
@@ -338,7 +451,9 @@ export const taskService = {
       message: `${nameOf(actor.id)}: ${reason.trim()}`,
       actionUrl: taskUrl(task),
     });
-    return saveTask({ ...task, status: 'in-progress', updatedAt: now() });
+    saveTask({ ...task, status: 'in-progress', updatedAt: now() });
+    runAutomations('status-changed', id, 'in-progress');
+    return tasks.find((item) => item.id === id)!;
   },
 
   /* ---------- Reassign (team board swimlanes) ---------- */
@@ -359,7 +474,9 @@ export const taskService = {
     }
     const updated = saveTask({ ...task, assigneeId, status: nextStatus, updatedAt: now() });
     notifyAssigned(updated, actor.id);
-    return updated;
+    runAutomations('assigned', id);
+    if (nextStatus !== task.status) runAutomations('status-changed', id, nextStatus);
+    return tasks.find((item) => item.id === id) ?? updated;
   },
 
   /* ---------- Sprints ---------- */
@@ -482,6 +599,7 @@ export const taskService = {
       memberIds: [...new Set([input.leadId, ...input.memberIds])],
     };
     projects = [...projects, project];
+    auditService.record({ actorId: actor.id, entity: 'project', entityKey: project.key, action: 'created', summary: `Project "${project.name}" created` });
     return project;
   },
 
@@ -504,7 +622,35 @@ export const taskService = {
       memberIds: [...new Set([input.leadId, ...input.memberIds])],
     };
     projects = projects.map((project) => (project.id === id ? updated : project));
+    const added = updated.memberIds.filter((memberId) => !existing.memberIds.includes(memberId)).map(nameOf);
+    const removed = existing.memberIds.filter((memberId) => !updated.memberIds.includes(memberId)).map(nameOf);
+    const memberChanges = [added.length ? `added ${added.join(', ')}` : '', removed.length ? `removed ${removed.join(', ')}` : ''].filter(Boolean).join('; ');
+    auditService.record({ actorId: actor.id, entity: 'project', entityKey: updated.key, action: 'updated', summary: memberChanges ? `Members: ${memberChanges}` : 'Project details updated' });
     return updated;
+  },
+
+  /* ---------- Labels (Settings) ---------- */
+
+  // POST /api/task-settings/labels/:name/rename { to } and DELETE /api/task-settings/labels/:name
+  // Applies a label rename (or removal, when `to` is null) to every task, not only the ones the admin can see
+  async relabelTasks(actor: PermissionUser, from: string, to: string | null): Promise<number> {
+    await delay();
+    if (!can(actor, 'workflow.configure')) throw new TaskPermissionError("You can't change labels");
+    let changed = 0;
+    tasks = tasks.map((task) => {
+      if (!task.labels.includes(from)) return task;
+      changed += 1;
+      const labels = to ? [...new Set(task.labels.map((label) => (label === from ? to : label)))] : task.labels.filter((label) => label !== from);
+      return { ...task, labels };
+    });
+    auditService.record({
+      actorId: actor.id,
+      entity: 'settings',
+      entityKey: 'Labels',
+      action: to ? 'renamed' : 'deleted',
+      summary: to ? `Label "${from}" renamed to "${to}" on ${changed} tasks` : `Label "${from}" removed from ${changed} tasks`,
+    });
+    return changed;
   },
 
   /* ---------- Bulk actions ---------- */
@@ -527,6 +673,7 @@ export const taskService = {
         if (!canReassign(actor, task, change.assigneeId)) return skip(`You can't assign it to ${nameOf(change.assigneeId)}`);
         recordActivity({ taskId: id, actorId: actor.id, type: 'assigned', from: task.assigneeId, to: change.assigneeId });
         saveTask({ ...task, assigneeId: change.assigneeId, updatedAt: now() });
+        runAutomations('assigned', task.id);
         assignedCount.set(change.assigneeId, (assignedCount.get(change.assigneeId) ?? 0) + 1);
         result.updated.push(task.key);
         return;
@@ -539,6 +686,7 @@ export const taskService = {
         }
         recordActivity({ taskId: id, actorId: actor.id, type: 'status-changed', field: 'status', from: task.status, to: change.status });
         saveTask({ ...task, status: change.status, updatedAt: now() });
+        runAutomations('status-changed', task.id, change.status);
         result.updated.push(task.key);
         return;
       }
@@ -644,6 +792,7 @@ export const taskService = {
         actionUrl: taskUrl(parent),
       }),
     );
+    runAutomations('task-created', parent.id);
     return parent;
   },
 
@@ -712,6 +861,7 @@ export const taskService = {
     if (blocked && !reason.trim()) throw new Error('Add a reason so your manager knows how to help');
 
     const updated = saveTask({ ...existing, isBlocked: blocked, blockedReason: blocked ? reason.trim() : undefined, updatedAt: now() });
+    if (blocked) runAutomations('blocked', id);
     recordActivity({ taskId: id, actorId: actor.id, type: blocked ? 'blocked' : 'unblocked', note: blocked ? reason.trim() : undefined });
 
     // The assignee's manager unblocks (or the reporter when there's no manager on record)

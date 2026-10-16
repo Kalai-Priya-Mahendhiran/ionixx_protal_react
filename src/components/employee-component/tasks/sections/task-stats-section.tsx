@@ -1,19 +1,26 @@
 import { Ban, CheckCircle2, CheckSquare, Circle, Eye, Loader, type LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { getBoardColumns, getStatusMeta } from '@/lib/workflow';
+import type { StatusCategory } from '@/types';
 import type { TaskStatusFilter } from './task-utils';
 
-const STAT_CARDS: { filter: TaskStatusFilter; label: string; icon: LucideIcon; iconClass: string }[] = [
-  { filter: 'all', label: 'Total Tasks', icon: CheckSquare, iconClass: 'bg-indigo-100 text-indigo-600' },
-  { filter: 'todo', label: 'To Do', icon: Circle, iconClass: 'bg-gray-100 text-gray-600' },
-  { filter: 'in-progress', label: 'In Progress', icon: Loader, iconClass: 'bg-blue-100 text-blue-600' },
-  { filter: 'in-review', label: 'In Review', icon: Eye, iconClass: 'bg-purple-100 text-purple-600' },
-  { filter: 'done', label: 'Done', icon: CheckCircle2, iconClass: 'bg-green-100 text-green-600' },
-  { filter: 'blocked', label: 'Blocked', icon: Ban, iconClass: 'bg-red-100 text-red-600' },
-];
+const CATEGORY_ICON: Record<StatusCategory, LucideIcon> = { todo: Circle, active: Loader, review: Eye, done: CheckCircle2 };
+
+// Total, one card per board column (following the workflow), and Blocked
+function getStatCards(): { filter: TaskStatusFilter; label: string; icon: LucideIcon; iconClass: string }[] {
+  return [
+    { filter: 'all', label: 'Total Tasks', icon: CheckSquare, iconClass: 'bg-indigo-100 text-indigo-600' },
+    ...getBoardColumns().map((column) => {
+      const meta = getStatusMeta(column.status);
+      return { filter: column.status, label: column.label, icon: CATEGORY_ICON[meta.category], iconClass: meta.className };
+    }),
+    { filter: 'blocked', label: 'Blocked', icon: Ban, iconClass: 'bg-red-100 text-red-600' },
+  ];
+}
 
 interface TaskStatsSectionProps {
-  counts: Record<TaskStatusFilter, number>;
+  counts: Record<string, number>;
   activeFilter: TaskStatusFilter;
   isLoading: boolean;
   onSelect: (filter: TaskStatusFilter) => void;
@@ -21,8 +28,9 @@ interface TaskStatsSectionProps {
 
 export function TaskStatsSection({ counts, activeFilter, isLoading, onSelect }: TaskStatsSectionProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-      {STAT_CARDS.map(({ filter, label, icon: Icon, iconClass }) => {
+    // The number of cards follows the workflow, so the grid fits however many there are
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
+      {getStatCards().map(({ filter, label, icon: Icon, iconClass }) => {
         const isActive = activeFilter === filter;
         return (
           <button
@@ -43,7 +51,7 @@ export function TaskStatsSection({ counts, activeFilter, isLoading, onSelect }: 
                     {isLoading ? (
                       <div className="mt-1 h-7 w-8 animate-pulse rounded bg-gray-200" />
                     ) : (
-                      <p className="text-2xl font-bold text-gray-900">{counts[filter]}</p>
+                      <p className="text-2xl font-bold text-gray-900">{counts[filter] ?? 0}</p>
                     )}
                   </div>
                 </div>

@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { getUserById } from '@/lib/user-directory';
 import { cn, getInitials } from '@/lib/utils';
 import type { Task, TaskPriority, TaskStatus, TaskType } from '@/types';
-import { TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, TASK_TYPE_CONFIG } from './task-config';
+import { TASK_PRIORITY_CONFIG, TASK_TYPE_CONFIG, getStatusMeta } from './task-config';
 import { daysUntil, formatShortDate, getDueState, type DueState } from './task-utils';
 
 // Plain coloured type square, e.g. inside select options
@@ -42,7 +42,7 @@ export function PriorityIndicator({ priority }: { priority: TaskPriority }) {
 }
 
 export function TaskStatusBadge({ status }: { status: TaskStatus }) {
-  const { label, className } = TASK_STATUS_CONFIG[status];
+  const { label, className } = getStatusMeta(status);
   return <Badge className={cn('border-transparent hover:bg-opacity-100', className)}>{label}</Badge>;
 }
 

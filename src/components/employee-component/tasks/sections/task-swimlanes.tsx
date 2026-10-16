@@ -13,14 +13,15 @@ import {
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/auth-context';
-import { canReassign, canTransition } from '@/lib/permissions/task-permissions';
+import { canReassign, firstAllowedStatus } from '@/lib/permissions/task-permissions';
+import { getColumnStatuses } from '@/lib/workflow';
 import { getUserById } from '@/lib/user-directory';
 import { cn, getInitials } from '@/lib/utils';
 import { useChangeTaskStatus, useEpics, useReassignTask } from '@/services/apis/tasks/use-tasks';
 import type { Task, TaskStatus } from '@/types';
 import { KEYBOARD_OPTIONS, cardClass, collisionDetection, dropAreaClass, type DropState } from './board-dnd';
 import { BoardCard, BoardCardContent } from './task-board-section';
-import { BOARD_COLUMNS, TASK_STATUS_CONFIG, getBoardColumn } from './task-config';
+import { getBoardColumn, getBoardColumns, getStatusMeta } from './task-config';
 import { getWorkload, type SubtaskProgress } from './task-utils';
 import { useWorkloadThreshold } from './use-workload-threshold';
 
@@ -77,12 +78,13 @@ export function TaskSwimlanes({ tasks, laneUserIds, workloadTasks, focusUserId, 
   const workload = new Map(getWorkload(workloadTasks, laneIds).map((row) => [row.userId, row]));
   const findEpic = (task: Task) => epics.find((epic) => epic.id === task.epicId);
 
-  const getDropState = (assigneeId: string, status: TaskStatus): DropState => {
+  // A cell is a person × column; the column may hold several statuses, so pick the first reachable one
+  const getDropState = (assigneeId: string, column: TaskStatus): DropState => {
     if (!activeTask) return 'idle';
     const sameLane = activeTask.assigneeId === assigneeId;
-    const sameColumn = getBoardColumn(activeTask.status) === status;
+    const sameColumn = getBoardColumn(activeTask.status) === column;
     if (sameLane && sameColumn) return 'origin';
-    const statusOk = sameColumn || canTransition(user, activeTask, status);
+    const statusOk = sameColumn || !!firstAllowedStatus(user, activeTask, getColumnStatuses(column));
     const laneOk = sameLane || canReassign(user, activeTask, assigneeId);
     return statusOk && laneOk ? 'allowed' : 'blocked';
   };
@@ -93,9 +95,9 @@ export function TaskSwimlanes({ tasks, laneUserIds, workloadTasks, focusUserId, 
     setActiveTask(null);
     const task = event.active.data.current?.task as Task | undefined;
     if (!task || !event.over) return;
-    const { assigneeId, status } = parseCellId(String(event.over.id));
+    const { assigneeId, status: column } = parseCellId(String(event.over.id));
     const sameLane = task.assigneeId === assigneeId;
-    const sameColumn = getBoardColumn(task.status) === status;
+    const sameColumn = getBoardColumn(task.status) === column;
     if (sameLane && sameColumn) return;
 
     const name = getUserById(assigneeId)?.name ?? 'this person';
@@ -103,12 +105,13 @@ export function TaskSwimlanes({ tasks, laneUserIds, workloadTasks, focusUserId, 
       toast.error(`You can't assign ${task.key} to ${name}`);
       return;
     }
-    if (!sameColumn && !canTransition(user, task, status)) {
-      toast.error(`You can't move ${task.key} to ${TASK_STATUS_CONFIG[status].label}`);
+    const status = sameColumn ? undefined : firstAllowedStatus(user, task, getColumnStatuses(column));
+    if (!sameColumn && !status) {
+      toast.error(`You can't move ${task.key} to ${getStatusMeta(column).label}`);
       return;
     }
-    if (sameLane) changeStatus.mutate({ task, status });
-    else reassign.mutate({ task, assigneeId, assigneeName: name, status: sameColumn ? undefined : status });
+    if (sameLane && status) changeStatus.mutate({ task, status });
+    else reassign.mutate({ task, assigneeId, assigneeName: name, status });
   };
 
   const toggleLane = (id: string) =>
@@ -131,7 +134,7 @@ export function TaskSwimlanes({ tasks, laneUserIds, workloadTasks, focusUserId, 
         <div className="min-w-[1000px] space-y-3">
           {/* Column headings */}
           <div className="grid grid-cols-4 gap-3 px-1">
-            {BOARD_COLUMNS.map((column) => (
+            {getBoardColumns().map((column) => (
               <h3 key={column.status} className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-600">
                 <span className={cn('h-2 w-2 rounded-full', column.dotClass)} />
                 {column.label}
@@ -174,7 +177,7 @@ export function TaskSwimlanes({ tasks, laneUserIds, workloadTasks, focusUserId, 
 
                 {!isCollapsed && (
                   <div className="grid grid-cols-4 gap-3">
-                    {BOARD_COLUMNS.map((column) => {
+                    {getBoardColumns().map((column) => {
                       const cellTasks = laneTasks.filter((task) => getBoardColumn(task.status) === column.status);
                       return (
                         <LaneCell

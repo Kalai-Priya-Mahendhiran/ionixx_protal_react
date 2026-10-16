@@ -1,7 +1,10 @@
 import type { TASK_ISSUE_TYPES, TASK_PRIORITIES, TASK_WORKFLOW_STATUSES } from '@/lib/schemas'
 import type { UserRole } from '@/lib/mock-users'
 
-export type TaskStatus = (typeof TASK_WORKFLOW_STATUSES)[number]
+// Built-in statuses whose meaning the code relies on (done = finished, in-review = approval step).
+// Workflows can add custom statuses, so any string is a valid status.
+export type SystemStatus = (typeof TASK_WORKFLOW_STATUSES)[number]
+export type TaskStatus = SystemStatus | (string & {})
 export type TaskType = (typeof TASK_ISSUE_TYPES)[number]
 export type TaskPriority = (typeof TASK_PRIORITIES)[number]
 

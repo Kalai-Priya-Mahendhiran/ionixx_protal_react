@@ -1,51 +1,18 @@
 import type { UserRole } from '@/lib/mock-users';
 import { USER_DIRECTORY, getTeamOf } from '@/lib/user-directory';
-import type { Project, Task, TaskStatus, TaskUser } from '@/types';
+import { getTaskSettings } from '@/lib/task-settings-store';
+import { isTransitionAllowed } from '@/lib/workflow';
+import type { PermissionScope, Project, Task, TaskAction, TaskStatus, TaskUser } from '@/types';
+
+export type { PermissionScope, TaskAction } from '@/types';
+export { DEFAULT_PERMISSION_MATRIX as TASK_PERMISSION_MATRIX } from '@/lib/task-settings-defaults';
 
 /*
  * Single source of truth for what each role may do in the Tasks module.
+ * The matrix itself is data (Settings → Permissions); the rules for applying it live here.
  * Components and the task service only ever call `can()` and the helpers below.
  * The backend must enforce the same matrix; hiding buttons is not a security boundary.
  */
-
-export type TaskAction =
-  | 'task.view'
-  | 'task.create'
-  | 'task.assign'
-  | 'task.edit'
-  | 'task.changeStatus'
-  | 'task.delete'
-  | 'task.approve'
-  | 'task.comment'
-  | 'task.logWork'
-  | 'task.watch'
-  | 'sprint.manage'
-  | 'template.manage'
-  | 'project.manage'
-  | 'workflow.configure'
-  | 'reports.view';
-
-// none: never · own: tasks assigned to (or reported by) the user · team: the user's direct reports
-// hr: HR-type tasks only (not project work, even the user's own) · all: every task
-export type PermissionScope = 'none' | 'own' | 'team' | 'hr' | 'all';
-
-export const TASK_PERMISSION_MATRIX: Record<TaskAction, Record<UserRole, PermissionScope>> = {
-  'task.view':          { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'all' },
-  'task.create':        { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'task.assign':        { employee: 'none', project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'task.edit':          { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'task.changeStatus':  { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'task.delete':        { employee: 'none', project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'task.approve':       { employee: 'none', project_manager: 'team', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },
-  'task.comment':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'task.logWork':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'task.watch':         { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'all' },
-  'sprint.manage':      { employee: 'none', project_manager: 'team', hr: 'none', admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'template.manage':    { employee: 'none', project_manager: 'none', hr: 'all',  admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'project.manage':     { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'all',  executive: 'none' },
-  'workflow.configure': { employee: 'none', project_manager: 'none', hr: 'none', admin: 'none', system_admin: 'all',  executive: 'none' },
-  'reports.view':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'all',  system_admin: 'all',  executive: 'all' },
-};
 
 export interface PermissionUser {
   id: string;
@@ -63,7 +30,7 @@ const ASSIGNEE_ACTIONS = new Set<TaskAction>(['task.create', 'task.assign']);
 const WATCHER_ACTIONS = new Set<TaskAction>(['task.view', 'task.watch', 'task.comment']);
 
 export function getScope(user: PermissionUser | null | undefined, action: TaskAction): PermissionScope {
-  return user ? TASK_PERMISSION_MATRIX[action][user.role] : 'none';
+  return user ? (getTaskSettings().permissions[action]?.[user.role] ?? 'none') : 'none';
 }
 
 function getTeamIds(managerId: string): Set<string> {
@@ -107,10 +74,16 @@ export function canCreateTask(user: PermissionUser | null | undefined, draft: Pi
 }
 
 // Moving a task out of In Review to Done is an approval, so it needs task.approve as well
+// The configured workflow decides which moves exist; permissions decide who may make them
 export function canTransition(user: PermissionUser | null | undefined, task: Task, to: TaskStatus): boolean {
-  if (task.status === to || !can(user, 'task.changeStatus', task)) return false;
+  if (!isTransitionAllowed(task.status, to) || !can(user, 'task.changeStatus', task)) return false;
   if (task.status === 'in-review' && to === 'done') return can(user, 'task.approve', task);
   return true;
+}
+
+// The first status in the list the user may move the task to, e.g. for a board column holding To Do and Reopened
+export function firstAllowedStatus(user: PermissionUser | null | undefined, task: Task, statuses: TaskStatus[]): TaskStatus | undefined {
+  return statuses.find((status) => canTransition(user, task, status));
 }
 
 // Read-only users (e.g. Executive) see tasks but get no editing controls
@@ -224,7 +197,11 @@ export function getManagerSections(user: PermissionUser | null | undefined): Man
 
 /* ---------- Page sections per view ---------- */
 
-export type TaskSection = ManagerSection | 'checklists' | 'templates';
+export type SettingsSection = 'workflow' | 'fields' | 'permissions' | 'automation' | 'audit';
+
+export type TaskSection = ManagerSection | 'checklists' | 'templates' | SettingsSection;
+
+const SETTINGS_SECTIONS: SettingsSection[] = ['workflow', 'fields', 'permissions', 'automation', 'audit'];
 
 const HR_SECTION_REQUIREMENTS: Record<'board' | 'checklists' | 'templates', (user: PermissionUser) => boolean> = {
   board: () => true,
@@ -232,10 +209,12 @@ const HR_SECTION_REQUIREMENTS: Record<'board' | 'checklists' | 'templates', (use
   templates: (user) => can(user, 'template.manage'),
 };
 
-// Tabs on the Tasks page: HR tools on the HR view, manager tools on team-wide views, none on My Tasks.
+// Tabs on the Tasks page: settings on the Settings view, HR tools on the HR view, manager tools on team-wide views, none on My Tasks.
 // A single 'board' entry means no tabs are shown.
 export function getSectionsForView(user: PermissionUser | null | undefined, view: TaskView): TaskSection[] {
   if (!user || view === 'my-tasks') return ['board'];
+  // The Settings view is only tools; people without access fall back to the default view before this
+  if (view === 'settings') return can(user, 'workflow.configure') ? SETTINGS_SECTIONS : ['board'];
   if (view === 'hr-tasks') {
     return (Object.keys(HR_SECTION_REQUIREMENTS) as (keyof typeof HR_SECTION_REQUIREMENTS)[]).filter((section) =>
       HR_SECTION_REQUIREMENTS[section](user),

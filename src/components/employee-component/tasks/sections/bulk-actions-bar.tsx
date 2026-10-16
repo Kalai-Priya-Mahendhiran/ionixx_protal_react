@@ -11,11 +11,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/context/auth-context';
 import { can, canManageProjects, getAssignableUsers } from '@/lib/permissions/task-permissions';
-import { TASK_WORKFLOW_STATUSES } from '@/lib/schemas';
+import { getWorkflowStatuses } from '@/lib/workflow';
 import type { BulkChange, BulkResult } from '@/services/apis/tasks/task-service';
 import { useBulkUpdate } from '@/services/apis/tasks/use-tasks';
 import type { Project, Task } from '@/types';
-import { TASK_STATUS_CONFIG } from './task-config';
+import { getStatusMeta } from './task-config';
 
 const MAX_SKIPPED_IN_TOAST = 3;
 
@@ -91,9 +91,9 @@ export function BulkActionsBar({ selected, projects, onDone, onClear }: BulkActi
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>{trigger(<ArrowRightLeft className="h-4 w-4" />, 'Change status')}</DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48 bg-white">
-            {TASK_WORKFLOW_STATUSES.map((status) => (
-              <DropdownMenuItem key={status} onSelect={() => run({ kind: 'status', status }, `moved to ${TASK_STATUS_CONFIG[status].label}`)}>
-                {TASK_STATUS_CONFIG[status].label}
+            {getWorkflowStatuses().map(({ id: status }) => (
+              <DropdownMenuItem key={status} onSelect={() => run({ kind: 'status', status }, `moved to ${getStatusMeta(status).label}`)}>
+                {getStatusMeta(status).label}
                 {status === 'done' && <span className="ml-auto text-xs text-gray-400">Close</span>}
               </DropdownMenuItem>
             ))}

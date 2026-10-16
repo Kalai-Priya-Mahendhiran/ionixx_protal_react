@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { useCreateTask, useEpics, useSprints, useUpdateTask } from '@/services/apis/tasks/use-tasks';
 import type { Project, SprintStatus, Task, TaskAttachment } from '@/types';
 import { TaskAttachmentsField } from './task-attachments-field';
+import { getConfiguredLabels, isTypeEnabled } from '@/lib/workflow';
 import { OnLeaveBanner } from './leave-warning';
 import { TaskTypeGlyph, UserChip } from './task-badges';
 import { TASK_PRIORITY_CONFIG, TASK_TYPE_CONFIG } from './task-config';
@@ -127,7 +128,7 @@ export function TaskFormDialog({ open, task, projects, onOpenChange }: TaskFormD
   }));
 
   // Sub-tasks are created from their parent task, so they're only offered when editing one
-  const typeOptions: Option[] = TASK_ISSUE_TYPES.filter((value) => value !== 'sub-task' || task?.type === 'sub-task').map((value) => ({
+  const typeOptions: Option[] = TASK_ISSUE_TYPES.filter((value) => value === task?.type || (value !== 'sub-task' && isTypeEnabled(value))).map((value) => ({
     value,
     label: TASK_TYPE_CONFIG[value].label,
     icon: <TaskTypeGlyph type={value} />,
@@ -454,8 +455,14 @@ export function TaskFormDialog({ open, task, projects, onOpenChange }: TaskFormD
                       <FormItem>
                         <FormLabel className="text-gray-700">Labels</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Comma separated, e.g. frontend, release" className={fieldClass} />
+                          <Input {...field} placeholder="Comma separated, e.g. frontend, release" list="task-label-suggestions" className={fieldClass} />
                         </FormControl>
+                        {/* Labels configured in Settings → Types & Labels */}
+                        <datalist id="task-label-suggestions">
+                          {getConfiguredLabels().map((label) => (
+                            <option key={label} value={label} />
+                          ))}
+                        </datalist>
                         <FormMessage />
                       </FormItem>
                     )}

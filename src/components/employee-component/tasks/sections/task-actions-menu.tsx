@@ -14,10 +14,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/context/auth-context';
 import { can, canCreateTask, canTransition } from '@/lib/permissions/task-permissions';
-import { TASK_WORKFLOW_STATUSES } from '@/lib/schemas';
+import { getWorkflowStatuses } from '@/lib/workflow';
 import { useChangeTaskStatus, useDuplicateTask } from '@/services/apis/tasks/use-tasks';
 import type { Task, TaskStatus } from '@/types';
-import { TASK_STATUS_CONFIG } from './task-config';
+import { getStatusMeta } from './task-config';
 import { copyTaskLink } from './task-link';
 
 interface TaskActionsMenuProps {
@@ -70,13 +70,13 @@ export function TaskActionsMenu({ task, onDelete, onEdit, triggerClassName }: Ta
                   if (status !== task.status) changeStatus.mutate({ task, status: status as TaskStatus });
                 }}
               >
-                {TASK_WORKFLOW_STATUSES.map((status) => (
+                {getWorkflowStatuses().map(({ id: status }) => (
                   <DropdownMenuRadioItem
                     key={status}
                     value={status}
                     disabled={status !== task.status && !canTransition(user, task, status)}
                   >
-                    {TASK_STATUS_CONFIG[status].label}
+                    {getStatusMeta(status).label}
                   </DropdownMenuRadioItem>
                 ))}
               </DropdownMenuRadioGroup>

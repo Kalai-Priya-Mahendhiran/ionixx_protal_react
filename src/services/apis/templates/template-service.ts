@@ -2,6 +2,7 @@ import { can, type PermissionUser } from '@/lib/permissions/task-permissions';
 import { sampleTaskTemplates } from '@/lib/sample-data/task-template-sample-data';
 import { generateId } from '@/lib/utils';
 import type { TaskTemplate } from '@/types';
+import { auditService } from '../audit/audit-service';
 
 /*
  * HR task templates (onboarding, offboarding, custom checklists).
@@ -70,6 +71,7 @@ export const templateService = {
     validate(input);
     const template: TaskTemplate = { ...normalize(input), id: generateId(), updatedById: actor.id, updatedAt: new Date().toISOString() };
     templates = [...templates, template];
+    auditService.record({ actorId: actor.id, entity: 'template', entityKey: template.name, action: 'created', summary: `Template created with ${template.items.length} items` });
     return template;
   },
 
@@ -81,6 +83,7 @@ export const templateService = {
     validate(input, id);
     const updated: TaskTemplate = { ...normalize(input), id, updatedById: actor.id, updatedAt: new Date().toISOString() };
     templates = templates.map((template) => (template.id === id ? updated : template));
+    auditService.record({ actorId: actor.id, entity: 'template', entityKey: updated.name, action: 'updated', summary: `Template saved (${updated.items.length} items)` });
     return updated;
   },
 
@@ -88,7 +91,8 @@ export const templateService = {
   async remove(actor: PermissionUser, id: string): Promise<void> {
     await delay();
     assertCanManage(actor);
-    templateService.get(id);
+    const removed = templateService.get(id);
     templates = templates.filter((template) => template.id !== id);
+    auditService.record({ actorId: actor.id, entity: 'template', entityKey: removed.name, action: 'deleted', summary: 'Template deleted' });
   },
 };

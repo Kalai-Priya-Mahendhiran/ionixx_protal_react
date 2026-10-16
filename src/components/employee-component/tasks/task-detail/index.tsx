@@ -10,7 +10,7 @@ import MainLayout from '@/components/layout/main-layout';
 import { useAuth } from '@/context/auth-context';
 import { can, canTransition, type PermissionUser } from '@/lib/permissions/task-permissions';
 import { ROUTES } from '@/lib/constants';
-import { TASK_WORKFLOW_STATUSES } from '@/lib/schemas';
+import { getWorkflowStatuses } from '@/lib/workflow';
 import { USER_DIRECTORY, getUserById } from '@/lib/user-directory';
 import { cn, formatDateTime, formatRelativeTime } from '@/lib/utils';
 import {
@@ -34,11 +34,12 @@ import { TaskActionsMenu } from '../sections/task-actions-menu';
 import { TaskActivitySection, type MentionCandidate } from '../sections/task-activity';
 import { AttachmentDropzone, AttachmentList } from '../sections/task-attachments-field';
 import { DueDateChip, PriorityIndicator, TaskTypeGlyph, UserChip } from '../sections/task-badges';
-import { TASK_STATUS_CONFIG, TASK_TYPE_CONFIG, getLabelColor } from '../sections/task-config';
+import { TASK_TYPE_CONFIG, getLabelColor, getStatusMeta } from '../sections/task-config';
 import { copyTaskLink, taskPath } from '../sections/task-link';
 import { TaskSubtasks } from '../sections/task-subtasks';
 import { OnLeaveBanner, OnLeaveChip } from '../sections/leave-warning';
 import { formatShortDate } from '../sections/task-utils';
+import { useTaskSettings } from '@/services/apis/settings/use-task-settings';
 
 /* ---------- Small building blocks ---------- */
 
@@ -85,6 +86,8 @@ function TaskDetailContent({ user }: { user: PermissionUser }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { data: tasks = [], isLoading, isError, refetch } = useTasks();
+  // Redraws after a settings save (statuses, labels, permissions)
+  useTaskSettings();
   const { data: projects = [] } = useProjects();
   const deleteTask = useDeleteTask();
   const [editOpen, setEditOpen] = useState(false);
@@ -398,13 +401,13 @@ function TaskDetailView({ task, allTasks, user, backTo, onEdit, onDelete }: Task
         <aside className="space-y-4">
           <div className="flex items-center gap-2">
             <Select value={task.status} disabled={!canChangeStatus} onValueChange={(status) => changeStatus.mutate({ task, status: status as TaskStatus })}>
-              <SelectTrigger aria-label="Status" className={cn('h-10 w-44 font-semibold', TASK_STATUS_CONFIG[task.status].className)}>
+              <SelectTrigger aria-label="Status" className={cn('h-10 w-44 font-semibold', getStatusMeta(task.status).className)}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {TASK_WORKFLOW_STATUSES.map((status) => (
+                {getWorkflowStatuses().map(({ id: status }) => (
                   <SelectItem key={status} value={status} disabled={status !== task.status && !canTransition(user, task, status)}>
-                    {TASK_STATUS_CONFIG[status].label}
+                    {getStatusMeta(status).label}
                   </SelectItem>
                 ))}
               </SelectContent>

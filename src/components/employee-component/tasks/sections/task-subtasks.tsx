@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fieldClass } from '@/components/ui/form-fields';
 import { useAuth } from '@/context/auth-context';
-import { can, canCreateSubtask, canTransition, getAssignableUsers } from '@/lib/permissions/task-permissions';
+import { can, canCreateSubtask, firstAllowedStatus, getAssignableUsers } from '@/lib/permissions/task-permissions';
 import { getUserById } from '@/lib/user-directory';
 import { cn, getInitials } from '@/lib/utils';
 import { useChangeTaskStatus, useCreateSubtask } from '@/services/apis/tasks/use-tasks';
@@ -33,9 +33,13 @@ export function TaskSubtasks({ parent, subtasks, onOpen }: TaskSubtasksProps) {
   // Only people the user may create work for; employees get just themselves
   const assignees = getAssignableUsers(user).filter((member) => canCreateSubtask(user, parent, member.id));
 
+  // Ticking moves to Done; unticking goes back to To Do, or Reopened when the workflow only allows that from Done
+  const toggleTarget = (subtask: Task) =>
+    firstAllowedStatus(user, subtask, subtask.status === 'done' ? ['todo', 'reopened', 'in-progress'] : ['done']);
+
   const toggle = (subtask: Task) => {
-    const next = subtask.status === 'done' ? 'todo' : 'done';
-    if (canTransition(user, subtask, next)) changeStatus.mutate({ task: subtask, status: next });
+    const next = toggleTarget(subtask);
+    if (next) changeStatus.mutate({ task: subtask, status: next });
   };
 
   const submit = (event: FormEvent) => {
@@ -71,7 +75,7 @@ export function TaskSubtasks({ parent, subtasks, onOpen }: TaskSubtasksProps) {
         <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200">
           {subtasks.map((subtask) => {
             const isDone = subtask.status === 'done';
-            const canToggle = canTransition(user, subtask, isDone ? 'todo' : 'done');
+            const canToggle = !!toggleTarget(subtask);
             const assignee = getUserById(subtask.assigneeId);
             return (
               <li key={subtask.id} className="flex items-center gap-3 px-3 py-2">

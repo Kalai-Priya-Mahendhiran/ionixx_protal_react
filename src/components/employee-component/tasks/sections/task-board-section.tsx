@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/context/auth-context';
-import { can, canTransition } from '@/lib/permissions/task-permissions';
+import { can, firstAllowedStatus } from '@/lib/permissions/task-permissions';
 import { getUserById } from '@/lib/user-directory';
 import { cn, getInitials } from '@/lib/utils';
 import { useChangeTaskStatus, useEpics } from '@/services/apis/tasks/use-tasks';
@@ -24,7 +24,8 @@ import type { EpicSummary, Task, TaskStatus } from '@/types';
 import { TaskActionsMenu } from './task-actions-menu';
 import { DueDateChip, TaskTypeIcon } from './task-badges';
 import { OnLeaveChip } from './leave-warning';
-import { BOARD_COLUMNS, TASK_PRIORITY_CONFIG, TASK_STATUS_CONFIG, getBoardColumn, getLabelColor } from './task-config';
+import { TASK_PRIORITY_CONFIG, getBoardColumn, getBoardColumns, getLabelColor, getStatusMeta } from './task-config';
+import { getColumnStatuses } from '@/lib/workflow';
 import type { SubtaskProgress } from './task-utils';
 import { KEYBOARD_OPTIONS, cardClass, collisionDetection, dropAreaClass, stopPropagation, type DropState } from './board-dnd';
 
@@ -86,8 +87,9 @@ export function BoardCardContent({ task, epic, progress, menu }: CardContentProp
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
         <DueDateChip task={task} />
         <OnLeaveChip userId={task.assigneeId} date={task.dueDate} hidden={task.status === 'done'} />
-        {task.status === 'reopened' && (
-          <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', TASK_STATUS_CONFIG.reopened.className)}>Reopened</span>
+        {/* Cards sharing a column with another status (e.g. Reopened in To Do) say which status they're in */}
+        {getBoardColumn(task.status) !== task.status && (
+          <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', getStatusMeta(task.status).className)}>{getStatusMeta(task.status).label}</span>
         )}
       </div>
 
@@ -274,10 +276,11 @@ export function TaskBoardSection({ tasks, subtaskProgress, onCreate, onOpen, onE
 
   const findEpic = (task: Task) => epics.find((epic) => epic.id === task.epicId);
 
-  const getDropState = (status: TaskStatus): DropState => {
+  // A column can hold several statuses (e.g. To Do and Reopened); a drop uses the first one the move may reach
+  const getDropState = (column: TaskStatus): DropState => {
     if (!activeTask) return 'idle';
-    if (getBoardColumn(activeTask.status) === status) return 'origin';
-    return canTransition(user, activeTask, status) ? 'allowed' : 'blocked';
+    if (getBoardColumn(activeTask.status) === column) return 'origin';
+    return firstAllowedStatus(user, activeTask, getColumnStatuses(column)) ? 'allowed' : 'blocked';
   };
 
   const handleDragStart = (event: DragStartEvent) => setActiveTask((event.active.data.current?.task as Task) ?? null);
@@ -285,19 +288,20 @@ export function TaskBoardSection({ tasks, subtaskProgress, onCreate, onOpen, onE
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveTask(null);
     const task = event.active.data.current?.task as Task | undefined;
-    const target = event.over?.id as TaskStatus | undefined;
-    if (!task || !target || getBoardColumn(task.status) === target) return;
+    const column = event.over?.id as TaskStatus | undefined;
+    if (!task || !column || getBoardColumn(task.status) === column) return;
 
-    if (!canTransition(user, task, target)) {
-      const needsApproval = task.status === 'in-review' && target === 'done';
+    const status = firstAllowedStatus(user, task, getColumnStatuses(column));
+    if (!status) {
+      const needsApproval = task.status === 'in-review' && column === 'done';
       toast.error(
         needsApproval
-          ? `${task.key} needs approval from a manager to move to Done`
-          : `You can't move ${task.key} to ${TASK_STATUS_CONFIG[target].label}`,
+          ? `${task.key} needs approval from a manager to move to ${getStatusMeta('done').label}`
+          : `You can't move ${task.key} to ${getStatusMeta(column).label}`,
       );
       return;
     }
-    changeStatus.mutate({ task, status: target });
+    changeStatus.mutate({ task, status });
   };
 
   return (
@@ -309,7 +313,7 @@ export function TaskBoardSection({ tasks, subtaskProgress, onCreate, onOpen, onE
       onDragCancel={() => setActiveTask(null)}
     >
       <div className="ionixx-scrollbar -mx-1 flex gap-4 overflow-x-auto px-1 pb-2">
-        {BOARD_COLUMNS.map((column) => {
+        {getBoardColumns().map((column) => {
           const columnTasks = tasks.filter((task) => getBoardColumn(task.status) === column.status);
           return (
             <BoardColumn

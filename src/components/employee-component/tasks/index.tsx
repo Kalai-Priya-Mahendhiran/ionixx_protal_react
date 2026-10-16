@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Download, Eye, FileSpreadsheet, FileText, Plus } from 'lucide-react';
+import { Columns3, Download, Eye, FileSpreadsheet, FileText, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -46,6 +46,12 @@ import {
 import { TASK_VIEW_META } from './sections/task-config';
 import { taskPath } from './sections/task-link';
 import { getFilterOptions } from './sections/filter-options';
+import { AuditLogSection } from './settings/audit-log-section';
+import { AutomationSettingsSection } from './settings/automation-settings';
+import { FieldsSettingsSection } from './settings/fields-settings';
+import { PermissionsSettingsSection } from './settings/permissions-settings';
+import { WorkflowSettingsSection } from './settings/workflow-settings';
+import { useTaskSettings } from '@/services/apis/settings/use-task-settings';
 import {
   MY_TASKS_TABS,
   countByStatusFilter,
@@ -96,6 +102,8 @@ function TasksPage({ user }: { user: PermissionUser }) {
   const location = useLocation();
 
   const { data: tasks = [], isLoading, isError, refetch } = useTasks();
+  // Subscribing redraws the page after a settings save (statuses, labels and permissions shape everything here)
+  useTaskSettings();
   const { data: projects = [] } = useProjects();
   const { data: sprints = [] } = useSprints();
   const { data: epics = [] } = useEpics();
@@ -154,7 +162,10 @@ function TasksPage({ user }: { user: PermissionUser }) {
   const sections = getSectionsForView(user, view);
   const showSectionTabs = sections.length > 1;
   const requestedSection = searchParams.get('section') as TaskSection | null;
-  const section: TaskSection = showSectionTabs && requestedSection && sections.includes(requestedSection) ? requestedSection : 'board';
+  // Views without a board (Settings) open on their first tab
+  const defaultSection = sections.includes('board') ? 'board' : sections[0];
+  const section: TaskSection = showSectionTabs && requestedSection && sections.includes(requestedSection) ? requestedSection : defaultSection;
+  const isSettingsView = view === 'settings';
   const canGroupByAssignee = sections.includes('workload');
   const groupByAssignee = canGroupByAssignee && searchParams.get('group') === 'assignee';
   const focusUserId = searchParams.get('focus') ?? undefined;
@@ -203,11 +214,18 @@ function TasksPage({ user }: { user: PermissionUser }) {
             </div>
             <p className="mt-2 text-gray-600">{description}</p>
           </div>
-          {canCreate && (
-            <Button onClick={openCreate} className="flex items-center gap-2 bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-              <Plus className="h-4 w-4" />
-              <span>Create Task</span>
+          {isSettingsView ? (
+            <Button variant="outline" onClick={() => navigate(`${location.pathname}?view=all-projects`)} className="gap-2">
+              <Columns3 className="h-4 w-4" />
+              View all tasks
             </Button>
+          ) : (
+            canCreate && (
+              <Button onClick={openCreate} className="flex items-center gap-2 bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
+                <Plus className="h-4 w-4" />
+                <span>Create Task</span>
+              </Button>
+            )
           )}
         </div>
 
@@ -218,11 +236,21 @@ function TasksPage({ user }: { user: PermissionUser }) {
             sections={sections}
             active={section}
             counts={{ approvals: approvalCount }}
-            onChange={(next) => updateParams({ section: next === 'board' ? null : next, focus: null })}
+            onChange={(next) => updateParams({ section: next === defaultSection ? null : next, focus: null })}
           />
         )}
 
-        {section === 'projects' ? (
+        {section === 'workflow' ? (
+          <WorkflowSettingsSection />
+        ) : section === 'fields' ? (
+          <FieldsSettingsSection />
+        ) : section === 'permissions' ? (
+          <PermissionsSettingsSection />
+        ) : section === 'automation' ? (
+          <AutomationSettingsSection />
+        ) : section === 'audit' ? (
+          <AuditLogSection />
+        ) : section === 'projects' ? (
           <ProjectsSection projects={projects} tasks={tasks} />
         ) : section === 'templates' ? (
           <TemplatesSection />

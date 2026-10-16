@@ -9,7 +9,7 @@ import { getUserById } from '@/lib/user-directory';
 import { cn, formatRelativeTime, getInitials } from '@/lib/utils';
 import { useAddComment, useTaskActivity, useTaskComments, useTaskWorkLogs } from '@/services/apis/tasks/use-tasks';
 import type { Task, TaskActivity, TaskComment, TaskUser, WorkLog } from '@/types';
-import { TASK_STATUS_CONFIG } from './task-config';
+import { getStatusMeta } from './task-config';
 import { formatShortDate } from './task-utils';
 
 type ActivityTab = 'all' | 'comments' | 'history' | 'worklog';
@@ -47,8 +47,8 @@ function UserAvatar({ userId, size = 'md' }: { userId: string; size?: 'sm' | 'md
   );
 }
 
-const nameOf = (userId?: string) => getUserById(userId)?.name ?? 'Someone';
-const statusLabel = (status?: string) => TASK_STATUS_CONFIG[status as keyof typeof TASK_STATUS_CONFIG]?.label ?? status;
+const nameOf = (userId?: string) => (userId === 'system' ? 'Automation' : (getUserById(userId)?.name ?? 'Someone'));
+const statusLabel = (status?: string) => (status ? getStatusMeta(status).label : '');
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /* ---------- Comment composer with @mentions ---------- */

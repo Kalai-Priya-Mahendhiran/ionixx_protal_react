@@ -1,41 +1,30 @@
 import type { TaskView } from '@/lib/permissions/task-permissions';
 import { getUserById } from '@/lib/user-directory';
 import { toDateInput } from '@/lib/utils';
-import type { Task } from '@/types';
+import { getBoardColumn, getBoardColumns } from '@/lib/workflow';
+import type { Task, TaskStatus } from '@/types';
 
-export type TaskStatusFilter = 'all' | 'todo' | 'in-progress' | 'in-review' | 'done' | 'blocked';
+// 'all', 'blocked', or a board column's status: filters follow the configured workflow
+export type TaskStatusFilter = 'all' | 'blocked' | TaskStatus;
 
-// Filter buttons; "Blocked" is applied from its stat card
-export const STATUS_FILTER_OPTIONS: { value: TaskStatusFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'todo', label: 'To Do' },
-  { value: 'in-progress', label: 'In Progress' },
-  { value: 'in-review', label: 'In Review' },
-  { value: 'done', label: 'Done' },
-];
+// Filter buttons: All plus one per board column; "Blocked" is applied from its stat card
+export function getStatusFilterOptions(): { value: TaskStatusFilter; label: string }[] {
+  return [{ value: 'all', label: 'All' }, ...getBoardColumns().map((column) => ({ value: column.status, label: column.label }))];
+}
 
 // Due within this many days (and not done) shows the orange "due soon" chip
 export const DUE_SOON_DAYS = 2;
 
 export function matchesStatusFilter(task: Task, filter: TaskStatusFilter): boolean {
-  switch (filter) {
-    case 'all':
-      return true;
-    case 'todo':
-      // Reopened work is back in the to-do pile
-      return task.status === 'todo' || task.status === 'reopened';
-    case 'blocked':
-      return task.isBlocked && task.status !== 'done';
-    default:
-      return task.status === filter;
-  }
+  if (filter === 'all') return true;
+  if (filter === 'blocked') return task.isBlocked && task.status !== 'done';
+  // A column filter includes the statuses grouped into it (e.g. Reopened under To Do)
+  return getBoardColumn(task.status) === filter;
 }
 
-export function countByStatusFilter(tasks: Task[]): Record<TaskStatusFilter, number> {
-  const filters: TaskStatusFilter[] = ['all', 'todo', 'in-progress', 'in-review', 'done', 'blocked'];
-  return Object.fromEntries(
-    filters.map((filter) => [filter, tasks.filter((task) => matchesStatusFilter(task, filter)).length]),
-  ) as Record<TaskStatusFilter, number>;
+export function countByStatusFilter(tasks: Task[]): Record<string, number> {
+  const filters: TaskStatusFilter[] = ['all', ...getBoardColumns().map((column) => column.status), 'blocked'];
+  return Object.fromEntries(filters.map((filter) => [filter, tasks.filter((task) => matchesStatusFilter(task, filter)).length]));
 }
 
 // Matches key, title, description, labels and people's names

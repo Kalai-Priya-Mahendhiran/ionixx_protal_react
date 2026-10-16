@@ -1,4 +1,4 @@
-import { CalendarRange, CheckCheck, ClipboardList, Columns3, FolderKanban, Gauge, LayoutTemplate, type LucideIcon } from 'lucide-react';
+import { CalendarRange, CheckCheck, ClipboardList, Columns3, FolderKanban, Gauge, GitBranch, History, LayoutTemplate, ShieldCheck, Tags, Zap, type LucideIcon } from 'lucide-react';
 import type { TaskSection } from '@/lib/permissions/task-permissions';
 import { cn } from '@/lib/utils';
 
@@ -10,6 +10,11 @@ const SECTION_META: Record<TaskSection, { label: string; icon: LucideIcon }> = {
   projects: { label: 'Projects', icon: FolderKanban },
   checklists: { label: 'Checklists', icon: ClipboardList },
   templates: { label: 'Templates', icon: LayoutTemplate },
+  workflow: { label: 'Workflow', icon: GitBranch },
+  fields: { label: 'Types & Labels', icon: Tags },
+  permissions: { label: 'Permissions', icon: ShieldCheck },
+  automation: { label: 'Automation', icon: Zap },
+  audit: { label: 'Audit log', icon: History },
 };
 
 interface SectionTabsProps {
