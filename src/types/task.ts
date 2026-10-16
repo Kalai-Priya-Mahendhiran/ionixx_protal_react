@@ -48,6 +48,8 @@ export interface Task {
   blockedReason?: string
   attachments: TaskAttachment[]
   createdAt: string // ISO timestamp
+  // When the task last reached Done (cleared if it moves back); drives velocity and burndown
+  completedAt?: string
   updatedAt: string
 }
 

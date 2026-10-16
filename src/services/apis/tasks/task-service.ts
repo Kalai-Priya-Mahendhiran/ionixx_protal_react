@@ -249,9 +249,16 @@ function runDueDateChecks() {
   tasks.filter((task) => task.status !== 'done' && task.dueDate < today).forEach((task) => runAutomations('due-date-passed', task.id));
 }
 
+// Every write goes through here, so the completion time stays right whichever path changed the status
 function saveTask(updated: Task): Task {
-  tasks = tasks.map((task) => (task.id === updated.id ? updated : task));
-  return updated;
+  const previous = tasks.find((task) => task.id === updated.id);
+  const finished = updated.status === 'done';
+  const saved: Task = {
+    ...updated,
+    completedAt: finished ? (previous?.status === 'done' ? (previous.completedAt ?? updated.completedAt) : now()) : undefined,
+  };
+  tasks = tasks.map((task) => (task.id === saved.id ? saved : task));
+  return saved;
 }
 
 function notifyAssigned(task: Task, actorId: string) {

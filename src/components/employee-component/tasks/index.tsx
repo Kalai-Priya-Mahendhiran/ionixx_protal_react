@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Columns3, Download, Eye, FileSpreadsheet, FileText, Plus } from 'lucide-react';
+import { BarChart3, Columns3, Download, Eye, FileSpreadsheet, FileText, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -10,6 +10,7 @@ import { useAuth } from '@/context/auth-context';
 import {
   can,
   canApprove,
+  canOpenTaskView,
   getAssignableUsers,
   getSectionsForView,
   getScope,
@@ -46,6 +47,7 @@ import {
 import { TASK_VIEW_META } from './sections/task-config';
 import { taskPath } from './sections/task-link';
 import { getFilterOptions } from './sections/filter-options';
+import { ExecutiveDashboard } from './reports/executive-dashboard';
 import { AuditLogSection } from './settings/audit-log-section';
 import { AutomationSettingsSection } from './settings/automation-settings';
 import { FieldsSettingsSection } from './settings/fields-settings';
@@ -166,6 +168,7 @@ function TasksPage({ user }: { user: PermissionUser }) {
   const defaultSection = sections.includes('board') ? 'board' : sections[0];
   const section: TaskSection = showSectionTabs && requestedSection && sections.includes(requestedSection) ? requestedSection : defaultSection;
   const isSettingsView = view === 'settings';
+  const isOverview = view === 'exec-dashboard';
   const canGroupByAssignee = sections.includes('workload');
   const groupByAssignee = canGroupByAssignee && searchParams.get('group') === 'assignee';
   const focusUserId = searchParams.get('focus') ?? undefined;
@@ -214,19 +217,29 @@ function TasksPage({ user }: { user: PermissionUser }) {
             </div>
             <p className="mt-2 text-gray-600">{description}</p>
           </div>
-          {isSettingsView ? (
-            <Button variant="outline" onClick={() => navigate(`${location.pathname}?view=all-projects`)} className="gap-2">
-              <Columns3 className="h-4 w-4" />
-              View all tasks
-            </Button>
-          ) : (
-            canCreate && (
-              <Button onClick={openCreate} className="flex items-center gap-2 bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-                <Plus className="h-4 w-4" />
-                <span>Create Task</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {view === 'all-projects' && canOpenTaskView(user, 'exec-dashboard') && (
+              <Button variant="outline" onClick={() => navigate(`${location.pathname}?view=exec-dashboard`)} className="gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Overview
               </Button>
-            )
-          )}
+            )}
+            {isSettingsView || isOverview ? (
+              canOpenTaskView(user, 'all-projects') && (
+                <Button variant="outline" onClick={() => navigate(`${location.pathname}?view=all-projects`)} className="gap-2">
+                  <Columns3 className="h-4 w-4" />
+                  {isOverview ? 'Browse all tasks' : 'View all tasks'}
+                </Button>
+              )
+            ) : (
+              canCreate && (
+                <Button onClick={openCreate} className="flex items-center gap-2 bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
+                  <Plus className="h-4 w-4" />
+                  <span>Create Task</span>
+                </Button>
+              )
+            )}
+          </div>
         </div>
 
         {showTabs && <TaskTabs active={tab} counts={tabCounts} onChange={(next) => updateParams({ tab: next })} />}
@@ -240,7 +253,9 @@ function TasksPage({ user }: { user: PermissionUser }) {
           />
         )}
 
-        {section === 'workflow' ? (
+        {isOverview ? (
+          <ExecutiveDashboard tasks={viewTasks} projects={projects} sprints={sprints} isLoading={isLoading} isError={isError} onRetry={() => refetch()} />
+        ) : section === 'workflow' ? (
           <WorkflowSettingsSection />
         ) : section === 'fields' ? (
           <FieldsSettingsSection />

@@ -47,7 +47,7 @@ export const sampleSprints: Sprint[] = [
 ];
 
 type SampleTask = Pick<Task, 'key' | 'projectId' | 'type' | 'title' | 'description' | 'status' | 'priority' | 'assigneeId' | 'reporterId'> &
-  Partial<Task> & { dueInDays: number; createdDaysAgo: number; startInDays?: number };
+  Partial<Task> & { dueInDays: number; createdDaysAgo: number; startInDays?: number; completedDaysAgo?: number };
 
 const SAMPLE_TASKS: SampleTask[] = [
   {
@@ -173,6 +173,25 @@ const SAMPLE_TASKS: SampleTask[] = [
     status: 'in-review', priority: 'medium', assigneeId: 'EMP005', reporterId: 'PM001',
     labels: ['devops'], estimateHours: 5, loggedHours: 5, dueInDays: 1, createdDaysAgo: 5,
   },
+  // Finished during the active sprint, so its burndown shows progress
+  {
+    key: 'IXP-122', projectId: 'PRJ-IXP', type: 'bug', title: 'Date picker ignores the user locale', sprintId: ACTIVE_SPRINT_ID, startInDays: -7,
+    description: 'Dates showed in US format for users in India.',
+    status: 'done', priority: 'medium', assigneeId: 'EMP003', reporterId: 'PM001',
+    labels: ['qa'], estimateHours: 3, loggedHours: 3, dueInDays: -4, createdDaysAgo: 8, completedDaysAgo: 5,
+  },
+  {
+    key: 'IXP-123', projectId: 'PRJ-IXP', type: 'task', title: 'Remove unused dashboard API calls', sprintId: ACTIVE_SPRINT_ID, startInDays: -6,
+    description: 'Drop three endpoints the dashboard no longer reads.',
+    status: 'done', priority: 'low', assigneeId: 'EMP006', reporterId: 'PM001',
+    labels: ['performance'], estimateHours: 4, loggedHours: 4, dueInDays: -2, createdDaysAgo: 7, completedDaysAgo: 3,
+  },
+  {
+    key: 'IXP-124', projectId: 'PRJ-IXP', type: 'story', title: 'Accessible labels on the leave form', sprintId: ACTIVE_SPRINT_ID, startInDays: -5,
+    description: 'Every leave form field announces its label to screen readers.',
+    status: 'done', priority: 'medium', assigneeId: 'EMP004', reporterId: 'PM001',
+    labels: ['leave-tracker'], estimateHours: 5, loggedHours: 6, dueInDays: 0, createdDaysAgo: 6, completedDaysAgo: 1,
+  },
   // Sub-tasks: shown inside their parent, not as separate board cards
   {
     key: 'IXP-112', projectId: 'PRJ-IXP', type: 'sub-task', parentId: 'TSK-IXP-102', title: 'Check token refresh flow',
@@ -212,7 +231,7 @@ const SAMPLE_TASKS: SampleTask[] = [
 ];
 
 // IDs derive from the key (TSK-IXP-102) so sub-tasks can point at their parent
-export const sampleTasks: Task[] = SAMPLE_TASKS.map(({ dueInDays, createdDaysAgo, startInDays, ...task }) => ({
+export const sampleTasks: Task[] = SAMPLE_TASKS.map(({ dueInDays, createdDaysAgo, startInDays, completedDaysAgo, ...task }) => ({
   id: `TSK-${task.key}`,
   watcherIds: [],
   labels: [],
@@ -224,6 +243,8 @@ export const sampleTasks: Task[] = SAMPLE_TASKS.map(({ dueInDays, createdDaysAgo
   dueDate: daysFromNow(dueInDays),
   createdAt: timestampDaysAgo(createdDaysAgo),
   updatedAt: timestampDaysAgo(Math.max(0, createdDaysAgo - 1)),
+  // Finished work needs a completion time for velocity and burndown; default to a couple of days after creation
+  completedAt: task.status === 'done' ? timestampDaysAgo(completedDaysAgo ?? Math.max(0, createdDaysAgo - 2)) : undefined,
 }));
 
 const findSample = (key: string) => sampleTasks.find((task) => task.key === key)!;

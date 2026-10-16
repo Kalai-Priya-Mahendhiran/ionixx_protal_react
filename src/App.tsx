@@ -14,6 +14,7 @@ import Attendance from '@/components/employee-component/attendance';
 import TimeTracker from '@/components/employee-component/time-tracker';
 import Leave from '@/components/employee-component/leave-tracker';
 import Tasks from '@/components/employee-component/tasks';
+import ProjectSummary from '@/components/employee-component/tasks/reports/project-summary';
 import TaskDetail from '@/components/employee-component/tasks/task-detail';
 import Files from '@/components/employee-component/files';
 import Organization from '@/components/employee-component/organization';
@@ -120,6 +121,15 @@ export default function App() {
         element={
           <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Tasks]}>
             <Tasks />
+          </ProtectedRoute>
+        }
+      />
+      {/* Read-only project summary from the executive dashboard, e.g. /tasks/project/IXP */}
+      <Route
+        path={`${ROUTES.Tasks}/project/:projectKey`}
+        element={
+          <ProtectedRoute allowedRoles={ROLE_ROUTE_ACCESS[ROUTES.Tasks]}>
+            <ProjectSummary />
           </ProtectedRoute>
         }
       />

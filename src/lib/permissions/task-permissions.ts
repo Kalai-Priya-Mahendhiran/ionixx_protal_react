@@ -212,7 +212,8 @@ const HR_SECTION_REQUIREMENTS: Record<'board' | 'checklists' | 'templates', (use
 // Tabs on the Tasks page: settings on the Settings view, HR tools on the HR view, manager tools on team-wide views, none on My Tasks.
 // A single 'board' entry means no tabs are shown.
 export function getSectionsForView(user: PermissionUser | null | undefined, view: TaskView): TaskSection[] {
-  if (!user || view === 'my-tasks') return ['board'];
+  // My Tasks and the read-only overview have no tool tabs
+  if (!user || view === 'my-tasks' || view === 'exec-dashboard') return ['board'];
   // The Settings view is only tools; people without access fall back to the default view before this
   if (view === 'settings') return can(user, 'workflow.configure') ? SETTINGS_SECTIONS : ['board'];
   if (view === 'hr-tasks') {
