@@ -1,4 +1,7 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
   Plug,
   Search,
@@ -8,7 +11,6 @@ import {
   AlertTriangle,
   RefreshCw,
   Settings,
-  X,
   KeyRound,
   Database,
   Wallet,
@@ -30,7 +32,13 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader, headerPrimaryButtonClass } from "@/components/ui/page-header";
+import { FormDialog } from "@/components/ui/form-dialog";
+import { SelectField, TextField, toOptions } from "@/components/ui/form-fields";
+import { AppSheet } from "@/components/ui/sheet";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { INTEGRATION_STATUS_STYLES, INTEGRATION_STATUS_LABELS, INTEGRATION_CATEGORIES } from "@/lib/constants";
+import { integrationSchema, type IntegrationFormValues } from "@/lib/form-schemas/system";
 
 type IntegrationStatus = "connected" | "disconnected" | "error";
 type Category = "ERP" | "Payroll" | "IAM" | "Storage" | "Communication" | "Analytics";
@@ -61,7 +69,7 @@ const seedIntegrations: Integration[] = [
     endpoint: "https://erp.ionixx.com/api/v2",
     lastSync: "2026-05-08T08:30:00",
     recordsSynced: 142,
-    apiKey: "sk_erp_â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢8f2a",
+    apiKey: "sk_erp_••••••••8f2a",
     webhookUrl: "https://portal.ionixx.com/hooks/erp",
     icon: Database,
   },
@@ -75,7 +83,7 @@ const seedIntegrations: Integration[] = [
     endpoint: "https://api.adp.com/payroll/v3",
     lastSync: "2026-05-08T08:30:00",
     recordsSynced: 142,
-    apiKey: "sk_adp_â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢a1c4",
+    apiKey: "sk_adp_••••••••a1c4",
     icon: Wallet,
   },
   {
@@ -88,7 +96,7 @@ const seedIntegrations: Integration[] = [
     endpoint: "https://ionixx.okta.com/oauth2/default",
     lastSync: "2026-05-07T21:02:33",
     recordsSynced: 0,
-    apiKey: "sk_okta_â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢3d77",
+    apiKey: "sk_okta_••••••••3d77",
     webhookUrl: "https://portal.ionixx.com/hooks/okta",
     icon: ShieldCheck,
   },
@@ -102,7 +110,7 @@ const seedIntegrations: Integration[] = [
     endpoint: "https://s3.ap-south-1.amazonaws.com",
     lastSync: "2026-05-08T09:15:00",
     recordsSynced: 8421,
-    apiKey: "sk_aws_â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢c2e9",
+    apiKey: "sk_aws_••••••••c2e9",
     icon: Cloud,
   },
   {
@@ -115,7 +123,7 @@ const seedIntegrations: Integration[] = [
     endpoint: "https://api.sendgrid.com/v3",
     lastSync: "2026-05-08T09:32:11",
     recordsSynced: 3142,
-    apiKey: "sk_sg_â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢5b18",
+    apiKey: "sk_sg_••••••••5b18",
     icon: Mail,
   },
   {
@@ -146,7 +154,6 @@ export default function Integrations() {
   const [statusFilter, setStatusFilter] = useState<"all" | IntegrationStatus>("all");
   const [selected, setSelected] = useState<Integration | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -171,11 +178,6 @@ export default function Integrations() {
     return { total, connected, errors, syncedRecords };
   }, [integrations]);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 2500);
-  };
-
   const handleSync = (i: Integration) => {
     if (i.status !== "connected") return;
     setIntegrations((prev) =>
@@ -188,7 +190,7 @@ export default function Integrations() {
     setSelected((s) =>
       s && s.id === i.id ? { ...s, lastSync: new Date().toISOString() } : s
     );
-    showToast(`${i.name} sync triggered.`);
+    toast.success(`${i.name} sync triggered.`);
   };
 
   const handleToggleStatus = (i: Integration) => {
@@ -198,24 +200,18 @@ export default function Integrations() {
       prev.map((x) => (x.id === i.id ? { ...x, status: next } : x))
     );
     setSelected((s) => (s && s.id === i.id ? { ...s, status: next } : s));
-    showToast(
+    toast.success(
       next === "connected"
         ? `${i.name} reconnected.`
         : `${i.name} disconnected.`
     );
   };
 
-  const handleAdd = (data: {
-    name: string;
-    vendor: string;
-    category: Category;
-    endpoint: string;
-    apiKey: string;
-  }) => {
+  const handleAdd = (data: IntegrationFormValues) => {
     const newInt: Integration = {
       id: `INT-${String(integrations.length + 1).padStart(3, "0")}`,
       ...data,
-      apiKey: data.apiKey.replace(/.(?=.{4})/g, "â€¢"),
+      apiKey: data.apiKey.replace(/.(?=.{4})/g, "•"),
       status: "connected",
       description: `${data.vendor} integration.`,
       lastSync: null,
@@ -224,7 +220,7 @@ export default function Integrations() {
     };
     setIntegrations((prev) => [newInt, ...prev]);
     setShowAddModal(false);
-    showToast(`${data.name} added.`);
+    toast.success(`${data.name} added.`);
   };
 
   const handleDelete = (id: string) => {
@@ -232,63 +228,43 @@ export default function Integrations() {
     if (!i) return;
     setIntegrations((prev) => prev.filter((x) => x.id !== id));
     setSelected(null);
-    showToast(`${i.name} removed.`);
+    toast.success(`${i.name} removed.`);
   };
 
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <Plug className="h-10 w-10 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">Integrations</h1>
-                <p className="text-white/90 mt-1">
-                  {stats.connected}/{stats.total} connected Â·{" "}
-                  {stats.syncedRecords.toLocaleString()} records synced
-                </p>
-              </div>
-            </div>
+        <PageHeader
+          icon={Plug}
+          title="Integrations"
+          description={
+            <>
+              {stats.connected}/{stats.total} connected ·{" "}
+              {stats.syncedRecords.toLocaleString()} records synced
+            </>
+          }
+          actions={
             <Button
               onClick={() => setShowAddModal(true)}
-              className="bg-white text-[#464EB8] hover:bg-white/90"
+              className={headerPrimaryButtonClass}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add integration
             </Button>
-          </div>
-        </div>
+          }
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <SummaryCard
-            label="Total"
-            count={stats.total}
-            icon={<Plug className="h-6 w-6 text-indigo-600" />}
-            tone="bg-indigo-50"
-          />
-          <SummaryCard
-            label="Connected"
-            count={stats.connected}
-            icon={<CheckCircle2 className="h-6 w-6 text-emerald-600" />}
-            tone="bg-emerald-50"
-          />
-          <SummaryCard
-            label="Errors"
-            count={stats.errors}
-            icon={<AlertTriangle className="h-6 w-6 text-red-600" />}
-            tone="bg-red-50"
-          />
-          <SummaryCard
+        <StatGrid>
+          <StatCard label="Total" value={stats.total} icon={Plug} tone="indigo" />
+          <StatCard label="Connected" value={stats.connected} icon={CheckCircle2} tone="green" />
+          <StatCard label="Errors" value={stats.errors} icon={AlertTriangle} tone="red" />
+          <StatCard
             label="Records synced"
-            count={stats.syncedRecords}
-            icon={<Zap className="h-6 w-6 text-amber-600" />}
-            tone="bg-amber-50"
+            value={stats.syncedRecords.toLocaleString()}
+            icon={Zap}
+            tone="amber"
           />
-        </div>
+        </StatGrid>
 
         <Card className="border-0 shadow-lg">
           <CardHeader>
@@ -424,47 +400,12 @@ export default function Integrations() {
         />
       )}
 
-      {showAddModal && (
-        <AddIntegrationModal
-          onCancel={() => setShowAddModal(false)}
-          onSubmit={handleAdd}
-        />
-      )}
-
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-xl text-sm">
-          {toast}
-        </div>
-      )}
+      <AddIntegrationModal
+        open={showAddModal}
+        onOpenChange={setShowAddModal}
+        onSubmit={handleAdd}
+      />
     </MainLayout>
-  );
-}
-
-function SummaryCard({
-  label,
-  count,
-  icon,
-  tone,
-}: {
-  label: string;
-  count: number;
-  icon: React.ReactNode;
-  tone: string;
-}) {
-  return (
-    <Card className="border-0 shadow-md">
-      <CardContent className="p-5 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {label}
-          </p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">
-            {count.toLocaleString()}
-          </p>
-        </div>
-        <div className={`p-3 rounded-xl ${tone}`}>{icon}</div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -483,17 +424,13 @@ function IntegrationDrawer({
 }) {
   const Icon = integration.icon;
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/40" onClick={onClose} />
-      <aside className="w-full max-w-md bg-white shadow-2xl flex flex-col">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white relative">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-md bg-white/20 hover:bg-white/30 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
+    <AppSheet
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={integration.name}
+      description={`${integration.vendor} integration`}
+      header={
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-xl bg-white/20">
               <Icon className="h-8 w-8 text-white" />
@@ -507,56 +444,9 @@ function IntegrationDrawer({
             </div>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          <Section title="Overview">
-            <p className="text-sm text-gray-700">{integration.description}</p>
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              <Stat label="Category" value={integration.category} />
-              <Stat
-                label="Records synced"
-                value={integration.recordsSynced.toLocaleString()}
-              />
-              <Stat
-                label="Last sync"
-                value={
-                  integration.lastSync
-                    ? formatDateTime(integration.lastSync)
-                    : "Never"
-                }
-              />
-              <Stat label="ID" value={integration.id} mono />
-            </div>
-          </Section>
-          <Section title="Connection">
-            <DetailRow
-              icon={<ExternalLink className="h-4 w-4" />}
-              label="Endpoint"
-              value={integration.endpoint}
-              mono
-            />
-            <DetailRow
-              icon={<KeyRound className="h-4 w-4" />}
-              label="API key"
-              value={integration.apiKey || "Not configured"}
-              mono
-            />
-            {integration.webhookUrl && (
-              <DetailRow
-                icon={<Zap className="h-4 w-4" />}
-                label="Webhook"
-                value={integration.webhookUrl}
-                mono
-              />
-            )}
-          </Section>
-          {integration.status === "error" && (
-            <div className="bg-red-50 border border-red-200 rounded-md px-3 py-2 text-xs text-red-700">
-              <AlertTriangle className="h-3.5 w-3.5 inline mr-1" />
-              Last sync failed. Verify credentials and endpoint reachability.
-            </div>
-          )}
-        </div>
-        <div className="p-4 border-t flex gap-2">
+      }
+      footer={
+        <>
           <Button
             variant="outline"
             className="flex-1"
@@ -577,129 +467,128 @@ function IntegrationDrawer({
             variant="outline"
             onClick={onDelete}
             className="border-red-300 text-red-600 hover:bg-red-50"
+            aria-label={`Delete ${integration.name}`}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
-        </div>
-      </aside>
-    </div>
+        </>
+      }
+    >
+      <div className="space-y-5">
+        <Section title="Overview">
+          <p className="text-sm text-gray-700">{integration.description}</p>
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <Stat label="Category" value={integration.category} />
+            <Stat
+              label="Records synced"
+              value={integration.recordsSynced.toLocaleString()}
+            />
+            <Stat
+              label="Last sync"
+              value={
+                integration.lastSync
+                  ? formatDateTime(integration.lastSync)
+                  : "Never"
+              }
+            />
+            <Stat label="ID" value={integration.id} mono />
+          </div>
+        </Section>
+        <Section title="Connection">
+          <DetailRow
+            icon={<ExternalLink className="h-4 w-4" />}
+            label="Endpoint"
+            value={integration.endpoint}
+            mono
+          />
+          <DetailRow
+            icon={<KeyRound className="h-4 w-4" />}
+            label="API key"
+            value={integration.apiKey || "Not configured"}
+            mono
+          />
+          {integration.webhookUrl && (
+            <DetailRow
+              icon={<Zap className="h-4 w-4" />}
+              label="Webhook"
+              value={integration.webhookUrl}
+              mono
+            />
+          )}
+        </Section>
+        {integration.status === "error" && (
+          <div className="bg-red-50 border border-red-200 rounded-md px-3 py-2 text-xs text-red-700">
+            <AlertTriangle className="h-3.5 w-3.5 inline mr-1" />
+            Last sync failed. Verify credentials and endpoint reachability.
+          </div>
+        )}
+      </div>
+    </AppSheet>
   );
 }
 
+const EMPTY_INTEGRATION: IntegrationFormValues = {
+  name: "",
+  vendor: "",
+  category: "ERP",
+  endpoint: "",
+  apiKey: "",
+};
+
 function AddIntegrationModal({
-  onCancel,
+  open,
+  onOpenChange,
   onSubmit,
 }: {
-  onCancel: () => void;
-  onSubmit: (data: {
-    name: string;
-    vendor: string;
-    category: Category;
-    endpoint: string;
-    apiKey: string;
-  }) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (data: IntegrationFormValues) => void;
 }) {
-  const [name, setName] = useState("");
-  const [vendor, setVendor] = useState("");
-  const [category, setCategory] = useState<Category>("ERP");
-  const [endpoint, setEndpoint] = useState("");
-  const [apiKey, setApiKey] = useState("");
+  const form = useForm<IntegrationFormValues>({
+    resolver: zodResolver(integrationSchema),
+    defaultValues: EMPTY_INTEGRATION,
+  });
 
-  const canSubmit = name.trim() && vendor.trim() && endpoint.trim() && apiKey.trim();
+  useEffect(() => {
+    if (open) form.reset(EMPTY_INTEGRATION);
+  }, [open, form]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-5 text-white flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold">Add integration</h2>
-            <p className="text-xs text-white/80">
-              Provide connection details to wire up a new service.
-            </p>
-          </div>
-          <button
-            onClick={onCancel}
-            className="p-1.5 rounded-md bg-white/20 hover:bg-white/30 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="p-5 space-y-3 max-h-[70vh] overflow-y-auto">
-          <Field label="Name">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Workday HCM"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Vendor">
-              <input
-                value={vendor}
-                onChange={(e) => setVendor(e.target.value)}
-                placeholder="e.g. Workday"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              />
-            </Field>
-            <Field label="Category">
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as Category)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              >
-                {INTEGRATION_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-          <Field label="Endpoint URL">
-            <input
-              value={endpoint}
-              onChange={(e) => setEndpoint(e.target.value)}
-              placeholder="https://api.example.com/v1"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-          </Field>
-          <Field label="API key">
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="sk_..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-            <p className="text-[11px] text-gray-500 mt-1">
-              Stored encrypted; only the last 4 characters are visible afterward.
-            </p>
-          </Field>
-        </div>
-        <div className="p-4 border-t flex justify-end gap-2 bg-gray-50">
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button
-            disabled={!canSubmit}
-            onClick={() =>
-              onSubmit({
-                name: name.trim(),
-                vendor: vendor.trim(),
-                category,
-                endpoint: endpoint.trim(),
-                apiKey: apiKey.trim(),
-              })
-            }
-            className="bg-[#464EB8] hover:bg-[#3a3f9a]"
-          >
-            Connect
-          </Button>
-        </div>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={onSubmit}
+      title="Add integration"
+      description="Provide connection details to wire up a new service."
+      size="lg"
+      submitLabel="Connect"
+    >
+      <TextField control={form.control} name="name" label="Name" placeholder="e.g. Workday HCM" required />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField control={form.control} name="vendor" label="Vendor" placeholder="e.g. Workday" required />
+        <SelectField control={form.control} name="category" label="Category" options={toOptions(INTEGRATION_CATEGORIES)} />
       </div>
-    </div>
+      <TextField
+        control={form.control}
+        name="endpoint"
+        label="Endpoint URL"
+        type="url"
+        inputMode="url"
+        placeholder="https://api.example.com/v1"
+        required
+      />
+      <TextField
+        control={form.control}
+        name="apiKey"
+        label="API key"
+        type="password"
+        placeholder="sk_..."
+        autoComplete="new-password"
+        hint="Stored encrypted; only the last 4 characters are visible afterward."
+        required
+      />
+    </FormDialog>
   );
 }
 
@@ -764,23 +653,6 @@ function DetailRow({
         </p>
       </div>
     </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs font-medium text-gray-700 mb-1 block">
-        {label}
-      </span>
-      {children}
-    </label>
   );
 }
 

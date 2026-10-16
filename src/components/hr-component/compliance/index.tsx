@@ -1,4 +1,7 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
   ShieldCheck,
   Upload,
@@ -8,7 +11,6 @@ import {
   Clock,
   Search,
   Download,
-  X,
   History,
   ListChecks,
   ShieldAlert,
@@ -21,10 +23,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader, headerPrimaryButtonClass } from "@/components/ui/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { FormDialog } from "@/components/ui/form-dialog";
+import { SelectField, TextField, toOptions } from "@/components/ui/form-fields";
 import { COMPLIANCE_DOC_STATUS_COLORS, COMPLIANCE_DOC_STATUS_LABELS, COMPLIANCE_EMPLOYEE_STATUS_COLORS, COMPLIANCE_EMPLOYEE_STATUS_LABELS, COMPLIANCE_AUDIT_TYPE_COLORS } from "@/lib/constants";
+import { uploadDocumentSchema, type UploadDocumentFormValues } from "@/lib/form-schemas/hr";
 
 type Tab = "documents" | "status" | "audit";
 
@@ -265,7 +272,6 @@ export default function Compliance() {
   const [activeTab, setActiveTab] = useState<Tab>("documents");
   const [search, setSearch] = useState("");
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   const stats = useMemo(() => {
     return {
@@ -288,11 +294,6 @@ export default function Compliance() {
         d.uploadedBy.toLowerCase().includes(term)
     );
   }, [documents, search]);
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 3000);
-  };
 
   const handleUpload = (
     data: Pick<
@@ -323,62 +324,32 @@ export default function Compliance() {
       ...prev,
     ]);
     setShowUploadModal(false);
-    showToast(`Uploaded ${newDoc.name}.`);
+    toast.success(`Uploaded ${newDoc.name}.`);
   };
 
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <ShieldCheck className="h-10 w-10 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">Compliance</h1>
-                <p className="text-white/90 mt-1">
-                  {stats.documents} documents Â· {stats.compliant} compliant employees Â· {stats.pending} action items
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowUploadModal(true)}
-              className="bg-white text-[#464EB8] hover:bg-white/90"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Document
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={ShieldCheck}
+          title="Compliance"
+          description={`${stats.documents} documents · ${stats.compliant} compliant employees · ${stats.pending} action items`}
+          actions={
+            <>
+              <Button onClick={() => setShowUploadModal(true)} className={headerPrimaryButtonClass}>
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Document
+              </Button>
+            </>
+          }
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <SummaryCard
-            label="Documents"
-            count={stats.documents}
-            icon={<FileText className="h-6 w-6 text-indigo-600" />}
-            tone="bg-indigo-50"
-          />
-          <SummaryCard
-            label="Compliant"
-            count={stats.compliant}
-            icon={<CheckCircle2 className="h-6 w-6 text-green-600" />}
-            tone="bg-green-50"
-          />
-          <SummaryCard
-            label="Action Items"
-            count={stats.pending}
-            icon={<AlertTriangle className="h-6 w-6 text-amber-600" />}
-            tone="bg-amber-50"
-          />
-          <SummaryCard
-            label="Audit Entries"
-            count={stats.auditEntries}
-            icon={<History className="h-6 w-6 text-purple-600" />}
-            tone="bg-purple-50"
-          />
-        </div>
+        <StatGrid>
+          <StatCard icon={FileText} label="Documents" value={stats.documents} tone="indigo" />
+          <StatCard icon={CheckCircle2} label="Compliant" value={stats.compliant} tone="green" />
+          <StatCard icon={AlertTriangle} label="Action Items" value={stats.pending} tone="amber" />
+          <StatCard icon={History} label="Audit Entries" value={stats.auditEntries} tone="purple" />
+        </StatGrid>
 
         <Card className="border-0 shadow-lg">
           <CardHeader>
@@ -391,7 +362,7 @@ export default function Compliance() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex border-b border-gray-200 mb-4">
+            <div className="flex border-b border-gray-200 mb-4 overflow-x-auto [&>button]:shrink-0 [&>button]:whitespace-nowrap">
               <TabButton
                 tab="documents"
                 activeTab={activeTab}
@@ -432,18 +403,11 @@ export default function Compliance() {
         </Card>
       </div>
 
-      {showUploadModal && (
-        <UploadDocumentModal
-          onCancel={() => setShowUploadModal(false)}
-          onSubmit={handleUpload}
-        />
-      )}
-
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-2 text-sm">
-          <span>{toast}</span>
-        </div>
-      )}
+      <UploadDocumentModal
+        open={showUploadModal}
+        onOpenChange={setShowUploadModal}
+        onSubmit={handleUpload}
+      />
     </MainLayout>
   );
 }
@@ -488,14 +452,14 @@ function DocumentsView({
                     </Badge>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    {d.id} Â· {d.size} Â· uploaded by {d.uploadedBy}
+                    {d.id} · {d.size} · uploaded by {d.uploadedBy}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     Uploaded {formatDate(d.uploadedDate)}
                     {d.expiryDate && (
                       <>
                         {" "}
-                        Â· Expires{" "}
+                        · Expires{" "}
                         <span
                           className={
                             d.status === "expired"
@@ -656,7 +620,7 @@ function AuditView({ logs }: { logs: AuditLog[] }) {
             <p className="text-sm text-gray-600 mt-0.5">{log.target}</p>
             <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {formatDateTime(log.timestamp)} Â· {log.id}
+              {formatDateTime(log.timestamp)} · {log.id}
             </p>
           </div>
         </div>
@@ -670,93 +634,71 @@ function AuditView({ logs }: { logs: AuditLog[] }) {
   );
 }
 
+const DOCUMENT_CATEGORIES = toOptions(["Policy", "Certification", "Statutory", "Audit", "Contract"]);
+
+const EMPTY_DOCUMENT: UploadDocumentFormValues = {
+  name: "",
+  category: "Policy",
+  expiryDate: "",
+};
+
 function UploadDocumentModal({
-  onCancel,
+  open,
+  onOpenChange,
   onSubmit,
 }: {
-  onCancel: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSubmit: (
     data: Pick<ComplianceDocument, "name" | "category" | "expiryDate">
   ) => void;
 }) {
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState("Policy");
-  const [expiryDate, setExpiryDate] = useState("");
+  const form = useForm<UploadDocumentFormValues>({
+    resolver: zodResolver(uploadDocumentSchema),
+    defaultValues: EMPTY_DOCUMENT,
+  });
 
-  const canSubmit = name.trim();
+  useEffect(() => {
+    if (open) form.reset(EMPTY_DOCUMENT);
+  }, [open, form]);
+
+  const save = (values: UploadDocumentFormValues) =>
+    onSubmit({
+      name: values.name.trim(),
+      category: values.category,
+      expiryDate: values.expiryDate || null,
+    });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-5 text-white flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold">Upload Document</h2>
-            <p className="text-xs text-white/80">Add a compliance document.</p>
-          </div>
-          <button
-            onClick={onCancel}
-            className="p-1.5 rounded-md bg-white/20 hover:bg-white/30 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="p-5 space-y-3">
-          <FormField label="Document name">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="POSH Policy 2026.pdf"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-          </FormField>
-          <FormField label="Category">
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            >
-              <option>Policy</option>
-              <option>Certification</option>
-              <option>Statutory</option>
-              <option>Audit</option>
-              <option>Contract</option>
-            </select>
-          </FormField>
-          <FormField label="Expiry date (optional)">
-            <input
-              type="date"
-              value={expiryDate}
-              onChange={(e) => setExpiryDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-          </FormField>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
-            <Upload className="h-6 w-6 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-600">Drop a file or click to browse</p>
-            <p className="text-xs text-gray-500 mt-1">PDF, DOCX up to 10 MB</p>
-          </div>
-        </div>
-        <div className="p-4 border-t flex justify-end gap-2 bg-gray-50">
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button
-            disabled={!canSubmit}
-            onClick={() =>
-              onSubmit({
-                name,
-                category,
-                expiryDate: expiryDate || null,
-              })
-            }
-            className="bg-[#464EB8] hover:bg-[#3a3f9a]"
-          >
-            Upload
-          </Button>
-        </div>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={save}
+      title="Upload Document"
+      description="Add a compliance document."
+      submitLabel="Upload"
+    >
+      <TextField
+        control={form.control}
+        name="name"
+        label="Document name"
+        placeholder="POSH Policy 2026.pdf"
+        required
+      />
+      <SelectField
+        control={form.control}
+        name="category"
+        label="Category"
+        options={DOCUMENT_CATEGORIES}
+      />
+      <TextField control={form.control} name="expiryDate" label="Expiry date" type="date" />
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
+        <Upload className="h-6 w-6 text-gray-400 mx-auto mb-2" />
+        <p className="text-sm text-gray-600">Drop a file or click to browse</p>
+        <p className="text-xs text-gray-500 mt-1">PDF, DOCX up to 10 MB</p>
       </div>
-    </div>
+    </FormDialog>
   );
 }
 
@@ -798,47 +740,6 @@ function TabButton({
         {count}
       </span>
     </button>
-  );
-}
-
-function SummaryCard({
-  label,
-  count,
-  icon,
-  tone,
-}: {
-  label: string;
-  count: number;
-  icon: React.ReactNode;
-  tone: string;
-}) {
-  return (
-    <Card className="border-0 shadow-md">
-      <CardContent className="p-5 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {label}
-          </p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{count}</p>
-        </div>
-        <div className={`p-3 rounded-xl ${tone}`}>{icon}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function FormField({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs font-medium text-gray-700 mb-1 block">{label}</span>
-      {children}
-    </label>
   );
 }
 

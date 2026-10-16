@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Bookmark, BookmarkPlus, Check, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +11,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
+import { FormDialog } from '@/components/ui/form-dialog';
+import { TextField } from '@/components/ui/form-fields';
+import { saveFilterSchema, type SaveFilterFormValues } from '@/lib/form-schemas/tasks';
 import { cn } from '@/lib/utils';
 import { useDeleteSavedFilter, useSaveFilter, useSavedFilters } from '@/services/apis/tasks/use-saved-filters';
 import type { SavedFilter } from '@/types';
@@ -29,21 +32,16 @@ export function SavedFiltersMenu({ query, search, onApply }: SavedFiltersMenuPro
   const saveFilter = useSaveFilter();
   const deleteFilter = useDeleteSavedFilter();
   const [naming, setNaming] = useState(false);
-  const [name, setName] = useState('');
+  const form = useForm<SaveFilterFormValues>({ resolver: zodResolver(saveFilterSchema), defaultValues: { name: '' } });
+
+  useEffect(() => {
+    if (naming) form.reset({ name: '' });
+  }, [naming, form]);
 
   const hasFilters = query !== '' || search.trim() !== '';
   const active = filters.find((filter) => isSame(filter, query, search));
 
-  const save = () =>
-    saveFilter.mutate(
-      { name, query, search },
-      {
-        onSuccess: () => {
-          setNaming(false);
-          setName('');
-        },
-      },
-    );
+  const save = ({ name }: SaveFilterFormValues) => saveFilter.mutate({ name, query, search }, { onSuccess: () => setNaming(false) });
 
   return (
     <>
@@ -90,31 +88,18 @@ export function SavedFiltersMenu({ query, search, onApply }: SavedFiltersMenuPro
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={naming} onOpenChange={(open) => !saveFilter.isPending && setNaming(open)}>
-        <DialogContent className="max-w-sm bg-white">
-          <DialogHeader>
-            <DialogTitle>Save filters</DialogTitle>
-            <DialogDescription>Only you can see your saved filters. Saving with an existing name replaces it.</DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              save();
-            }}
-            className="space-y-4"
-          >
-            <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Urgent bugs this week" aria-label="Filter name" maxLength={40} autoFocus />
-            <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={() => setNaming(false)} disabled={saveFilter.isPending}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={!name.trim() || saveFilter.isPending} className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-                {saveFilter.isPending ? 'Saving…' : 'Save'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <FormDialog
+        open={naming}
+        onOpenChange={setNaming}
+        form={form}
+        onSubmit={save}
+        title="Save filters"
+        description="Only you can see your saved filters. Saving with an existing name replaces it."
+        size="sm"
+        pending={saveFilter.isPending}
+      >
+        <TextField control={form.control} name="name" label="Filter name" required placeholder="e.g. Urgent bugs this week" maxLength={40} autoFocus />
+      </FormDialog>
     </>
   );
 }

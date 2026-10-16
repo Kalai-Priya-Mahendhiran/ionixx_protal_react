@@ -4,8 +4,8 @@ import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { FormDialog } from '@/components/ui/form-dialog';
 import { PROJECTS, MODULES, TASK_TYPES, TASK_STATUS_OPTIONS } from '@/lib/sample-data/time-tracker-sample-data';
 import { todayAsDateInput } from '@/lib/utils';
 import { timeTrackerTaskFormSchema, timeTrackerTaskSchema, type TimeTrackerTaskFormValues } from '@/lib/schemas';
@@ -148,44 +148,40 @@ export function TaskDialog({ task, onClose, onSave }: TaskDialogProps) {
   const submitLabel = task ? 'Save changes' : fields.length > 1 ? 'Save tasks' : 'Save task';
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto bg-white" aria-describedby={undefined}>
-        <DialogHeader>
-          <DialogTitle className="text-xl text-gray-900">{task ? 'Edit task' : 'Add task'}</DialogTitle>
-        </DialogHeader>
+    <FormDialog
+      open
+      onOpenChange={(open) => { if (!open) onClose(); }}
+      form={form}
+      onSubmit={onSave}
+      title={task ? 'Edit task' : 'Add task'}
+      size="2xl"
+      submitLabel={submitLabel}
+    >
+      {/* Extra top space so each box's close button isn't clipped by the scrolling body */}
+      <div className="space-y-5 pt-2">
+        {fields.map((field, index) => (
+          <TaskDetailsFields
+            key={field.id}
+            index={index}
+            title={fields.length > 1 ? `Task ${index + 1}` : 'Task details'}
+            onClose={() => closeTaskDetails(index)}
+          />
+        ))}
+      </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSave)} className="space-y-5 pt-2">
-            {fields.map((field, index) => (
-              <TaskDetailsFields
-                key={field.id}
-                index={index}
-                title={fields.length > 1 ? `Task ${index + 1}` : 'Task details'}
-                onClose={() => closeTaskDetails(index)}
-              />
-            ))}
-
-            {!task && (canAddAnotherTask ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => append({ ...emptyTask })}
-                className="border-[#464EB8]/30 text-[#464EB8] hover:bg-[#464EB8]/5 hover:text-[#464EB8]"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add another task
-              </Button>
-            ) : (
-              <p className="text-sm text-gray-500">Fill in all required task details above to add another task.</p>
-            ))}
-
-            <DialogFooter className="gap-2 border-t pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-              <Button type="submit" className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">{submitLabel}</Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+      {!task && (canAddAnotherTask ? (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => append({ ...emptyTask })}
+          className="border-[#464EB8]/30 text-[#464EB8] hover:bg-[#464EB8]/5 hover:text-[#464EB8]"
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add another task
+        </Button>
+      ) : (
+        <p className="text-sm text-gray-500">Fill in all required task details above to add another task.</p>
+      ))}
+    </FormDialog>
   );
 }

@@ -1,12 +1,19 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { Check, Clock, KeyRound, Lock, Mail, Phone, Plus, Search, UserCheck, UserX, Users2, X } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Check, Clock, KeyRound, Lock, Mail, Phone, Plus, Search, UserCheck, UserX, Users2 } from "lucide-react";
 import MainLayout from "@/components/layout/main-layout";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PageHeader, headerPrimaryButtonClass } from "@/components/ui/page-header";
+import { AppDialog, FormDialog, destructiveButtonClass } from "@/components/ui/form-dialog";
+import { SelectField, TextField } from "@/components/ui/form-fields";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
+import { AppSheet } from "@/components/ui/sheet";
 import { useAuth } from "@/context/auth-context";
+import { inviteUserSchema, type InviteUserFormValues } from "@/lib/form-schemas/system";
 import { ROLE_LABELS, type UserRole } from "@/lib/mock-users";
 import { CORE_MODULES, MODULE_CATALOG, RESTRICTED_MODULES, roleHasModule } from "@/lib/modules";
 import { getActiveUsers } from "@/lib/user-directory";
@@ -65,31 +72,24 @@ export default function UserManagement() {
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <Users2 className="h-10 w-10 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">User Management</h1>
-                <p className="text-white/90 mt-1">Accounts, roles, page access and project access</p>
-              </div>
-            </div>
-            <Button onClick={() => setInviting(true)} className="bg-white text-[#464EB8] hover:bg-white/90">
+        <PageHeader
+          icon={Users2}
+          title="User Management"
+          description="Accounts, roles, page access and project access"
+          actions={
+            <Button onClick={() => setInviting(true)} className={headerPrimaryButtonClass}>
               <Plus className="h-4 w-4 mr-2" />
               Invite user
             </Button>
-          </div>
-        </div>
+          }
+        />
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <SummaryCard label="Total" count={stats.total} icon={<Users2 className="h-6 w-6 text-indigo-600" />} tone="bg-indigo-50" active={statusFilter === "all"} onClick={() => setStatusFilter("all")} />
-          <SummaryCard label="Active" count={stats.active} icon={<UserCheck className="h-6 w-6 text-green-600" />} tone="bg-green-50" active={statusFilter === "active"} onClick={() => setStatusFilter("active")} />
-          <SummaryCard label="Invited" count={stats.invited} icon={<Clock className="h-6 w-6 text-amber-600" />} tone="bg-amber-50" active={statusFilter === "invited"} onClick={() => setStatusFilter("invited")} />
-          <SummaryCard label="Deactivated" count={stats.deactivated} icon={<UserX className="h-6 w-6 text-gray-600" />} tone="bg-gray-100" active={statusFilter === "deactivated"} onClick={() => setStatusFilter("deactivated")} />
-        </div>
+        <StatGrid>
+          <StatCard label="Total" value={stats.total} icon={Users2} tone="indigo" loading={isLoading} active={statusFilter === "all"} onClick={() => setStatusFilter("all")} />
+          <StatCard label="Active" value={stats.active} icon={UserCheck} tone="green" loading={isLoading} active={statusFilter === "active"} onClick={() => setStatusFilter("active")} />
+          <StatCard label="Invited" value={stats.invited} icon={Clock} tone="amber" loading={isLoading} active={statusFilter === "invited"} onClick={() => setStatusFilter("invited")} />
+          <StatCard label="Deactivated" value={stats.deactivated} icon={UserX} tone="gray" loading={isLoading} active={statusFilter === "deactivated"} onClick={() => setStatusFilter("deactivated")} />
+        </StatGrid>
 
         <Card className="border-0 shadow-lg">
           <CardHeader>
@@ -207,20 +207,6 @@ export default function UserManagement() {
   );
 }
 
-function SummaryCard({ label, count, icon, tone, active, onClick }: { label: string; count: number; icon: React.ReactNode; tone: string; active: boolean; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} aria-pressed={active} className={cn("rounded-xl bg-white text-left shadow-md transition-shadow hover:shadow-lg", active && "ring-2 ring-[#464EB8]")}>
-      <div className="p-5 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{count}</p>
-        </div>
-        <div className={`p-3 rounded-xl ${tone}`}>{icon}</div>
-      </div>
-    </button>
-  );
-}
-
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3">
@@ -245,40 +231,56 @@ function UserDrawer({ account, isSelf, onClose }: { account: UserAccount; isSelf
   const [addProjectId, setAddProjectId] = useState("");
   const [deactivating, setDeactivating] = useState(false);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && !deactivating && onClose();
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [onClose, deactivating]);
-
   const memberOf = projects.filter((project) => project.memberIds.includes(account.id));
   const notMemberOf = projects.filter((project) => !project.memberIds.includes(account.id));
   const groups = [...new Set(MODULE_CATALOG.map((module) => module.group))];
   const inactive = account.status === "deactivated";
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/40" onClick={onClose} />
-      <aside role="dialog" aria-label={`Manage ${account.name}`} className="w-full max-w-lg bg-white shadow-2xl flex flex-col">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white relative">
-          <button onClick={onClose} className="absolute top-4 right-4 p-1.5 rounded-md bg-white/20 hover:bg-white/30 transition-colors" aria-label="Close">
-            <X className="h-4 w-4" />
-          </button>
-          <div className="flex items-center gap-4">
-            <Avatar className="w-16 h-16 border-4 border-white/30">
-              <AvatarFallback className="bg-white/20 text-white text-xl font-bold">{getInitials(account.name)}</AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <h2 className="text-xl font-bold">{account.name}</h2>
-              <p className="text-sm text-white/90">
-                {account.designation} · {account.department}
-              </p>
-              <Badge className="mt-2 bg-white/20 text-white border-white/30">{STATUS_LABEL[account.status]}</Badge>
+    <>
+      <AppSheet
+        open
+        onOpenChange={(open) => !open && !deactivating && onClose()}
+        title={`Manage ${account.name}`}
+        description={`${account.designation} · ${account.department}`}
+        width="lg"
+        header={
+          <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white">
+            <div className="flex items-center gap-4">
+              <Avatar className="w-16 h-16 border-4 border-white/30">
+                <AvatarFallback className="bg-white/20 text-white text-xl font-bold">{getInitials(account.name)}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold">{account.name}</h2>
+                <p className="text-sm text-white/90">
+                  {account.designation} · {account.department}
+                </p>
+                <Badge className="mt-2 bg-white/20 text-white border-white/30">{STATUS_LABEL[account.status]}</Badge>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-6 space-y-7">
+        }
+        footer={
+          <>
+            <Button variant="outline" className="flex-1" disabled={inactive || resetPassword.isPending} onClick={() => resetPassword.mutate(account.id)}>
+              <KeyRound className="h-4 w-4 mr-1" />
+              Reset password
+            </Button>
+            {account.status === "active" ? (
+              <Button variant="outline" disabled={isSelf} title={isSelf ? "You can't deactivate your own account" : undefined} onClick={() => setDeactivating(true)} className="flex-1 border-red-300 text-red-600 hover:bg-red-50">
+                <UserX className="h-4 w-4 mr-1" />
+                Deactivate
+              </Button>
+            ) : (
+              <Button variant="outline" disabled={activate.isPending} onClick={() => activate.mutate(account.id)} className="flex-1 border-green-300 text-green-700 hover:bg-green-50">
+                <UserCheck className="h-4 w-4 mr-1" />
+                {account.status === "invited" ? "Activate now" : "Reactivate"}
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div className="space-y-7">
           <Section title="Contact">
             <p className="flex items-center gap-2 text-sm text-gray-800">
               <Mail className="h-4 w-4 text-gray-400" />
@@ -398,27 +400,9 @@ function UserDrawer({ account, isSelf, onClose }: { account: UserAccount; isSelf
             )}
           </Section>
         </div>
-
-        <div className="p-4 border-t flex gap-2">
-          <Button variant="outline" className="flex-1" disabled={inactive || resetPassword.isPending} onClick={() => resetPassword.mutate(account.id)}>
-            <KeyRound className="h-4 w-4 mr-1" />
-            Reset password
-          </Button>
-          {account.status === "active" ? (
-            <Button variant="outline" disabled={isSelf} title={isSelf ? "You can't deactivate your own account" : undefined} onClick={() => setDeactivating(true)} className="flex-1 border-red-300 text-red-600 hover:bg-red-50">
-              <UserX className="h-4 w-4 mr-1" />
-              Deactivate
-            </Button>
-          ) : (
-            <Button variant="outline" disabled={activate.isPending} onClick={() => activate.mutate(account.id)} className="flex-1 border-green-300 text-green-700 hover:bg-green-50">
-              <UserCheck className="h-4 w-4 mr-1" />
-              {account.status === "invited" ? "Activate now" : "Reactivate"}
-            </Button>
-          )}
-        </div>
-      </aside>
+      </AppSheet>
       {deactivating && <DeactivateDialog account={account} onClose={() => setDeactivating(false)} />}
-    </div>
+    </>
   );
 }
 
@@ -432,130 +416,93 @@ function DeactivateDialog({ account, onClose }: { account: UserAccount; onClose:
   const hasTasks = !!openWork && openWork.tasks > 0;
 
   return (
-    <Dialog open onOpenChange={(open) => !open && !deactivate.isPending && onClose()}>
-      <DialogContent className="max-w-md bg-white">
-        <DialogHeader>
-          <DialogTitle>Deactivate {account.name}?</DialogTitle>
-          <DialogDescription>They won't be able to sign in and won't appear in any picker. Their history stays, and you can reactivate them later.</DialogDescription>
-        </DialogHeader>
-        {isLoading ? (
-          <div className="h-16 animate-pulse rounded-lg bg-gray-100" />
-        ) : (
-          <div className="space-y-3 text-sm">
-            <p className="text-gray-700">
-              Open work: <b>{openWork?.tasks ?? 0}</b> {openWork?.tasks === 1 ? "task" : "tasks"}
-              {!!openWork?.requests && (
-                <>
-                  , <b>{openWork.requests}</b> Admin {openWork.requests === 1 ? "request" : "requests"} (these go back to the queue)
-                </>
-              )}
-            </p>
-            {hasTasks && (
-              <label className="block space-y-1">
-                <span className="text-gray-700">Hand their open tasks to</span>
-                <select value={reassignToId} onChange={(event) => setReassignToId(event.target.value)} className={fieldClass}>
-                  <option value="">Leave them assigned (reassign later)</option>
-                  {candidates.map((person) => (
-                    <option key={person.id} value={person.id}>
-                      {person.name} · {person.designation}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-          </div>
-        )}
-        <DialogFooter className="gap-2">
+    <AppDialog
+      open
+      onOpenChange={(next) => !next && onClose()}
+      busy={deactivate.isPending}
+      title={`Deactivate ${account.name}?`}
+      description="They won't be able to sign in and won't appear in any picker. Their history stays, and you can reactivate them later."
+      footer={
+        <>
           <Button variant="outline" onClick={onClose} disabled={deactivate.isPending}>
             Cancel
           </Button>
           <Button
             disabled={isLoading || deactivate.isPending}
             onClick={() => deactivate.mutate({ userId: account.id, reassignToId: reassignToId || undefined }, { onSuccess: onClose })}
-            className="bg-red-600 text-white hover:bg-red-700"
+            className={destructiveButtonClass}
           >
             {deactivate.isPending ? "Deactivating…" : "Deactivate"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      }
+    >
+      {isLoading ? (
+        <div className="h-16 animate-pulse rounded-lg bg-gray-100" />
+      ) : (
+        <div className="space-y-3 text-sm">
+          <p className="text-gray-700">
+            Open work: <b>{openWork?.tasks ?? 0}</b> {openWork?.tasks === 1 ? "task" : "tasks"}
+            {!!openWork?.requests && (
+              <>
+                , <b>{openWork.requests}</b> Admin {openWork.requests === 1 ? "request" : "requests"} (these go back to the queue)
+              </>
+            )}
+          </p>
+          {hasTasks && (
+            <label className="block space-y-1">
+              <span className="text-gray-700">Hand their open tasks to</span>
+              <select value={reassignToId} onChange={(event) => setReassignToId(event.target.value)} className={fieldClass}>
+                <option value="">Leave them assigned (reassign later)</option>
+                {candidates.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.name} · {person.designation}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+      )}
+    </AppDialog>
   );
 }
 
 /* ---------- Invite ---------- */
 
-const EMPTY_INVITE = { name: "", email: "", role: "employee" as UserRole, department: "", designation: "", managerId: "" };
+const EMPTY_INVITE: InviteUserFormValues = { name: "", email: "", role: "employee", department: "", designation: "", managerId: "" };
+const ROLE_OPTIONS = ROLES.map((role) => ({ value: role, label: ROLE_LABELS[role] }));
 
 function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const invite = useInviteUser();
-  const [form, setForm] = useState(EMPTY_INVITE);
+  const form = useForm<InviteUserFormValues>({ resolver: zodResolver(inviteUserSchema), defaultValues: EMPTY_INVITE });
   useEffect(() => {
-    if (open) setForm(EMPTY_INVITE);
-  }, [open]);
+    if (open) form.reset(EMPTY_INVITE);
+  }, [open, form]);
   const managers = getActiveUsers().filter((person) => person.role === "project_manager" || person.role === "hr" || person.role === "admin" || person.role === "executive");
-  const set = (changes: Partial<typeof form>) => setForm((current) => ({ ...current, ...changes }));
+  const managerOptions = [{ value: "", label: "None" }, ...managers.map((person) => ({ value: person.id, label: person.name }))];
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !invite.isPending && onOpenChange(next)}>
-      <DialogContent className="max-w-lg bg-white">
-        <DialogHeader>
-          <DialogTitle>Invite a user</DialogTitle>
-          <DialogDescription>They get an email to set a password. The account shows as Invited until they sign in.</DialogDescription>
-        </DialogHeader>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            invite.mutate({ ...form, managerId: form.managerId || undefined }, { onSuccess: () => onOpenChange(false) });
-          }}
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2"
-        >
-          <label className="space-y-1 text-sm sm:col-span-2">
-            <span className="font-medium text-gray-700">Full name *</span>
-            <input value={form.name} onChange={(event) => set({ name: event.target.value })} required className={fieldClass} />
-          </label>
-          <label className="space-y-1 text-sm sm:col-span-2">
-            <span className="font-medium text-gray-700">Work email *</span>
-            <input type="email" value={form.email} onChange={(event) => set({ email: event.target.value })} required placeholder="name@ionixx.com" className={fieldClass} />
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700">Role *</span>
-            <select value={form.role} onChange={(event) => set({ role: event.target.value as UserRole })} className={fieldClass}>
-              {ROLES.map((role) => (
-                <option key={role} value={role}>
-                  {ROLE_LABELS[role]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700">Reporting manager</span>
-            <select value={form.managerId} onChange={(event) => set({ managerId: event.target.value })} className={fieldClass}>
-              <option value="">None</option>
-              {managers.map((person) => (
-                <option key={person.id} value={person.id}>
-                  {person.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700">Department</span>
-            <input value={form.department} onChange={(event) => set({ department: event.target.value })} placeholder="e.g. Engineering" className={fieldClass} />
-          </label>
-          <label className="space-y-1 text-sm">
-            <span className="font-medium text-gray-700">Designation</span>
-            <input value={form.designation} onChange={(event) => set({ designation: event.target.value })} placeholder="e.g. Software Developer" className={fieldClass} />
-          </label>
-          <DialogFooter className="gap-2 sm:col-span-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={invite.isPending}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={invite.isPending} className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-              {invite.isPending ? "Sending…" : "Send invitation"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={(values) => invite.mutate({ ...values, managerId: values.managerId || undefined }, { onSuccess: () => onOpenChange(false) })}
+      title="Invite a user"
+      description="They get an email to set a password. The account shows as Invited until they sign in."
+      size="lg"
+      submitLabel="Send invitation"
+      pendingLabel="Sending…"
+      pending={invite.isPending}
+    >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <TextField control={form.control} name="name" label="Full name" className="sm:col-span-2" required />
+        <TextField control={form.control} name="email" label="Work email" type="email" placeholder="name@ionixx.com" className="sm:col-span-2" required />
+        <SelectField control={form.control} name="role" label="Role" options={ROLE_OPTIONS} />
+        <SelectField control={form.control} name="managerId" label="Reporting manager" options={managerOptions} placeholder="None" required={false} />
+        <TextField control={form.control} name="department" label="Department" placeholder="e.g. Engineering" />
+        <TextField control={form.control} name="designation" label="Designation" placeholder="e.g. Software Developer" />
+      </div>
+    </FormDialog>
   );
 }

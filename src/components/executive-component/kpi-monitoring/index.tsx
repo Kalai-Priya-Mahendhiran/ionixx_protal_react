@@ -16,7 +16,6 @@ import {
   Award,
   DollarSign,
   Zap,
-  X,
   ChevronRight,
 } from "lucide-react";
 import MainLayout from "@/components/layout/main-layout";
@@ -27,8 +26,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader, headerPrimaryButtonClass } from "@/components/ui/page-header";
+import { AppSheet } from "@/components/ui/sheet";
 import { KPI_STATUS_CONFIG } from "@/lib/constants";
 
 type Status = "on-track" | "at-risk" | "off-track";
@@ -245,14 +247,14 @@ const alerts: AlertItem[] = [
     id: "alt-1",
     kpiName: "Time-to-Hire",
     severity: "high",
-    message: "Engineering exceeded target by 12 days â€” recruitment review recommended.",
+    message: "Engineering exceeded target by 12 days — recruitment review recommended.",
     raisedAt: "2026-05-07",
   },
   {
     id: "alt-2",
     kpiName: "Attrition Rate",
     severity: "medium",
-    message: "Sales department attrition at 2.4% â€” above 2% threshold.",
+    message: "Sales department attrition at 2.4% — above 2% threshold.",
     raisedAt: "2026-05-06",
   },
   {
@@ -321,59 +323,30 @@ export default function KpiMonitoring() {
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <Gauge className="h-10 w-10 text-white" />
+        <PageHeader
+          icon={Gauge}
+          title="KPI Monitoring"
+          description="Track workforce KPIs — attrition, productivity, and more"
+          actions={
+            <>
+              <div className="rounded-md border border-white/30 bg-white/15 px-3 py-1">
+                <p className="text-[10px] text-white/80 uppercase tracking-wider">Overall Health</p>
+                <p className="text-lg font-bold leading-tight">{overallHealth}%</p>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold">KPI Monitoring</h1>
-                <p className="text-white/90 mt-1">
-                  Track workforce KPIs â€” attrition, productivity, and more
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="bg-white/15 backdrop-blur-sm rounded-lg px-4 py-2.5">
-                <p className="text-xs text-white/80 uppercase tracking-wider">Overall Health</p>
-                <p className="text-2xl font-bold">{overallHealth}%</p>
-              </div>
-              <Button className="bg-white text-[#464EB8] hover:bg-white/90">
+              <Button className={headerPrimaryButtonClass}>
                 <Bell className="h-4 w-4 mr-2" />
                 Alerts ({alerts.length})
               </Button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <SummaryCard
-            label="Total KPIs"
-            count={counts.total}
-            icon={<Target className="h-6 w-6 text-indigo-600" />}
-            tone="bg-indigo-50"
-          />
-          <SummaryCard
-            label="On Track"
-            count={counts.onTrack}
-            icon={<CheckCircle2 className="h-6 w-6 text-green-600" />}
-            tone="bg-green-50"
-          />
-          <SummaryCard
-            label="At Risk"
-            count={counts.atRisk}
-            icon={<AlertTriangle className="h-6 w-6 text-amber-600" />}
-            tone="bg-amber-50"
-          />
-          <SummaryCard
-            label="Off Track"
-            count={counts.offTrack}
-            icon={<Zap className="h-6 w-6 text-red-600" />}
-            tone="bg-red-50"
-          />
-        </div>
+        <StatGrid>
+          <StatCard icon={Target} label="Total KPIs" value={counts.total} tone="indigo" />
+          <StatCard icon={CheckCircle2} label="On Track" value={counts.onTrack} tone="green" />
+          <StatCard icon={AlertTriangle} label="At Risk" value={counts.atRisk} tone="amber" />
+          <StatCard icon={Zap} label="Off Track" value={counts.offTrack} tone="red" />
+        </StatGrid>
 
         <Card className="border-0 shadow-lg">
           <CardHeader>
@@ -387,8 +360,8 @@ export default function KpiMonitoring() {
                   Click any KPI to see department-level drilldown
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <div className="flex min-w-0 max-w-full items-center gap-2 flex-wrap">
+                <div className="flex max-w-full items-center gap-1 overflow-x-auto bg-gray-100 rounded-lg p-1 [&>button]:shrink-0">
                   {(["all", "people", "performance", "financial", "operations"] as Category[]).map(
                     (c) => (
                       <button
@@ -546,30 +519,6 @@ export default function KpiMonitoring() {
   );
 }
 
-function SummaryCard({
-  label,
-  count,
-  icon,
-  tone,
-}: {
-  label: string;
-  count: number;
-  icon: React.ReactNode;
-  tone: string;
-}) {
-  return (
-    <Card className="border-0 shadow-md">
-      <CardContent className="p-5 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{count}</p>
-        </div>
-        <div className={`p-3 rounded-xl ${tone}`}>{icon}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function KpiTile({ kpi, onClick }: { kpi: Kpi; onClick: () => void }) {
   const cfg = KPI_STATUS_CONFIG[kpi.status];
   const catCfg = categoryConfig[kpi.category];
@@ -692,17 +641,14 @@ function KpiDrilldown({ kpi, onClose }: { kpi: Kpi; onClose: () => void }) {
     : Math.min(100, (kpi.target / kpi.current) * 100);
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/40" onClick={onClose} />
-      <aside className="w-full max-w-lg bg-white shadow-2xl flex flex-col">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white relative">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-md bg-white/20 hover:bg-white/30 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
+    <AppSheet
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={kpi.name}
+      description={kpi.description}
+      width="lg"
+      header={
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 pr-14 text-white">
           <span className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded bg-white/20 text-white`}>
             {catCfg.icon}
             {catCfg.label}
@@ -710,85 +656,9 @@ function KpiDrilldown({ kpi, onClose }: { kpi: Kpi; onClose: () => void }) {
           <h2 className="text-2xl font-bold mt-2">{kpi.name}</h2>
           <p className="text-sm text-white/90 mt-1">{kpi.description}</p>
         </div>
-
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <div className="grid grid-cols-3 gap-4">
-            <Stat label="Current" value={`${kpi.current}${kpi.unit}`} />
-            <Stat label="Target" value={`${kpi.target}${kpi.unit}`} />
-            <Stat
-              label="Status"
-              value={cfg.label}
-              valueClass={
-                kpi.status === "on-track"
-                  ? "text-green-600"
-                  : kpi.status === "at-risk"
-                  ? "text-amber-600"
-                  : "text-red-600"
-              }
-            />
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-2">
-              Progress to target
-            </p>
-            <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-              <div className={`h-full ${cfg.bar}`} style={{ width: `${progress}%` }} />
-            </div>
-            <p className="text-xs text-gray-600 mt-2">
-              {progress.toFixed(0)}% of target â€” {kpi.higherIsBetter ? "higher is better" : "lower is better"}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-3">
-              Last 6 periods
-            </p>
-            <SparklineLarge values={kpi.history} color={getStatusHex(kpi.status)} />
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-3">
-              Department drilldown
-            </p>
-            <ul className="space-y-2">
-              {kpi.drilldown.map((d) => {
-                const dcfg = KPI_STATUS_CONFIG[d.status];
-                return (
-                  <li
-                    key={d.label}
-                    className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
-                  >
-                    <span className="text-sm font-medium text-gray-900">{d.label}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-gray-700">
-                        {d.value}
-                        {kpi.unit}
-                      </span>
-                      <Badge className={dcfg.tone}>{dcfg.label}</Badge>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 pt-2">
-            <div>
-              <p className="text-xs text-gray-500">Owner</p>
-              <p className="text-sm font-medium text-gray-900 mt-0.5">{kpi.owner}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Last updated</p>
-              <p className="text-sm font-medium text-gray-900 mt-0.5 flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {formatDate(kpi.lastUpdated)}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 border-t flex gap-2 bg-gray-50">
+      }
+      footer={
+        <>
           <Button variant="outline" className="flex-1">
             Configure alert
           </Button>
@@ -796,9 +666,86 @@ function KpiDrilldown({ kpi, onClose }: { kpi: Kpi; onClose: () => void }) {
             View full report
             <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
+        </>
+      }
+    >
+      <div className="space-y-6">
+        <div className="grid grid-cols-3 gap-4">
+          <Stat label="Current" value={`${kpi.current}${kpi.unit}`} />
+          <Stat label="Target" value={`${kpi.target}${kpi.unit}`} />
+          <Stat
+            label="Status"
+            value={cfg.label}
+            valueClass={
+              kpi.status === "on-track"
+                ? "text-green-600"
+                : kpi.status === "at-risk"
+                ? "text-amber-600"
+                : "text-red-600"
+            }
+          />
         </div>
-      </aside>
-    </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-2">
+            Progress to target
+          </p>
+          <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+            <div className={`h-full ${cfg.bar}`} style={{ width: `${progress}%` }} />
+          </div>
+          <p className="text-xs text-gray-600 mt-2">
+            {progress.toFixed(0)}% of target — {kpi.higherIsBetter ? "higher is better" : "lower is better"}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-3">
+            Last 6 periods
+          </p>
+          <SparklineLarge values={kpi.history} color={getStatusHex(kpi.status)} />
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold uppercase text-gray-500 tracking-wider mb-3">
+            Department drilldown
+          </p>
+          <ul className="space-y-2">
+            {kpi.drilldown.map((d) => {
+              const dcfg = KPI_STATUS_CONFIG[d.status];
+              return (
+                <li
+                  key={d.label}
+                  className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                >
+                  <span className="text-sm font-medium text-gray-900">{d.label}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-gray-700">
+                      {d.value}
+                      {kpi.unit}
+                    </span>
+                    <Badge className={dcfg.tone}>{dcfg.label}</Badge>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 pt-2">
+          <div>
+            <p className="text-xs text-gray-500">Owner</p>
+            <p className="text-sm font-medium text-gray-900 mt-0.5">{kpi.owner}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">Last updated</p>
+            <p className="text-sm font-medium text-gray-900 mt-0.5 flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {formatDate(kpi.lastUpdated)}
+            </p>
+          </div>
+        </div>
+      </div>
+    </AppSheet>
   );
 }
 

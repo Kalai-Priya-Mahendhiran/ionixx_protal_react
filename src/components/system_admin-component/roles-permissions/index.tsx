@@ -2,6 +2,7 @@
 import { Check, Lock, Minus } from "lucide-react";
 import MainLayout from "@/components/layout/main-layout";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { PermissionsSettingsSection } from "@/components/employee-component/tasks/settings/permissions-settings";
 import { ROLE_LABELS, type UserRole } from "@/lib/mock-users";
 import { CORE_MODULES, MODULE_CATALOG, RESTRICTED_MODULES, roleHasModule } from "@/lib/modules";
@@ -81,13 +82,11 @@ export default function RolesPermissions() {
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10">
-            <h1 className="text-3xl font-bold">Roles & Permissions</h1>
-            <p className="text-white/90 mt-1">What each of the six roles can do, and which pages they see</p>
-          </div>
-        </div>
+        <PageHeader
+          icon={Lock}
+          title="Roles & Permissions"
+          description="What each of the six roles can do, and which pages they see"
+        />
 
         <div role="tablist" aria-label="Roles and permissions" className="flex gap-1 border-b border-gray-200">
           {(

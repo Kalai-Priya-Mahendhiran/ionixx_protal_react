@@ -1,4 +1,7 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
   Settings,
   ToggleRight,
@@ -6,7 +9,6 @@ import {
   Sliders,
   Save,
   RotateCcw,
-  X,
   Plus,
   Pencil,
   Trash2,
@@ -27,7 +29,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { FormDialog } from "@/components/ui/form-dialog";
+import { CheckboxField, TextareaField, TextField } from "@/components/ui/form-fields";
 import { TIMEZONES, WEEK_DAYS, MONTHS } from "@/lib/constants";
+import { workflowRuleSchema, type WorkflowRuleFormValues } from "@/lib/form-schemas/system";
 
 type TabKey = "modules" | "workflows" | "defaults";
 
@@ -98,7 +104,7 @@ const initialModules: ModuleToggle[] = [
   {
     key: "performance",
     label: "Performance Reviews",
-    description: "Goals, ratings, 360Â° feedback cycles.",
+    description: "Goals, ratings, 360° feedback cycles.",
     enabled: true,
     category: "Operations",
   },
@@ -129,7 +135,7 @@ const initialWorkflows: WorkflowRule[] = [
   {
     id: "WFL-001",
     name: "Auto-approve casual leave under 2 days",
-    trigger: "Leave request submitted (Casual, â‰¤ 2 days)",
+    trigger: "Leave request submitted (Casual, ≤ 2 days)",
     action: "Approve automatically and notify reporting manager",
     enabled: true,
     updatedOn: "2026-04-14",
@@ -187,12 +193,6 @@ export default function SystemConfig() {
   const [defaultsDraft, setDefaultsDraft] = useState<DefaultsState>(initialDefaults);
   const [editingWorkflow, setEditingWorkflow] = useState<WorkflowRule | null>(null);
   const [showWorkflowModal, setShowWorkflowModal] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-
-  const showToast = (msg: string) => {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 2500);
-  };
 
   const stats = useMemo(() => {
     const enabledModules = modules.filter((m) => m.enabled).length;
@@ -219,7 +219,7 @@ export default function SystemConfig() {
       prev.map((m) => (m.key === key ? { ...m, enabled: !m.enabled } : m))
     );
     const m = modules.find((x) => x.key === key);
-    if (m) showToast(`${m.label} ${!m.enabled ? "enabled" : "disabled"}.`);
+    if (m) toast.success(`${m.label} ${!m.enabled ? "enabled" : "disabled"}.`);
   };
 
   const toggleWorkflow = (id: string) => {
@@ -236,7 +236,7 @@ export default function SystemConfig() {
           w.id === editingWorkflow.id ? { ...w, ...data, updatedOn: today } : w
         )
       );
-      showToast(`Workflow "${data.name}" updated.`);
+      toast.success(`Workflow "${data.name}" updated.`);
     } else {
       const newRule: WorkflowRule = {
         id: `WFL-${String(workflows.length + 1).padStart(3, "0")}`,
@@ -244,7 +244,7 @@ export default function SystemConfig() {
         updatedOn: today,
       };
       setWorkflows((prev) => [newRule, ...prev]);
-      showToast(`Workflow "${data.name}" created.`);
+      toast.success(`Workflow "${data.name}" created.`);
     }
     setShowWorkflowModal(false);
     setEditingWorkflow(null);
@@ -254,7 +254,7 @@ export default function SystemConfig() {
     const w = workflows.find((x) => x.id === id);
     if (!w) return;
     setWorkflows((prev) => prev.filter((x) => x.id !== id));
-    showToast(`Workflow "${w.name}" removed.`);
+    toast.success(`Workflow "${w.name}" removed.`);
   };
 
   const defaultsDirty = useMemo(
@@ -264,7 +264,7 @@ export default function SystemConfig() {
 
   const saveDefaults = () => {
     setDefaults(defaultsDraft);
-    showToast("System defaults saved.");
+    toast.success("System defaults saved.");
   };
 
   const resetDefaults = () => {
@@ -274,21 +274,16 @@ export default function SystemConfig() {
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-              <Settings className="h-10 w-10 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">System Configuration</h1>
-              <p className="text-white/90 mt-1">
-                {stats.enabledModules}/{stats.totalModules} modules Â·{" "}
-                {stats.enabledWorkflows}/{stats.totalWorkflows} workflows enabled
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          icon={Settings}
+          title="System Configuration"
+          description={
+            <>
+              {stats.enabledModules}/{stats.totalModules} modules ·{" "}
+              {stats.enabledWorkflows}/{stats.totalWorkflows} workflows enabled
+            </>
+          }
+        />
 
         <div className="flex flex-wrap gap-2">
           <TabButton
@@ -444,7 +439,7 @@ export default function SystemConfig() {
                 ))}
                 {workflows.length === 0 && (
                   <p className="text-sm text-gray-500 text-center py-10">
-                    No workflow rules yet â€” add one to get started.
+                    No workflow rules yet — add one to get started.
                   </p>
                 )}
               </div>
@@ -654,22 +649,15 @@ export default function SystemConfig() {
         )}
       </div>
 
-      {showWorkflowModal && (
-        <WorkflowModal
-          initial={editingWorkflow}
-          onCancel={() => {
-            setShowWorkflowModal(false);
-            setEditingWorkflow(null);
-          }}
-          onSubmit={saveWorkflow}
-        />
-      )}
-
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-xl text-sm">
-          {toast}
-        </div>
-      )}
+      <WorkflowModal
+        open={showWorkflowModal}
+        initial={editingWorkflow}
+        onOpenChange={(open) => {
+          setShowWorkflowModal(open);
+          if (!open) setEditingWorkflow(null);
+        }}
+        onSubmit={saveWorkflow}
+      />
     </MainLayout>
   );
 }
@@ -759,97 +747,59 @@ function Field({
   );
 }
 
+const EMPTY_WORKFLOW: WorkflowRuleFormValues = {
+  name: "",
+  trigger: "",
+  action: "",
+  enabled: true,
+};
+
 function WorkflowModal({
+  open,
   initial,
-  onCancel,
+  onOpenChange,
   onSubmit,
 }: {
+  open: boolean;
   initial: WorkflowRule | null;
-  onCancel: () => void;
+  onOpenChange: (open: boolean) => void;
   onSubmit: (data: Omit<WorkflowRule, "id" | "updatedOn">) => void;
 }) {
-  const [name, setName] = useState(initial?.name ?? "");
-  const [trigger, setTrigger] = useState(initial?.trigger ?? "");
-  const [action, setAction] = useState(initial?.action ?? "");
-  const [enabled, setEnabled] = useState(initial?.enabled ?? true);
+  const form = useForm<WorkflowRuleFormValues>({
+    resolver: zodResolver(workflowRuleSchema),
+    defaultValues: EMPTY_WORKFLOW,
+  });
 
-  const canSubmit = name.trim() && trigger.trim() && action.trim();
+  useEffect(() => {
+    if (!open) return;
+    form.reset(
+      initial
+        ? {
+            name: initial.name,
+            trigger: initial.trigger,
+            action: initial.action,
+            enabled: initial.enabled,
+          }
+        : EMPTY_WORKFLOW
+    );
+  }, [open, initial, form]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-5 text-white flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold">
-              {initial ? "Edit workflow" : "New workflow rule"}
-            </h2>
-            <p className="text-xs text-white/80">
-              Define a trigger and the action to take.
-            </p>
-          </div>
-          <button
-            onClick={onCancel}
-            className="p-1.5 rounded-md bg-white/20 hover:bg-white/30 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="p-5 space-y-3">
-          <Field label="Rule name">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-          </Field>
-          <Field label="Trigger (when)">
-            <textarea
-              value={trigger}
-              onChange={(e) => setTrigger(e.target.value)}
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-          </Field>
-          <Field label="Action (then)">
-            <textarea
-              value={action}
-              onChange={(e) => setAction(e.target.value)}
-              rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-          </Field>
-          <label className="flex items-center gap-2 text-sm text-gray-700 mt-2">
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={(e) => setEnabled(e.target.checked)}
-              className="h-4 w-4"
-            />
-            Active immediately
-          </label>
-        </div>
-        <div className="p-4 border-t flex justify-end gap-2 bg-gray-50">
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button
-            disabled={!canSubmit}
-            onClick={() =>
-              onSubmit({
-                name: name.trim(),
-                trigger: trigger.trim(),
-                action: action.trim(),
-                enabled,
-              })
-            }
-            className="bg-[#464EB8] hover:bg-[#3a3f9a]"
-          >
-            {initial ? "Save changes" : "Create rule"}
-          </Button>
-        </div>
-      </div>
-    </div>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={onSubmit}
+      title={initial ? "Edit workflow" : "New workflow rule"}
+      description="Define a trigger and the action to take."
+      size="lg"
+      submitLabel={initial ? "Save changes" : "Create rule"}
+    >
+      <TextField control={form.control} name="name" label="Rule name" required />
+      <TextareaField control={form.control} name="trigger" label="Trigger (when)" rows={2} required />
+      <TextareaField control={form.control} name="action" label="Action (then)" rows={2} required />
+      <CheckboxField control={form.control} name="enabled" label="Active immediately" />
+    </FormDialog>
   );
 }
 

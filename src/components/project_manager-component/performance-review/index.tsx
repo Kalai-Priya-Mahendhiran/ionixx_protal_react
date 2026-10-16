@@ -12,6 +12,7 @@ import MainLayout from "@/components/layout/main-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { performanceProfiles, type PerformanceProfile, type EmployeeGoal } from "@/lib/team-data";
 
@@ -78,20 +79,11 @@ export default function PerformanceReview() {
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-              <Star className="h-10 w-10 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">Performance Review</h1>
-              <p className="text-white/90 mt-1">
-                {summary.total} reviews Â· {summary.submitted} submitted Â· {summary.inReview} in review Â· {summary.draft} draft
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          icon={Star}
+          title="Performance Review"
+          description={`${summary.total} reviews · ${summary.submitted} submitted · ${summary.inReview} in review · ${summary.draft} draft`}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="border-0 shadow-lg lg:col-span-1">
@@ -167,7 +159,7 @@ export default function PerformanceReview() {
                         <div>
                           <CardTitle className="text-xl">{selected.employeeName}</CardTitle>
                           <CardDescription>
-                            {selected.designation} Â· {selected.reviewCycle}
+                            {selected.designation} · {selected.reviewCycle}
                           </CardDescription>
                         </div>
                       </div>
@@ -180,7 +172,7 @@ export default function PerformanceReview() {
                     <div className="grid grid-cols-3 gap-3">
                       <MiniStat
                         label="Self rating"
-                        value={selected.selfRating !== null ? `${selected.selfRating}/5` : "â€”"}
+                        value={selected.selfRating !== null ? `${selected.selfRating}/5` : "—"}
                       />
                       <MiniStat
                         label="Manager rating"
@@ -345,7 +337,7 @@ function RatingPicker({
         })}
         {value !== null && (
           <span className="ml-3 text-sm font-medium text-gray-700">
-            {value}/5 Â· {labels[value - 1]}
+            {value}/5 · {labels[value - 1]}
           </span>
         )}
       </div>

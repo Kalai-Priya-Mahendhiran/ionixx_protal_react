@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, Ban, CheckCircle2, CircleDot, Eye, SearchX } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Ban, CheckCircle2, CircleDot, Eye, PieChart, SearchX } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
+import { StatCard, StatGrid } from '@/components/ui/stat-card';
 import { useAuth } from '@/context/auth-context';
 import { ROUTES } from '@/lib/constants';
 import { canOpenTaskView } from '@/lib/permissions/task-permissions';
@@ -14,7 +15,7 @@ import { UserChip } from '../sections/task-badges';
 import { taskPath } from '../sections/task-link';
 import { ChartCard, ProgressBar } from './charts';
 import { ReportError, ReportSkeleton } from './executive-dashboard';
-import { BurndownCard, HeroStat, RiskTable, STATUS_COLORS, StatTile, VelocityCard } from './report-widgets';
+import { BurndownCard, RiskTable, VelocityCard } from './report-widgets';
 
 /*
  * Read-only summary of one project, opened from the executive dashboard (/tasks/project/IXP).
@@ -98,21 +99,13 @@ export default function ProjectSummary() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-              <HeroStat
-                label="Complete"
-                value={`${report.summary.percentComplete}%`}
-                detail={
-                  <>
-                    {report.summary.done} of {report.summary.total} work items done
-                  </>
-                }
-              />
-              <StatTile label="Open" value={report.summary.open} icon={CircleDot} iconColor="#6b7280" hint="Not done yet" />
-              <StatTile label="Overdue" value={report.summary.overdue} icon={AlertTriangle} iconColor={STATUS_COLORS.critical} hint="Past due date, not done" />
-              <StatTile label="Blocked" value={report.summary.blocked} icon={Ban} iconColor={STATUS_COLORS.serious} hint="Flagged as blocked" />
-              <StatTile label="Finished this week" value={report.finishedThisWeek} icon={CheckCircle2} iconColor={STATUS_COLORS.good} hint="Done in the last 7 days" />
-            </div>
+            <StatGrid>
+              <StatCard icon={PieChart} label="Complete" value={`${report.summary.percentComplete}%`} tone="indigo" hint={`${report.summary.done} of ${report.summary.total} done`} />
+              <StatCard icon={CircleDot} label="Open" value={report.summary.open} tone="gray" hint="Not done yet" />
+              <StatCard icon={AlertTriangle} label="Overdue" value={report.summary.overdue} tone="red" hint="Past due date" />
+              <StatCard icon={Ban} label="Blocked" value={report.summary.blocked} tone="orange" hint="Flagged" />
+              <StatCard icon={CheckCircle2} label="Finished this week" value={report.finishedThisWeek} tone="green" hint="Last 7 days" />
+            </StatGrid>
 
             <div className="grid gap-6 lg:grid-cols-2">
               <ChartCard

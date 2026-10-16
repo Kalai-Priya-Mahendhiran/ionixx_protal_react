@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Timer } from 'lucide-react';
+import { LifeBuoy, Plus, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PageHeader, headerPrimaryButtonClass, headerSecondaryButtonClass } from '@/components/ui/page-header';
 import MainLayout from '@/components/layout/main-layout';
 import { useAuth } from '@/context/auth-context';
 import { DEFAULT_DESK_SETTINGS } from '@/lib/desk-config';
@@ -47,26 +48,25 @@ function ServiceDeskPage({ user }: { user: PermissionUser }) {
   return (
     <MainLayout>
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{isDesk ? 'Service Desk' : 'My Requests'}</h1>
-            <p className="mt-2 text-gray-600">
-              {isDesk ? 'Office operations requests: assets, facilities, supplies, transport, travel and visitors' : 'Ask the Admin team for anything office-related and follow it here'}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {canConfigureDesk(user) && (
-              <Button variant="outline" onClick={() => setSlaOpen(true)} className="gap-2">
-                <Timer className="h-4 w-4" />
-                SLA targets
+        <PageHeader
+          icon={LifeBuoy}
+          title={isDesk ? 'Service Desk' : 'My Requests'}
+          description={isDesk ? 'Office operations requests: assets, facilities, supplies, transport, travel and visitors' : 'Ask the Admin team for anything office-related and follow it here'}
+          actions={
+            <>
+              {canConfigureDesk(user) && (
+                <Button variant="outline" onClick={() => setSlaOpen(true)} className={cn('gap-2', headerSecondaryButtonClass)}>
+                  <Timer className="h-4 w-4" />
+                  SLA targets
+                </Button>
+              )}
+              <Button onClick={() => setRaiseOpen(true)} className={cn('gap-2', headerPrimaryButtonClass)}>
+                <Plus className="h-4 w-4" />
+                Raise Admin Request
               </Button>
-            )}
-            <Button onClick={() => setRaiseOpen(true)} className="gap-2 bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-              <Plus className="h-4 w-4" />
-              Raise Admin Request
-            </Button>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {isDesk && (
           <div role="tablist" aria-label="Service desk" className="flex gap-1 border-b border-gray-200">

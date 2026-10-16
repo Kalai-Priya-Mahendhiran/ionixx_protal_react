@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useLocation } from 'react-router-dom';
 import { CheckCircle2, Clock, ListChecks, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { fieldClass } from '@/components/ui/form-fields';
+import { FormDialog } from '@/components/ui/form-dialog';
+import { TextareaField } from '@/components/ui/form-fields';
 import { useAuth } from '@/context/auth-context';
+import { SEND_BACK_MIN_LENGTH, sendBackSchema, type SendBackFormValues } from '@/lib/form-schemas/tasks';
 import { canApprove } from '@/lib/permissions/task-permissions';
 import { cn } from '@/lib/utils';
 import { useApproveTask, useSendBackTask } from '@/services/apis/tasks/use-tasks';
@@ -16,64 +18,42 @@ import { OnLeaveChip } from './leave-warning';
 import { taskPath } from './task-link';
 import { daysSince, type SubtaskProgress } from './task-utils';
 
-const MIN_REASON_LENGTH = 5;
-
 function SendBackDialog({ task, onOpenChange }: { task: Task | null; onOpenChange: (open: boolean) => void }) {
   const sendBack = useSendBackTask();
-  const [reason, setReason] = useState('');
-  const [touched, setTouched] = useState(false);
+  const form = useForm<SendBackFormValues>({ resolver: zodResolver(sendBackSchema), defaultValues: { reason: '' } });
 
   useEffect(() => {
-    if (task) {
-      setReason('');
-      setTouched(false);
-    }
-  }, [task]);
+    if (task) form.reset({ reason: '' });
+  }, [task, form]);
 
-  const tooShort = reason.trim().length < MIN_REASON_LENGTH;
-  const submit = () => {
-    setTouched(true);
-    if (!task || tooShort) return;
+  const submit = ({ reason }: SendBackFormValues) => {
+    if (!task) return;
     sendBack.mutate({ task, reason }, { onSuccess: () => onOpenChange(false) });
   };
 
   return (
-    <Dialog open={!!task} onOpenChange={(next) => !sendBack.isPending && onOpenChange(next)}>
-      <DialogContent className="max-w-md bg-white">
-        <DialogHeader>
-          <DialogTitle>Send {task?.key} back</DialogTitle>
-          <DialogDescription>
-            It moves back to In Progress. Your comment is posted on the task and sent to {task ? <UserChip userId={task.assigneeId} /> : 'the assignee'}.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-1.5">
-          <label htmlFor="send-back-reason" className="text-sm font-medium text-gray-700">
-            What needs to change? <span className="text-red-500">*</span>
-          </label>
-          <Textarea
-            id="send-back-reason"
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-            onBlur={() => setTouched(true)}
-            rows={4}
-            maxLength={1000}
-            placeholder="e.g. The holiday legend overlaps the calendar on small screens"
-            className={fieldClass}
-            aria-invalid={touched && tooShort}
-            autoFocus
-          />
-          {touched && tooShort && <p className="text-sm text-red-600">Add a comment of at least {MIN_REASON_LENGTH} characters.</p>}
-        </div>
-        <DialogFooter className="gap-2">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={sendBack.isPending}>
-            Cancel
-          </Button>
-          <Button type="button" onClick={submit} disabled={sendBack.isPending} className="bg-amber-600 text-white hover:bg-amber-700">
-            {sendBack.isPending ? 'Sending…' : 'Send back'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={!!task}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={submit}
+      title={`Send ${task?.key ?? 'task'} back`}
+      description={<>It moves back to In Progress. Your comment is posted on the task and sent to {task ? <UserChip userId={task.assigneeId} /> : 'the assignee'}.</>}
+      submitLabel="Send back"
+      pendingLabel="Sending…"
+      pending={sendBack.isPending}
+    >
+      <TextareaField
+        control={form.control}
+        name="reason"
+        label="What needs to change?"
+        required
+        rows={4}
+        maxLength={1000}
+        placeholder="e.g. The holiday legend overlaps the calendar on small screens"
+        hint={`At least ${SEND_BACK_MIN_LENGTH} characters.`}
+      />
+    </FormDialog>
   );
 }
 

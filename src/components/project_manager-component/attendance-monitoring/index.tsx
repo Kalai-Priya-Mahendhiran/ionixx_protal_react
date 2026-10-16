@@ -1,4 +1,7 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -8,13 +11,19 @@ import {
   Home,
   MessageSquare,
   Search,
+  Users,
 } from "lucide-react";
 import MainLayout from "@/components/layout/main-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { FormDialog } from "@/components/ui/form-dialog";
+import { TextareaField } from "@/components/ui/form-fields";
 import { teamAttendanceToday, type AttendanceEntry } from "@/lib/team-data";
+import { resolveNoteSchema, type ResolveNoteFormValues } from "@/lib/form-schemas/system";
 
 type StatusFilter = "all" | AttendanceEntry["status"];
 
@@ -60,7 +69,6 @@ export default function AttendanceMonitoring() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [resolved, setResolved] = useState<Record<string, boolean>>({});
   const [activeNote, setActiveNote] = useState<string | null>(null);
-  const [draft, setDraft] = useState<string>("");
 
   const summary = useMemo(() => {
     const total = teamAttendanceToday.length;
@@ -91,17 +99,14 @@ export default function AttendanceMonitoring() {
     [resolved]
   );
 
-  const openNote = (employeeId: string) => {
-    setActiveNote(employeeId);
-    setDraft(notes[employeeId] ?? "");
-  };
+  const openNote = (employeeId: string) => setActiveNote(employeeId);
 
-  const saveNote = () => {
+  const saveNote = (note: string) => {
     if (!activeNote) return;
-    setNotes((prev) => ({ ...prev, [activeNote]: draft.trim() }));
+    setNotes((prev) => ({ ...prev, [activeNote]: note }));
     setResolved((prev) => ({ ...prev, [activeNote]: true }));
     setActiveNote(null);
-    setDraft("");
+    toast.success("Exception resolved");
   };
 
   const today = new Date();
@@ -115,36 +120,31 @@ export default function AttendanceMonitoring() {
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <ClipboardCheck className="h-10 w-10 text-white" />
+        <PageHeader
+          icon={ClipboardCheck}
+          title="Attendance Monitoring"
+          description={dateLabel}
+          actions={
+            <>
+              <div className="hidden md:block rounded-md border border-white/30 bg-white/15 px-3 py-1 text-right">
+                <p className="text-[10px] uppercase tracking-wider text-white/70">Attendance rate</p>
+                <p className="text-lg font-bold leading-tight">
+                  {summary.total === 0
+                    ? "—"
+                    : `${Math.round(((summary.present + summary.late) / summary.total) * 100)}%`}
+                </p>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold">Attendance Monitoring</h1>
-                <p className="text-white/90 mt-1">{dateLabel}</p>
-              </div>
-            </div>
-            <div className="hidden md:block text-right">
-              <p className="text-xs uppercase tracking-wider text-white/70">Attendance rate</p>
-              <p className="text-3xl font-bold">
-                {summary.total === 0
-                  ? "â€”"
-                  : `${Math.round(((summary.present + summary.late) / summary.total) * 100)}%`}
-              </p>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <SummaryTile label="Total" value={summary.total} tone="bg-indigo-50 text-indigo-700" />
-          <SummaryTile label="Present" value={summary.present} tone="bg-green-50 text-green-700" />
-          <SummaryTile label="Late" value={summary.late} tone="bg-yellow-50 text-yellow-700" />
-          <SummaryTile label="Absent" value={summary.absent} tone="bg-red-50 text-red-700" />
-          <SummaryTile label="On Leave" value={summary.onLeave} tone="bg-blue-50 text-blue-700" />
-        </div>
+        <StatGrid>
+          <StatCard icon={Users} label="Total" value={summary.total} tone="indigo" />
+          <StatCard icon={CheckCircle2} label="Present" value={summary.present} tone="green" />
+          <StatCard icon={AlertTriangle} label="Late" value={summary.late} tone="amber" />
+          <StatCard icon={XCircle} label="Absent" value={summary.absent} tone="red" />
+          <StatCard icon={CalendarIcon} label="On Leave" value={summary.onLeave} tone="blue" />
+        </StatGrid>
 
         {exceptions.length > 0 && (
           <Card className="border-0 shadow-lg border-l-4 border-l-amber-500">
@@ -259,8 +259,8 @@ export default function AttendanceMonitoring() {
                             <Badge className={meta.badge}>{meta.label}</Badge>
                           </span>
                         </td>
-                        <td className="py-3 px-2 text-gray-700">{e.checkIn ?? "â€”"}</td>
-                        <td className="py-3 px-2 text-gray-700">{e.checkOut ?? "â€”"}</td>
+                        <td className="py-3 px-2 text-gray-700">{e.checkIn ?? "—"}</td>
+                        <td className="py-3 px-2 text-gray-700">{e.checkOut ?? "—"}</td>
                         <td className="py-3 px-2 max-w-[18ch]">
                           {note ? (
                             <span className="text-xs text-gray-600 line-clamp-2" title={note}>
@@ -269,7 +269,7 @@ export default function AttendanceMonitoring() {
                           ) : e.exception ? (
                             <span className="text-xs text-amber-700">{e.exception}</span>
                           ) : (
-                            <span className="text-xs text-gray-400">â€”</span>
+                            <span className="text-xs text-gray-400">—</span>
                           )}
                         </td>
                         <td className="py-3 pl-2 text-right">
@@ -304,76 +304,63 @@ export default function AttendanceMonitoring() {
         </Card>
       </div>
 
-      {activeNote && (
-        <NoteDialog
-          employeeName={teamAttendanceToday.find((e) => e.employeeId === activeNote)?.employeeName ?? ""}
-          value={draft}
-          onChange={setDraft}
-          onCancel={() => setActiveNote(null)}
-          onSave={saveNote}
-        />
-      )}
+      <NoteDialog
+        open={!!activeNote}
+        employeeName={teamAttendanceToday.find((e) => e.employeeId === activeNote)?.employeeName ?? ""}
+        initialNote={activeNote ? notes[activeNote] ?? "" : ""}
+        onOpenChange={(open) => !open && setActiveNote(null)}
+        onSave={saveNote}
+      />
     </MainLayout>
   );
 }
 
-function SummaryTile({ label, value, tone }: { label: string; value: number; tone: string }) {
-  return (
-    <Card className="border-0 shadow-sm">
-      <CardContent className="p-4">
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</p>
-        <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
-        <span className={`inline-block mt-2 px-2 py-0.5 rounded-full text-[10px] font-semibold ${tone}`}>
-          {label}
-        </span>
-      </CardContent>
-    </Card>
-  );
-}
-
 function NoteDialog({
+  open,
   employeeName,
-  value,
-  onChange,
-  onCancel,
+  initialNote,
+  onOpenChange,
   onSave,
 }: {
+  open: boolean;
   employeeName: string;
-  value: string;
-  onChange: (v: string) => void;
-  onCancel: () => void;
-  onSave: () => void;
+  initialNote: string;
+  onOpenChange: (open: boolean) => void;
+  onSave: (note: string) => void;
 }) {
+  const form = useForm<ResolveNoteFormValues>({
+    resolver: zodResolver(resolveNoteSchema),
+    defaultValues: { note: "" },
+  });
+
+  useEffect(() => {
+    if (open) form.reset({ note: initialNote });
+  }, [open, initialNote, form]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={(values) => onSave(values.note.trim())}
+      title={
+        <span className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5 text-[#464EB8]" />
           Resolve exception
-        </h3>
-        <p className="text-sm text-gray-500 mt-1">Add a note for {employeeName}.</p>
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={4}
-          placeholder="e.g. Approved late entry â€” informed via Slack."
-          className="w-full mt-4 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-        />
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button
-            onClick={onSave}
-            disabled={!value.trim()}
-            className="bg-[#464EB8] hover:bg-[#3a3f9a]"
-          >
-            Save note
-          </Button>
-        </div>
-      </div>
-    </div>
+        </span>
+      }
+      description={`Add a note for ${employeeName}.`}
+      submitLabel="Save note"
+    >
+      <TextareaField
+        control={form.control}
+        name="note"
+        label="Note"
+        rows={4}
+        placeholder="e.g. Approved late entry — informed via Slack."
+        required
+      />
+    </FormDialog>
   );
 }
 

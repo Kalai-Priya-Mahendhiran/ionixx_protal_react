@@ -7,13 +7,17 @@ import {
   MapPin,
   Calendar,
   Building,
-  X,
+  Home,
+  CalendarOff,
 } from "lucide-react";
 import MainLayout from "@/components/layout/main-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { AppSheet } from "@/components/ui/sheet";
 import { teamMembers, type TeamMember } from "@/lib/team-data";
 import { TEAM_MEMBER_STATUS_COLORS, TEAM_MEMBER_STATUS_LABELS } from "@/lib/constants";
 
@@ -51,27 +55,18 @@ export default function TeamOverview() {
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-              <Users className="h-10 w-10 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">Team Overview</h1>
-              <p className="text-white/90 mt-1">
-                {stats.total} team members Â· {stats.active} in office Â· {stats.remote} remote Â· {stats.onLeave} on leave
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          icon={Users}
+          title="Team Overview"
+          description={`${stats.total} team members · ${stats.active} in office · ${stats.remote} remote · ${stats.onLeave} on leave`}
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard label="Total Members" value={stats.total} accent="bg-indigo-50 text-indigo-700" />
-          <StatCard label="In Office" value={stats.active} accent="bg-green-50 text-green-700" />
-          <StatCard label="Remote" value={stats.remote} accent="bg-blue-50 text-blue-700" />
-          <StatCard label="On Leave" value={stats.onLeave} accent="bg-orange-50 text-orange-700" />
-        </div>
+        <StatGrid>
+          <StatCard icon={Users} label="Total Members" value={stats.total} tone="indigo" />
+          <StatCard icon={Building} label="In Office" value={stats.active} tone="green" />
+          <StatCard icon={Home} label="Remote" value={stats.remote} tone="blue" />
+          <StatCard icon={CalendarOff} label="On Leave" value={stats.onLeave} tone="orange" />
+        </StatGrid>
 
         <Card className="border-0 shadow-lg">
           <CardHeader>
@@ -156,33 +151,15 @@ export default function TeamOverview() {
   );
 }
 
-function StatCard({ label, value, accent }: { label: string; value: number; accent: string }) {
-  return (
-    <Card className="border-0 shadow-md">
-      <CardContent className="p-5">
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</p>
-        <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
-        <span className={`inline-block mt-3 px-2 py-0.5 rounded-full text-xs font-semibold ${accent}`}>
-          {label}
-        </span>
-      </CardContent>
-    </Card>
-  );
-}
-
 function ProfileDrawer({ member, onClose }: { member: TeamMember; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/40" onClick={onClose} />
-      <aside className="w-full max-w-md bg-white shadow-2xl flex flex-col">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white relative">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-md bg-white/20 hover:bg-white/30 transition-colors"
-            aria-label="Close profile"
-          >
-            <X className="h-4 w-4" />
-          </button>
+    <AppSheet
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={member.name}
+      description={member.designation}
+      header={
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white">
           <div className="flex items-center gap-4">
             <Avatar className="w-16 h-16 border-4 border-white/30">
               <AvatarFallback className="bg-white/20 text-white text-xl font-bold">
@@ -198,44 +175,47 @@ function ProfileDrawer({ member, onClose }: { member: TeamMember; onClose: () =>
             </div>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          <Section title="Contact">
-            <DetailRow icon={<Mail className="h-4 w-4" />} label="Email" value={member.email} />
-            <DetailRow icon={<Phone className="h-4 w-4" />} label="Phone" value={member.phone} />
-            <DetailRow icon={<MapPin className="h-4 w-4" />} label="Location" value={member.location} />
-          </Section>
-          <Section title="Employment">
-            <DetailRow icon={<Building className="h-4 w-4" />} label="Department" value={member.department} />
-            <DetailRow icon={<Users className="h-4 w-4" />} label="Reporting to" value={member.reportingManager} />
-            <DetailRow
-              icon={<Calendar className="h-4 w-4" />}
-              label="Joined"
-              value={new Date(member.joiningDate).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            />
-            <DetailRow icon={<Users className="h-4 w-4" />} label="Employee ID" value={member.employeeId} />
-          </Section>
-          <Section title="Skills">
-            <div className="flex flex-wrap gap-2">
-              {member.skills.map((s) => (
-                <Badge key={s} className="bg-indigo-50 text-indigo-700">
-                  {s}
-                </Badge>
-              ))}
-            </div>
-          </Section>
-        </div>
-        <div className="p-4 border-t flex gap-2">
+      }
+      footer={
+        <>
           <Button variant="outline" className="flex-1" onClick={onClose}>
             Close
           </Button>
           <Button className="flex-1 bg-[#464EB8] hover:bg-[#3a3f9a]">View full profile</Button>
-        </div>
-      </aside>
-    </div>
+        </>
+      }
+    >
+      <div className="space-y-5">
+        <Section title="Contact">
+          <DetailRow icon={<Mail className="h-4 w-4" />} label="Email" value={member.email} />
+          <DetailRow icon={<Phone className="h-4 w-4" />} label="Phone" value={member.phone} />
+          <DetailRow icon={<MapPin className="h-4 w-4" />} label="Location" value={member.location} />
+        </Section>
+        <Section title="Employment">
+          <DetailRow icon={<Building className="h-4 w-4" />} label="Department" value={member.department} />
+          <DetailRow icon={<Users className="h-4 w-4" />} label="Reporting to" value={member.reportingManager} />
+          <DetailRow
+            icon={<Calendar className="h-4 w-4" />}
+            label="Joined"
+            value={new Date(member.joiningDate).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          />
+          <DetailRow icon={<Users className="h-4 w-4" />} label="Employee ID" value={member.employeeId} />
+        </Section>
+        <Section title="Skills">
+          <div className="flex flex-wrap gap-2">
+            {member.skills.map((s) => (
+              <Badge key={s} className="bg-indigo-50 text-indigo-700">
+                {s}
+              </Badge>
+            ))}
+          </div>
+        </Section>
+      </div>
+    </AppSheet>
   );
 }
 

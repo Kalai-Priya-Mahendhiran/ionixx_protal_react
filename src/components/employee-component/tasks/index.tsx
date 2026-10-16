@@ -1,8 +1,9 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { BarChart3, Columns3, Download, Eye, FileSpreadsheet, FileText, Plus } from 'lucide-react';
+import { BarChart3, CheckSquare, Columns3, Download, Eye, FileSpreadsheet, FileText, Plus, Settings, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { PageHeader, headerBadgeClass, headerPrimaryButtonClass, headerSecondaryButtonClass } from '@/components/ui/page-header';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import MainLayout from '@/components/layout/main-layout';
@@ -79,6 +80,16 @@ import {
   type AdvancedFilters,
   type FilterState,
 } from './sections/task-utils';
+
+// Header icon per view: the task boards share the sidebar's Tasks icon
+const VIEW_ICONS: Record<keyof typeof TASK_VIEW_META, LucideIcon> = {
+  'my-tasks': CheckSquare,
+  'team-board': CheckSquare,
+  'hr-tasks': CheckSquare,
+  'all-projects': CheckSquare,
+  settings: Settings,
+  'exec-dashboard': BarChart3,
+};
 
 // The task is kept while the dialog closes so its title doesn't flicker
 type FormState = { open: boolean; task?: Task };
@@ -232,45 +243,45 @@ function TasksPage({ user }: { user: PermissionUser }) {
     <MainLayout>
       {/* Extra width so four board columns or the list table fit side by side */}
       <div className="mx-auto max-w-7xl space-y-6">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
-              {readOnly && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600">
-                  <Eye className="h-3.5 w-3.5" />
-                  Read only
-                </span>
+        <PageHeader
+          icon={VIEW_ICONS[view]}
+          title={title}
+          description={description}
+          badge={
+            readOnly && (
+              <span className={headerBadgeClass}>
+                <Eye className="h-3.5 w-3.5" />
+                Read only
+              </span>
+            )
+          }
+          actions={
+            <>
+              {view === 'all-projects' && canOpenTaskView(user, 'exec-dashboard') && (
+                <Button variant="outline" onClick={() => navigate(`${location.pathname}?view=exec-dashboard`)} className={`gap-2 ${headerSecondaryButtonClass}`}>
+                  <BarChart3 className="h-4 w-4" />
+                  Overview
+                </Button>
               )}
-            </div>
-            <p className="mt-2 text-gray-600">{description}</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {view === 'all-projects' && canOpenTaskView(user, 'exec-dashboard') && (
-              <Button variant="outline" onClick={() => navigate(`${location.pathname}?view=exec-dashboard`)} className="gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Overview
-              </Button>
-            )}
-            {isSettingsView || isOverview ? (
-              canOpenTaskView(user, 'all-projects') && (
-                <Button variant="outline" onClick={() => navigate(`${location.pathname}?view=all-projects`)} className="gap-2">
-                  <Columns3 className="h-4 w-4" />
-                  {isOverview ? 'Browse all tasks' : 'View all tasks'}
-                </Button>
-              )
-            ) : (
-              canCreate && (
-                <Button onClick={openCreate} title="Create a task (C)" aria-keyshortcuts="c" className="flex items-center gap-2 bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-                  <Plus className="h-4 w-4" />
-                  <span>Create Task</span>
-                  <span className="hidden rounded bg-white/20 px-1.5 font-mono text-xs sm:inline">C</span>
-                </Button>
-              )
-            )}
-          </div>
-        </div>
+              {isSettingsView || isOverview ? (
+                canOpenTaskView(user, 'all-projects') && (
+                  <Button variant="outline" onClick={() => navigate(`${location.pathname}?view=all-projects`)} className={`gap-2 ${headerSecondaryButtonClass}`}>
+                    <Columns3 className="h-4 w-4" />
+                    {isOverview ? 'Browse all tasks' : 'View all tasks'}
+                  </Button>
+                )
+              ) : (
+                canCreate && (
+                  <Button onClick={openCreate} title="Create a task (C)" aria-keyshortcuts="c" className={`flex items-center gap-2 ${headerPrimaryButtonClass}`}>
+                    <Plus className="h-4 w-4" />
+                    <span>Create Task</span>
+                    <span className="hidden rounded bg-[#464EB8]/10 px-1.5 font-mono text-xs text-[#464EB8] sm:inline">C</span>
+                  </Button>
+                )
+              )}
+            </>
+          }
+        />
 
         {showTabs && <TaskTabs active={tab} counts={tabCounts} onChange={(next) => updateParams({ tab: next })} />}
 

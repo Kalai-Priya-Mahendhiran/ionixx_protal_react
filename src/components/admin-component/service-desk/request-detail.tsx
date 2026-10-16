@@ -1,15 +1,19 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, ChevronDown, Lock, MessageSquare, SearchX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { FormDialog } from '@/components/ui/form-dialog';
+import { TextareaField } from '@/components/ui/form-fields';
 import { Textarea } from '@/components/ui/textarea';
 import MainLayout from '@/components/layout/main-layout';
 import { useAuth } from '@/context/auth-context';
 import { ROUTES } from '@/lib/constants';
 import { ASSET_TYPE_LABELS, DEFAULT_DESK_SETTINGS, REQUEST_CATEGORIES, REQUEST_CATEGORY_LABELS, WAITING_REASON_LABELS } from '@/lib/desk-config';
+import { resolveRequestSchema, type ResolveRequestFormValues } from '@/lib/form-schemas/desk';
 import {
   canChangeRequestStatus,
   canCommentOnRequest,
@@ -66,14 +70,18 @@ function StatusActions({ request, user }: { request: AdminRequest; user: Permiss
   const changeStatus = useChangeRequestStatus();
   const addComment = useAddRequestComment();
   const [resolving, setResolving] = useState(false);
-  const [note, setNote] = useState('');
+  const resolveForm = useForm<ResolveRequestFormValues>({ resolver: zodResolver(resolveRequestSchema), defaultValues: { note: '' } });
   const allowed = (to: RequestStatus) => canChangeRequestStatus(user, request, to);
   const move = (to: RequestStatus, waitingReason?: WaitingReason) => changeStatus.mutate({ id: request.id, change: { to, waitingReason } });
   const busy = changeStatus.isPending || addComment.isPending;
 
-  const resolve = async () => {
+  useEffect(() => {
+    if (resolving) resolveForm.reset({ note: '' });
+  }, [resolving, resolveForm]);
+
+  const resolve = async ({ note }: ResolveRequestFormValues) => {
     // The reply goes first so the requester sees what was done in the same notification thread
-    if (note.trim()) await addComment.mutateAsync({ id: request.id, body: note });
+    if (note) await addComment.mutateAsync({ id: request.id, body: note });
     changeStatus.mutate({ id: request.id, change: { to: 'resolved' } }, { onSuccess: () => setResolving(false) });
   };
 
@@ -115,25 +123,20 @@ function StatusActions({ request, user }: { request: AdminRequest; user: Permiss
         </Button>
       )}
 
-      <Dialog open={resolving} onOpenChange={(open) => !busy && setResolving(open)}>
-        <DialogContent className="max-w-md bg-white">
-          <DialogHeader>
-            <DialogTitle>Resolve {request.key}</DialogTitle>
-            <DialogDescription>
-              The requester is notified and can reopen it within 7 days if something isn't right. After that it closes automatically.
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea value={note} onChange={(event) => setNote(event.target.value)} rows={3} placeholder="What was done? (optional, sent to the requester)" aria-label="Resolution note" />
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setResolving(false)} disabled={busy}>
-              Cancel
-            </Button>
-            <Button onClick={() => void resolve()} disabled={busy} className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-              {busy ? 'Resolving…' : 'Resolve'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <FormDialog
+        open={resolving}
+        onOpenChange={setResolving}
+        form={resolveForm}
+        onSubmit={resolve}
+        title={`Resolve ${request.key}`}
+        description="The requester is notified and can reopen it within 7 days if something isn't right. After that it closes automatically."
+        submitLabel="Resolve"
+        pendingLabel="Resolving…"
+        pending={busy}
+        hideRequiredNote
+      >
+        <TextareaField control={resolveForm.control} name="note" label="Resolution note" rows={3} placeholder="What was done? (optional, sent to the requester)" />
+      </FormDialog>
     </div>
   );
 }

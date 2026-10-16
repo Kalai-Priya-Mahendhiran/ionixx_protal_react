@@ -2,11 +2,10 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, CalendarRange, Lock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormDialog } from '@/components/ui/form-dialog';
 import { RequiredLabel, SelectField, fieldClass, type Option } from '@/components/ui/form-fields';
 import { useAuth } from '@/context/auth-context';
 import { can, canCreateTask, getAssignableUsers } from '@/lib/permissions/task-permissions';
@@ -239,274 +238,256 @@ export function TaskFormDialog({ open, task, projects, onOpenChange }: TaskFormD
   const project = projects.find((item) => item.id === projectId);
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !isSaving && onOpenChange(next)}>
-      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden bg-white p-0">
-        <DialogHeader className="border-b border-indigo-100 px-6 py-4 pr-12">
-          <DialogTitle className="text-xl text-gray-900">{task ? `Edit ${task.key}` : 'Create task'}</DialogTitle>
-          <DialogDescription>
-            {task ? task.title : (
-              <>
-                Fields marked <span className="text-red-500">*</span> are required.
-              </>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={onSubmit}
+      title={task ? `Edit ${task.key}` : 'Create task'}
+      description={task?.title}
+      size="2xl"
+      submitLabel={task ? 'Save changes' : 'Create'}
+      pending={isSaving}
+      secondaryAction={
+        task ? undefined : (
+          <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={createAnother}
+              onChange={(event) => setCreateAnother(event.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 accent-[#464EB8]"
+            />
+            Create another
+          </label>
+        )
+      }
+    >
+      <div className="space-y-7">
+        <FormSection title="Project & type">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {task ? (
+              // Task keys belong to a project, so moving projects is a separate action
+              <ReadOnlyField label="Project">
+                <Lock className="h-3.5 w-3.5 text-gray-400" />
+                {project ? `${project.name} (${project.key})` : '—'}
+              </ReadOnlyField>
+            ) : (
+              <SelectField
+                control={form.control}
+                name="projectId"
+                label="Project"
+                options={projectOptions}
+                placeholder="Select project"
+                onValueChange={handleProjectChange}
+              />
             )}
-          </DialogDescription>
-        </DialogHeader>
+            <SelectField
+              control={form.control}
+              name="type"
+              label="Type"
+              options={typeOptions}
+              placeholder="Select type"
+              onValueChange={handleTypeChange}
+            />
+          </div>
+        </FormSection>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col" noValidate>
-            <div className="ionixx-scrollbar flex-1 space-y-7 overflow-y-auto px-6 py-5">
-              <FormSection title="Project & type">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {task ? (
-                    // Task keys belong to a project, so moving projects is a separate action
-                    <ReadOnlyField label="Project">
-                      <Lock className="h-3.5 w-3.5 text-gray-400" />
-                      {project ? `${project.name} (${project.key})` : '—'}
-                    </ReadOnlyField>
-                  ) : (
-                    <SelectField
-                      control={form.control}
-                      name="projectId"
-                      label="Project"
-                      options={projectOptions}
-                      placeholder="Select project"
-                      onValueChange={handleProjectChange}
-                    />
-                  )}
-                  <SelectField
-                    control={form.control}
-                    name="type"
-                    label="Type"
-                    options={typeOptions}
-                    placeholder="Select type"
-                    onValueChange={handleTypeChange}
+        <FormSection title="Details">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <RequiredLabel>Title</RequiredLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Short summary of the work" className={fieldClass} autoFocus />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-700">Description</FormLabel>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    rows={5}
+                    placeholder="Context, steps to reproduce or acceptance criteria"
+                    className={fieldClass}
                   />
-                </div>
-              </FormSection>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </FormSection>
 
-              <FormSection title="Details">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <RequiredLabel>Title</RequiredLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Short summary of the work" className={fieldClass} autoFocus />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700">Description</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          rows={5}
-                          placeholder="Context, steps to reproduce or acceptance criteria"
-                          className={fieldClass}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </FormSection>
-
-              <FormSection title="Planning">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {type !== 'epic' && (
-                    <SelectField
-                      control={form.control}
-                      name="epicId"
-                      label="Epic"
-                      options={epicOptions}
-                      placeholder="No epic"
-                      required={false}
-                    />
-                  )}
-                  <div className="space-y-1.5">
-                    <SelectField
-                      control={form.control}
-                      name="sprintId"
-                      label="Sprint"
-                      options={sprintOptions}
-                      placeholder="Backlog (no sprint)"
-                      required={false}
-                    />
-                    {projectSprints.length === 0 ? (
-                      <p className="text-xs text-gray-500">This project doesn't run sprints yet.</p>
-                    ) : selectedSprint ? (
-                      <p className="flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
-                        <span>
-                          {formatShortDate(selectedSprint.startDate)} – {formatShortDate(selectedSprint.endDate)}
-                          {selectedSprint.goal && ` · ${selectedSprint.goal}`}
-                        </span>
-                        <button type="button" onClick={applySprintDates} className="font-medium text-[#464EB8] hover:underline">
-                          Use sprint dates
-                        </button>
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-indigo-100 bg-indigo-50/30 p-4">
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="startDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-gray-700">Start date</FormLabel>
-                          <FormControl>
-                            <Input {...field} type="date" max={dueDate || undefined} className={fieldClass} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="dueDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <RequiredLabel>Due date</RequiredLabel>
-                          <FormControl>
-                            <Input {...field} type="date" min={startDate || undefined} className={fieldClass} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <OnLeaveBanner userId={assigneeId || user?.id || ''} date={dueDate} className="mt-3" />
-                  {(duration || dueAfterSprint) && (
-                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-                      {duration && (
-                        <span className="inline-flex items-center gap-1 font-medium text-indigo-700">
-                          <CalendarRange className="h-3.5 w-3.5" />
-                          Duration: {duration} {duration === 1 ? 'day' : 'days'}
-                        </span>
-                      )}
-                      {dueAfterSprint && (
-                        <span className="inline-flex items-center gap-1 text-amber-700">
-                          <AlertTriangle className="h-3.5 w-3.5" />
-                          Due after {selectedSprint.name} ends ({formatShortDate(selectedSprint.endDate)})
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="estimateHours"
-                  render={({ field }) => (
-                    <FormItem className="sm:w-1/2 sm:pr-2">
-                      <FormLabel className="text-gray-700">Estimate (hours)</FormLabel>
-                      <FormControl>
-                        <Input {...field} inputMode="decimal" placeholder="e.g. 8" className={fieldClass} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </FormSection>
-
-              <FormSection title="People & priority">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {showAssignee ? (
-                    <div className="space-y-1.5">
-                      <SelectField
-                        control={form.control}
-                        name="assigneeId"
-                        label="Assignee"
-                        options={assigneeOptions}
-                        placeholder="Select assignee"
-                      />
-                      {user && assigneeId !== user.id && (
-                        <button
-                          type="button"
-                          onClick={() => form.setValue('assigneeId', user.id, { shouldValidate: true })}
-                          className="text-xs font-medium text-[#464EB8] hover:underline"
-                        >
-                          Assign to me
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <ReadOnlyField label="Assignee">
-                      <UserChip userId={assigneeId || user?.id || ''} />
-                    </ReadOnlyField>
-                  )}
-                  <ReadOnlyField label="Reporter">
-                    <UserChip userId={task?.reporterId ?? user?.id ?? ''} />
-                  </ReadOnlyField>
-                  <SelectField control={form.control} name="priority" label="Priority" options={PRIORITY_OPTIONS} placeholder="Select priority" />
-                  <FormField
-                    control={form.control}
-                    name="labels"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700">Labels</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Comma separated, e.g. frontend, release" list="task-label-suggestions" className={fieldClass} />
-                        </FormControl>
-                        {/* Labels configured in Settings → Types & Labels */}
-                        <datalist id="task-label-suggestions">
-                          {getConfiguredLabels().map((label) => (
-                            <option key={label} value={label} />
-                          ))}
-                        </datalist>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </FormSection>
-
-              <FormSection title="Attachments">
-                <TaskAttachmentsField value={attachments} onChange={setAttachments} taskId={task?.id} />
-              </FormSection>
-
-              {form.formState.errors.root && (
-                <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {form.formState.errors.root.message}
+        <FormSection title="Planning">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {type !== 'epic' && (
+              <SelectField
+                control={form.control}
+                name="epicId"
+                label="Epic"
+                options={epicOptions}
+                placeholder="No epic"
+                required={false}
+              />
+            )}
+            <div className="space-y-1.5">
+              <SelectField
+                control={form.control}
+                name="sprintId"
+                label="Sprint"
+                options={sprintOptions}
+                placeholder="Backlog (no sprint)"
+                required={false}
+              />
+              {projectSprints.length === 0 ? (
+                <p className="text-xs text-gray-500">This project doesn't run sprints yet.</p>
+              ) : selectedSprint ? (
+                <p className="flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
+                  <span>
+                    {formatShortDate(selectedSprint.startDate)} – {formatShortDate(selectedSprint.endDate)}
+                    {selectedSprint.goal && ` · ${selectedSprint.goal}`}
+                  </span>
+                  <button type="button" onClick={applySprintDates} className="font-medium text-[#464EB8] hover:underline">
+                    Use sprint dates
+                  </button>
                 </p>
-              )}
+              ) : null}
             </div>
+          </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-indigo-100 bg-gray-50/60 px-6 py-4">
-              {task ? (
-                <span />
-              ) : (
-                <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={createAnother}
-                    onChange={(event) => setCreateAnother(event.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 accent-[#464EB8]"
-                  />
-                  Create another
-                </label>
-              )}
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSaving} className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-                  {isSaving ? 'Saving…' : task ? 'Save changes' : 'Create'}
-                </Button>
-              </div>
+          <div className="rounded-lg border border-indigo-100 bg-indigo-50/30 p-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-gray-700">Start date</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="date" max={dueDate || undefined} className={fieldClass} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="dueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <RequiredLabel>Due date</RequiredLabel>
+                    <FormControl>
+                      <Input {...field} type="date" min={startDate || undefined} className={fieldClass} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+            <OnLeaveBanner userId={assigneeId || user?.id || ''} date={dueDate} className="mt-3" />
+            {(duration || dueAfterSprint) && (
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                {duration && (
+                  <span className="inline-flex items-center gap-1 font-medium text-indigo-700">
+                    <CalendarRange className="h-3.5 w-3.5" />
+                    Duration: {duration} {duration === 1 ? 'day' : 'days'}
+                  </span>
+                )}
+                {dueAfterSprint && (
+                  <span className="inline-flex items-center gap-1 text-amber-700">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Due after {selectedSprint.name} ends ({formatShortDate(selectedSprint.endDate)})
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <FormField
+            control={form.control}
+            name="estimateHours"
+            render={({ field }) => (
+              <FormItem className="sm:w-1/2 sm:pr-2">
+                <FormLabel className="text-gray-700">Estimate (hours)</FormLabel>
+                <FormControl>
+                  <Input {...field} inputMode="decimal" placeholder="e.g. 8" className={fieldClass} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </FormSection>
+
+        <FormSection title="People & priority">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {showAssignee ? (
+              <div className="space-y-1.5">
+                <SelectField
+                  control={form.control}
+                  name="assigneeId"
+                  label="Assignee"
+                  options={assigneeOptions}
+                  placeholder="Select assignee"
+                />
+                {user && assigneeId !== user.id && (
+                  <button
+                    type="button"
+                    onClick={() => form.setValue('assigneeId', user.id, { shouldValidate: true })}
+                    className="text-xs font-medium text-[#464EB8] hover:underline"
+                  >
+                    Assign to me
+                  </button>
+                )}
+              </div>
+            ) : (
+              <ReadOnlyField label="Assignee">
+                <UserChip userId={assigneeId || user?.id || ''} />
+              </ReadOnlyField>
+            )}
+            <ReadOnlyField label="Reporter">
+              <UserChip userId={task?.reporterId ?? user?.id ?? ''} />
+            </ReadOnlyField>
+            <SelectField control={form.control} name="priority" label="Priority" options={PRIORITY_OPTIONS} placeholder="Select priority" />
+            <FormField
+              control={form.control}
+              name="labels"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-gray-700">Labels</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Comma separated, e.g. frontend, release" list="task-label-suggestions" className={fieldClass} />
+                  </FormControl>
+                  {/* Labels configured in Settings → Types & Labels */}
+                  <datalist id="task-label-suggestions">
+                    {getConfiguredLabels().map((label) => (
+                      <option key={label} value={label} />
+                    ))}
+                  </datalist>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </FormSection>
+
+        <FormSection title="Attachments">
+          <TaskAttachmentsField value={attachments} onChange={setAttachments} taskId={task?.id} />
+        </FormSection>
+
+        {form.formState.errors.root && (
+          <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+            {form.formState.errors.root.message}
+          </p>
+        )}
+      </div>
+    </FormDialog>
   );
 }

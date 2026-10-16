@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Pencil, Plus, Trash2, X, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FormDialog } from '@/components/ui/form-dialog';
+import { TextField } from '@/components/ui/form-fields';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/toggle';
+import { automationRuleNameSchema, type AutomationRuleNameFormValues } from '@/lib/form-schemas/tasks';
 import { TASK_ISSUE_TYPES, TASK_PRIORITIES } from '@/lib/schemas';
 import { formatRelativeTime } from '@/lib/utils';
 import { getConfiguredLabels, getPriorityLabel, getStatusLabel, getTypeLabel, getWorkflowStatuses } from '@/lib/workflow';
@@ -85,235 +89,233 @@ function RuleEditor({ open, rule, onOpenChange }: { open: boolean; rule?: Automa
   const { data: projects = [] } = useProjects();
   const createRule = useCreateRule();
   const updateRule = useUpdateRule();
+  // The name is a form field; trigger, conditions, actions and the on/off switch are edited on the draft
   const [draft, setDraft] = useState<AutomationRuleInput>(emptyRule);
-  const [error, setError] = useState('');
+  const form = useForm<AutomationRuleNameFormValues>({ resolver: zodResolver(automationRuleNameSchema), defaultValues: { name: '' } });
   const saving = createRule.isPending || updateRule.isPending;
 
   useEffect(() => {
     if (!open) return;
-    setError('');
-    setDraft(rule ? { name: rule.name, enabled: rule.enabled, trigger: rule.trigger, triggerStatus: rule.triggerStatus, conditions: rule.conditions, actions: rule.actions } : emptyRule());
-  }, [open, rule]);
+    const initial = rule ? { name: rule.name, enabled: rule.enabled, trigger: rule.trigger, triggerStatus: rule.triggerStatus, conditions: rule.conditions, actions: rule.actions } : emptyRule();
+    setDraft(initial);
+    form.reset({ name: initial.name });
+  }, [open, rule, form]);
 
   const setCondition = (index: number, changes: Partial<AutomationCondition>) =>
     setDraft({ ...draft, conditions: draft.conditions.map((condition, i) => (i === index ? { ...condition, ...changes } : condition)) });
   const setAction = (index: number, action: AutomationAction) => setDraft({ ...draft, actions: draft.actions.map((item, i) => (i === index ? action : item)) });
 
-  const save = () => {
+  const save = ({ name }: AutomationRuleNameFormValues) => {
+    const input = { ...draft, name };
     try {
-      validateRule(draft);
+      validateRule(input);
     } catch (validationError) {
-      setError(validationError instanceof Error ? validationError.message : 'Check the rule');
+      form.setError('root', { message: validationError instanceof Error ? validationError.message : 'Check the rule' });
       return;
     }
     const close = { onSuccess: () => onOpenChange(false) };
-    if (rule) updateRule.mutate({ id: rule.id, input: draft }, close);
-    else createRule.mutate(draft, close);
+    if (rule) updateRule.mutate({ id: rule.id, input }, close);
+    else createRule.mutate(input, close);
   };
+
+  const rootError = form.formState.errors.root?.message;
 
   const { trigger, conditions, actions } = describeRule(draft, projects);
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !saving && onOpenChange(next)}>
-      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden bg-white p-0">
-        <DialogHeader className="border-b border-indigo-100 px-6 py-4 pr-12">
-          <DialogTitle className="text-xl">{rule ? 'Edit rule' : 'New automation rule'}</DialogTitle>
-          <DialogDescription>When something happens, if the task matches, then do something.</DialogDescription>
-        </DialogHeader>
-        <div className="ionixx-scrollbar flex-1 space-y-5 overflow-y-auto px-6 py-5">
-          <label className="block space-y-1.5">
-            <span className="text-sm font-medium text-gray-700">
-              Rule name <span className="text-red-500">*</span>
-            </span>
-            <Input value={draft.name} maxLength={80} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder="e.g. Overdue work → tell the manager" autoFocus />
-          </label>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={save}
+      title={rule ? 'Edit rule' : 'New automation rule'}
+      description="When something happens, if the task matches, then do something."
+      size="2xl"
+      submitLabel={rule ? 'Save rule' : 'Create rule'}
+      pending={saving}
+      secondaryAction={
+        <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+          <Switch checked={draft.enabled} onCheckedChange={(enabled) => setDraft({ ...draft, enabled })} className="data-[state=checked]:bg-[#464EB8]" />
+          Rule is on
+        </label>
+      }
+    >
+      <div className="space-y-5">
+        {rootError && (
+          <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+            {rootError}
+          </p>
+        )}
+        <TextField control={form.control} name="name" label="Rule name" required maxLength={80} placeholder="e.g. Overdue work → tell the manager" autoFocus />
 
-          <section className="space-y-2 rounded-lg border border-indigo-100 bg-indigo-50/30 p-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-indigo-600">When</h3>
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                value={draft.trigger}
-                onChange={(event) => setDraft({ ...draft, trigger: event.target.value as AutomationTrigger })}
-                aria-label="When"
-                className={selectClass}
-              >
-                {TRIGGERS.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
+        <section className="space-y-2 rounded-lg border border-indigo-100 bg-indigo-50/30 p-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-indigo-600">When</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={draft.trigger}
+              onChange={(event) => setDraft({ ...draft, trigger: event.target.value as AutomationTrigger })}
+              aria-label="When"
+              className={selectClass}
+            >
+              {TRIGGERS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+            {draft.trigger === 'status-changed' && (
+              <select value={draft.triggerStatus ?? ''} onChange={(event) => setDraft({ ...draft, triggerStatus: event.target.value || undefined })} aria-label="Status" className={selectClass}>
+                <option value="">any status</option>
+                {getWorkflowStatuses().map((status) => (
+                  <option key={status.id} value={status.id}>
+                    {status.label}
                   </option>
                 ))}
               </select>
-              {draft.trigger === 'status-changed' && (
-                <select value={draft.triggerStatus ?? ''} onChange={(event) => setDraft({ ...draft, triggerStatus: event.target.value || undefined })} aria-label="Status" className={selectClass}>
-                  <option value="">any status</option>
-                  {getWorkflowStatuses().map((status) => (
-                    <option key={status.id} value={status.id}>
-                      {status.label}
+            )}
+          </div>
+          {draft.trigger === 'due-date-passed' && <p className="text-xs text-gray-500">Checked automatically; fires once per task until its due date changes.</p>}
+        </section>
+
+        <section className="space-y-2 rounded-lg border border-indigo-100 bg-indigo-50/30 p-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-indigo-600">If (all must match)</h3>
+          {draft.conditions.length === 0 && <p className="text-sm text-gray-500">Any task.</p>}
+          {draft.conditions.map((condition, index) => (
+            <div key={index} className="flex flex-wrap items-center gap-2">
+              <select
+                value={condition.field}
+                onChange={(event) => {
+                  const field = event.target.value as ConditionField;
+                  setCondition(index, { field, value: valueOptions(field, projects)[0]?.value ?? '' });
+                }}
+                aria-label="Field"
+                className={selectClass}
+              >
+                {FIELDS.map((field) => (
+                  <option key={field.value} value={field.value}>
+                    {field.label}
+                  </option>
+                ))}
+              </select>
+              <select value={condition.operator} onChange={(event) => setCondition(index, { operator: event.target.value as 'is' | 'is-not' })} aria-label="Operator" className={selectClass}>
+                <option value="is">is</option>
+                <option value="is-not">is not</option>
+              </select>
+              <select value={condition.value} onChange={(event) => setCondition(index, { value: event.target.value })} aria-label="Value" className={selectClass}>
+                {valueOptions(condition.field, projects).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setDraft({ ...draft, conditions: draft.conditions.filter((_, i) => i !== index) })}
+                aria-label="Remove condition"
+                className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setDraft({ ...draft, conditions: [...draft.conditions, { field: 'priority', operator: 'is', value: 'urgent' }] })}
+            className="gap-1 text-[#464EB8]"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add condition
+          </Button>
+        </section>
+
+        <section className="space-y-2 rounded-lg border border-indigo-100 bg-indigo-50/30 p-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Then</h3>
+          {draft.actions.map((action, index) => (
+            <div key={index} className="flex flex-wrap items-center gap-2">
+              <select
+                value={action.kind}
+                onChange={(event) => {
+                  const kind = event.target.value as AutomationAction['kind'];
+                  setAction(index, kind === 'notify' ? { kind, recipient: 'assignee' } : kind === 'set-priority' ? { kind, priority: 'high' } : { kind, label: '' });
+                }}
+                aria-label="Action"
+                className={selectClass}
+              >
+                <option value="notify">Notify</option>
+                <option value="set-priority">Set priority to</option>
+                <option value="add-label">Add label</option>
+              </select>
+              {action.kind === 'notify' && (
+                <select value={action.recipient} onChange={(event) => setAction(index, { kind: 'notify', recipient: event.target.value as typeof action.recipient })} aria-label="Recipient" className={selectClass}>
+                  {RECIPIENTS.map((recipient) => (
+                    <option key={recipient.value} value={recipient.value}>
+                      {recipient.label}
                     </option>
                   ))}
                 </select>
               )}
+              {action.kind === 'set-priority' && (
+                <select value={action.priority} onChange={(event) => setAction(index, { kind: 'set-priority', priority: event.target.value as typeof action.priority })} aria-label="Priority" className={selectClass}>
+                  {TASK_PRIORITIES.map((priority) => (
+                    <option key={priority} value={priority}>
+                      {getPriorityLabel(priority)}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {action.kind === 'add-label' && (
+                <>
+                  <Input
+                    value={action.label}
+                    onChange={(event) => setAction(index, { kind: 'add-label', label: event.target.value })}
+                    list="automation-labels"
+                    placeholder="label"
+                    aria-label="Label"
+                    className="h-9 w-44"
+                  />
+                  <datalist id="automation-labels">
+                    {getConfiguredLabels().map((label) => (
+                      <option key={label} value={label} />
+                    ))}
+                  </datalist>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={() => setDraft({ ...draft, actions: draft.actions.filter((_, i) => i !== index) })}
+                aria-label="Remove action"
+                className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            {draft.trigger === 'due-date-passed' && <p className="text-xs text-gray-500">Checked automatically; fires once per task until its due date changes.</p>}
-          </section>
+          ))}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setDraft({ ...draft, actions: [...draft.actions, { kind: 'notify', recipient: 'assignee' }] })}
+            className="gap-1 text-[#464EB8]"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add action
+          </Button>
+        </section>
 
-          <section className="space-y-2 rounded-lg border border-indigo-100 bg-indigo-50/30 p-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-indigo-600">If (all must match)</h3>
-            {draft.conditions.length === 0 && <p className="text-sm text-gray-500">Any task.</p>}
-            {draft.conditions.map((condition, index) => (
-              <div key={index} className="flex flex-wrap items-center gap-2">
-                <select
-                  value={condition.field}
-                  onChange={(event) => {
-                    const field = event.target.value as ConditionField;
-                    setCondition(index, { field, value: valueOptions(field, projects)[0]?.value ?? '' });
-                  }}
-                  aria-label="Field"
-                  className={selectClass}
-                >
-                  {FIELDS.map((field) => (
-                    <option key={field.value} value={field.value}>
-                      {field.label}
-                    </option>
-                  ))}
-                </select>
-                <select value={condition.operator} onChange={(event) => setCondition(index, { operator: event.target.value as 'is' | 'is-not' })} aria-label="Operator" className={selectClass}>
-                  <option value="is">is</option>
-                  <option value="is-not">is not</option>
-                </select>
-                <select value={condition.value} onChange={(event) => setCondition(index, { value: event.target.value })} aria-label="Value" className={selectClass}>
-                  {valueOptions(condition.field, projects).map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => setDraft({ ...draft, conditions: draft.conditions.filter((_, i) => i !== index) })}
-                  aria-label="Remove condition"
-                  className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDraft({ ...draft, conditions: [...draft.conditions, { field: 'priority', operator: 'is', value: 'urgent' }] })}
-              className="gap-1 text-[#464EB8]"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add condition
-            </Button>
-          </section>
-
-          <section className="space-y-2 rounded-lg border border-indigo-100 bg-indigo-50/30 p-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Then</h3>
-            {draft.actions.map((action, index) => (
-              <div key={index} className="flex flex-wrap items-center gap-2">
-                <select
-                  value={action.kind}
-                  onChange={(event) => {
-                    const kind = event.target.value as AutomationAction['kind'];
-                    setAction(index, kind === 'notify' ? { kind, recipient: 'assignee' } : kind === 'set-priority' ? { kind, priority: 'high' } : { kind, label: '' });
-                  }}
-                  aria-label="Action"
-                  className={selectClass}
-                >
-                  <option value="notify">Notify</option>
-                  <option value="set-priority">Set priority to</option>
-                  <option value="add-label">Add label</option>
-                </select>
-                {action.kind === 'notify' && (
-                  <select value={action.recipient} onChange={(event) => setAction(index, { kind: 'notify', recipient: event.target.value as typeof action.recipient })} aria-label="Recipient" className={selectClass}>
-                    {RECIPIENTS.map((recipient) => (
-                      <option key={recipient.value} value={recipient.value}>
-                        {recipient.label}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {action.kind === 'set-priority' && (
-                  <select value={action.priority} onChange={(event) => setAction(index, { kind: 'set-priority', priority: event.target.value as typeof action.priority })} aria-label="Priority" className={selectClass}>
-                    {TASK_PRIORITIES.map((priority) => (
-                      <option key={priority} value={priority}>
-                        {getPriorityLabel(priority)}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {action.kind === 'add-label' && (
-                  <>
-                    <Input
-                      value={action.label}
-                      onChange={(event) => setAction(index, { kind: 'add-label', label: event.target.value })}
-                      list="automation-labels"
-                      placeholder="label"
-                      aria-label="Label"
-                      className="h-9 w-44"
-                    />
-                    <datalist id="automation-labels">
-                      {getConfiguredLabels().map((label) => (
-                        <option key={label} value={label} />
-                      ))}
-                    </datalist>
-                  </>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setDraft({ ...draft, actions: draft.actions.filter((_, i) => i !== index) })}
-                  aria-label="Remove action"
-                  className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDraft({ ...draft, actions: [...draft.actions, { kind: 'notify', recipient: 'assignee' }] })}
-              className="gap-1 text-[#464EB8]"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add action
-            </Button>
-          </section>
-
-          <p className="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-700">
-            <b>When</b> {trigger}
-            {conditions.length > 0 && (
-              <>
-                {' '}
-                · <b>If</b> {conditions.join(' and ')}
-              </>
-            )}{' '}
-            · <b>Then</b> {actions.length > 0 ? actions.join(', ') : '…'}
-          </p>
-          {error && (
-            <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center justify-between gap-2 border-t border-indigo-100 bg-gray-50/60 px-6 py-4">
-          <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-            <Switch checked={draft.enabled} onCheckedChange={(enabled) => setDraft({ ...draft, enabled })} className="data-[state=checked]:bg-[#464EB8]" />
-            Rule is on
-          </label>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-              Cancel
-            </Button>
-            <Button onClick={save} disabled={saving} className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-              {saving ? 'Saving…' : rule ? 'Save rule' : 'Create rule'}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        <p className="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-700">
+          <b>When</b> {trigger}
+          {conditions.length > 0 && (
+            <>
+              {' '}
+              · <b>If</b> {conditions.join(' and ')}
+            </>
+          )}{' '}
+          · <b>Then</b> {actions.length > 0 ? actions.join(', ') : '…'}
+        </p>
+      </div>
+    </FormDialog>
   );
 }
 

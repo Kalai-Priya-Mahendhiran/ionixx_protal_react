@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, Inbox, Timer } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Inbox, PieChart, ShieldCheck, Timer } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatCard, StatGrid } from '@/components/ui/stat-card';
 import { ROUTES } from '@/lib/constants';
 import { DEFAULT_DESK_SETTINGS, REQUEST_CATEGORY_LABELS, formatRupees } from '@/lib/desk-config';
 import { getBreachedRequests, getCategoryReport, getMonthlySpend, getMonthlyTrend, inPeriod, summarizeDesk } from '@/lib/desk-reports';
@@ -9,7 +11,7 @@ import { formatDuration } from '@/lib/sla';
 import { cn } from '@/lib/utils';
 import { useDeskSettings, useExpenses, useRequests } from '@/services/apis/service-desk/use-service-desk';
 import { CHART_COLORS, ChartCard, ColumnChart, LineChart, ProgressBar } from '@/components/employee-component/tasks/reports/charts';
-import { HeroStat, StatTile, STATUS_COLORS } from '@/components/employee-component/tasks/reports/report-widgets';
+import { STATUS_COLORS } from '@/components/employee-component/tasks/reports/report-widgets';
 import { CategoryChip, RequestStatusBadge } from './desk-badges';
 import { requestPath } from './desk-links';
 
@@ -46,25 +48,26 @@ export default function DeskReports() {
   return (
     <MainLayout>
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Desk Reports</h1>
-            <p className="mt-2 text-gray-600">Requests by category, resolution times, SLA breaches and office spend</p>
-          </div>
-          <div role="group" aria-label="Period" className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-            {PERIODS.map((period) => (
-              <button
-                key={period.days}
-                type="button"
-                aria-pressed={days === period.days}
-                onClick={() => setDays(period.days)}
-                className={cn('rounded-md px-3 py-1.5 text-sm font-medium', days === period.days ? 'bg-white text-[#464EB8] shadow-sm' : 'text-gray-600 hover:text-gray-900')}
-              >
-                {period.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <PageHeader
+          icon={PieChart}
+          title="Desk Reports"
+          description="Requests by category, resolution times, SLA breaches and office spend"
+          actions={
+            <div role="group" aria-label="Period" className="inline-flex rounded-lg border border-white/30 bg-white/10 p-0.5">
+              {PERIODS.map((period) => (
+                <button
+                  key={period.days}
+                  type="button"
+                  aria-pressed={days === period.days}
+                  onClick={() => setDays(period.days)}
+                  className={cn('rounded-md px-3 py-1.5 text-sm font-medium', days === period.days ? 'bg-white text-[#464EB8] shadow-sm' : 'text-white/90 hover:text-white')}
+                >
+                  {period.label}
+                </button>
+              ))}
+            </div>
+          }
+        />
 
         {isLoading ? (
           <div className="h-96 animate-pulse rounded-xl bg-gray-100" aria-busy="true" aria-label="Loading reports" />
@@ -77,17 +80,13 @@ export default function DeskReports() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-              <HeroStat
-                label="SLA met"
-                value={metRate}
-                detail={summary.resolved === 0 ? 'No requests finished in this period yet' : `of ${summary.resolved} resolved or closed requests met both targets`}
-              />
-              <StatTile label="Requests raised" value={summary.total} icon={Inbox} iconColor="#6b7280" />
-              <StatTile label="Open now" value={summary.open} icon={Inbox} iconColor="#6b7280" />
-              <StatTile label="Avg resolution" value={summary.avgResolutionMs === null ? '—' : formatDuration(summary.avgResolutionMs)} icon={Timer} iconColor="#6b7280" hint="Excluding time spent Waiting" />
-              <StatTile label="Open & breached" value={summary.breachedOpen} icon={AlertTriangle} iconColor={STATUS_COLORS.critical} hint="Past a response or resolution target" />
-            </div>
+            <StatGrid>
+              <StatCard icon={ShieldCheck} label="SLA met" value={metRate} tone="indigo" hint={summary.resolved === 0 ? 'None finished yet' : `of ${summary.resolved} resolved`} />
+              <StatCard icon={Inbox} label="Requests raised" value={summary.total} tone="gray" />
+              <StatCard icon={Inbox} label="Open now" value={summary.open} tone="gray" />
+              <StatCard icon={Timer} label="Avg resolution" value={summary.avgResolutionMs === null ? '—' : formatDuration(summary.avgResolutionMs)} tone="gray" hint="Excl. Waiting" />
+              <StatCard icon={AlertTriangle} label="Open & breached" value={summary.breachedOpen} tone="red" hint="Past a target" />
+            </StatGrid>
 
             <div className="grid gap-6 lg:grid-cols-2">
               <ChartCard

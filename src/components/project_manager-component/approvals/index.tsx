@@ -12,8 +12,10 @@ import {
 } from "lucide-react";
 import MainLayout from "@/components/layout/main-layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { approvalRequests as seedRequests, type ApprovalRequest } from "@/lib/team-data";
 import { APPROVAL_TYPE_LABELS, APPROVAL_TYPE_COLORS } from "@/lib/constants";
@@ -57,8 +59,8 @@ export default function Approvals() {
     if (target) {
       setToast(
         decision === "approved"
-          ? `Approved ${target.employeeName}'s request â€” notification sent.`
-          : `Rejected ${target.employeeName}'s request â€” notification sent.`
+          ? `Approved ${target.employeeName}'s request — notification sent.`
+          : `Rejected ${target.employeeName}'s request — notification sent.`
       );
       window.setTimeout(() => setToast(null), 3500);
     }
@@ -69,41 +71,17 @@ export default function Approvals() {
   return (
     <MainLayout>
       <div className="max-w-6xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-              <CheckCheck className="h-10 w-10 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">Approvals</h1>
-              <p className="text-white/90 mt-1">
-                {grouped.pending.length} pending Â· {grouped.approved.length} approved Â· {grouped.rejected.length} rejected
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          icon={CheckCheck}
+          title="Approvals"
+          description={`${grouped.pending.length} pending · ${grouped.approved.length} approved · ${grouped.rejected.length} rejected`}
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <SummaryCard
-            label="Pending"
-            count={grouped.pending.length}
-            icon={<AlertCircle className="h-6 w-6 text-amber-600" />}
-            tone="bg-amber-50"
-          />
-          <SummaryCard
-            label="Approved"
-            count={grouped.approved.length}
-            icon={<CheckCircle2 className="h-6 w-6 text-green-600" />}
-            tone="bg-green-50"
-          />
-          <SummaryCard
-            label="Rejected"
-            count={grouped.rejected.length}
-            icon={<XCircle className="h-6 w-6 text-red-600" />}
-            tone="bg-red-50"
-          />
-        </div>
+        <StatGrid>
+          <StatCard icon={AlertCircle} label="Pending" value={grouped.pending.length} tone="amber" />
+          <StatCard icon={CheckCircle2} label="Approved" value={grouped.approved.length} tone="green" />
+          <StatCard icon={XCircle} label="Rejected" value={grouped.rejected.length} tone="red" />
+        </StatGrid>
 
         <Card className="border-0 shadow-lg">
           <CardHeader>
@@ -187,30 +165,6 @@ function TabButton({
   );
 }
 
-function SummaryCard({
-  label,
-  count,
-  icon,
-  tone,
-}: {
-  label: string;
-  count: number;
-  icon: React.ReactNode;
-  tone: string;
-}) {
-  return (
-    <Card className="border-0 shadow-md">
-      <CardContent className="p-5 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{count}</p>
-        </div>
-        <div className={`p-3 rounded-xl ${tone}`}>{icon}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function RequestRow({
   request,
   onApprove,
@@ -231,7 +185,7 @@ function RequestRow({
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <p className="font-semibold text-gray-900">{request.employeeName}</p>
-            <span className="text-xs text-gray-500">Â·</span>
+            <span className="text-xs text-gray-500">·</span>
             <span className="text-xs text-gray-500">{request.id}</span>
             <Badge className={APPROVAL_TYPE_COLORS[request.type]}>
               <span className="flex items-center gap-1">
@@ -242,8 +196,8 @@ function RequestRow({
           </div>
           <p className="text-sm text-gray-700">
             {formatDate(request.startDate)}
-            {request.startDate !== request.endDate && <> â†’ {formatDate(request.endDate)}</>}
-            <span className="text-gray-400"> Â· </span>
+            {request.startDate !== request.endDate && <> → {formatDate(request.endDate)}</>}
+            <span className="text-gray-400"> · </span>
             <span className="font-medium">
               {request.days} day{request.days > 1 ? "s" : ""}
             </span>
@@ -254,7 +208,7 @@ function RequestRow({
             {request.decidedDate && request.decidedBy && (
               <>
                 {" "}
-                Â· {request.status === "approved" ? "Approved" : "Rejected"} by {request.decidedBy} on {formatDate(request.decidedDate)}
+                · {request.status === "approved" ? "Approved" : "Rejected"} by {request.decidedBy} on {formatDate(request.decidedDate)}
               </>
             )}
           </p>

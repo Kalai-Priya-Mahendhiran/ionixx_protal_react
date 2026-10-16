@@ -1,4 +1,7 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
   UserCog,
   Search,
@@ -11,7 +14,6 @@ import {
   Users,
   UserCheck,
   UserX,
-  X,
   Pencil,
   FileText,
 } from "lucide-react";
@@ -23,10 +25,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader, headerPrimaryButtonClass } from "@/components/ui/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { FormDialog } from "@/components/ui/form-dialog";
+import { SelectField, TextField, toOptions } from "@/components/ui/form-fields";
+import { AppSheet } from "@/components/ui/sheet";
 import { EMPLOYMENT_STATUS_COLORS, EMPLOYMENT_STATUS_LABELS } from "@/lib/constants";
+import { addEmployeeSchema, EMPLOYMENT_TYPES, type AddEmployeeFormValues } from "@/lib/form-schemas/hr";
 
 type EmploymentStatus = "active" | "on-leave" | "inactive";
 
@@ -197,7 +205,6 @@ export default function EmployeeManagement() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selected, setSelected] = useState<Employee | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   const departments = useMemo(
     () => Array.from(new Set(employees.map((e) => e.department))),
@@ -229,11 +236,6 @@ export default function EmployeeManagement() {
     return { total, active, onLeave, inactive };
   }, [employees]);
 
-  const showToast = (message: string) => {
-    setToast(message);
-    window.setTimeout(() => setToast(null), 3000);
-  };
-
   const handleAdd = (data: Omit<Employee, "id" | "documents" | "status">) => {
     const newEmp: Employee = {
       ...data,
@@ -243,7 +245,7 @@ export default function EmployeeManagement() {
     };
     setEmployees((prev) => [newEmp, ...prev]);
     setShowAddModal(false);
-    showToast(`${newEmp.name} added to the directory.`);
+    toast.success(`${newEmp.name} added to the directory.`);
   };
 
   const toggleStatus = (id: string) => {
@@ -267,7 +269,7 @@ export default function EmployeeManagement() {
     );
     const target = employees.find((e) => e.id === id);
     if (target) {
-      showToast(
+      toast.success(
         target.status === "active"
           ? `${target.name} marked inactive.`
           : `${target.name} reactivated.`
@@ -278,56 +280,26 @@ export default function EmployeeManagement() {
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <UserCog className="h-10 w-10 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">Employee Management</h1>
-                <p className="text-white/90 mt-1">
-                  {stats.total} employees Â· {stats.active} active Â· {stats.onLeave} on leave
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowAddModal(true)}
-              className="bg-white text-[#464EB8] hover:bg-white/90"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Employee
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={UserCog}
+          title="Employee Management"
+          description={`${stats.total} employees · ${stats.active} active · ${stats.onLeave} on leave`}
+          actions={
+            <>
+              <Button onClick={() => setShowAddModal(true)} className={headerPrimaryButtonClass}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Employee
+              </Button>
+            </>
+          }
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <SummaryCard
-            label="Total"
-            count={stats.total}
-            icon={<Users className="h-6 w-6 text-indigo-600" />}
-            tone="bg-indigo-50"
-          />
-          <SummaryCard
-            label="Active"
-            count={stats.active}
-            icon={<UserCheck className="h-6 w-6 text-green-600" />}
-            tone="bg-green-50"
-          />
-          <SummaryCard
-            label="On Leave"
-            count={stats.onLeave}
-            icon={<Calendar className="h-6 w-6 text-orange-600" />}
-            tone="bg-orange-50"
-          />
-          <SummaryCard
-            label="Inactive"
-            count={stats.inactive}
-            icon={<UserX className="h-6 w-6 text-gray-600" />}
-            tone="bg-gray-100"
-          />
-        </div>
+        <StatGrid>
+          <StatCard icon={Users} label="Total" value={stats.total} tone="indigo" />
+          <StatCard icon={UserCheck} label="Active" value={stats.active} tone="green" />
+          <StatCard icon={Calendar} label="On Leave" value={stats.onLeave} tone="orange" />
+          <StatCard icon={UserX} label="Inactive" value={stats.inactive} tone="gray" />
+        </StatGrid>
 
         <Card className="border-0 shadow-lg">
           <CardHeader>
@@ -451,46 +423,13 @@ export default function EmployeeManagement() {
         />
       )}
 
-      {showAddModal && (
-        <AddEmployeeModal
-          onCancel={() => setShowAddModal(false)}
-          onSubmit={handleAdd}
-          existingDepartments={departments}
-        />
-      )}
-
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-2 text-sm">
-          <span>{toast}</span>
-        </div>
-      )}
+      <AddEmployeeModal
+        open={showAddModal}
+        onOpenChange={setShowAddModal}
+        onSubmit={handleAdd}
+        existingDepartments={departments}
+      />
     </MainLayout>
-  );
-}
-
-function SummaryCard({
-  label,
-  count,
-  icon,
-  tone,
-}: {
-  label: string;
-  count: number;
-  icon: React.ReactNode;
-  tone: string;
-}) {
-  return (
-    <Card className="border-0 shadow-md">
-      <CardContent className="p-5 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {label}
-          </p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{count}</p>
-        </div>
-        <div className={`p-3 rounded-xl ${tone}`}>{icon}</div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -504,17 +443,13 @@ function EmployeeDrawer({
   onToggleStatus: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/40" onClick={onClose} />
-      <aside className="w-full max-w-md bg-white shadow-2xl flex flex-col">
+    <AppSheet
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={employee.name}
+      description={employee.designation}
+      header={
         <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white relative">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-md bg-white/20 hover:bg-white/30 transition-colors"
-            aria-label="Close profile"
-          >
-            <X className="h-4 w-4" />
-          </button>
           <div className="flex items-center gap-4">
             <Avatar className="w-16 h-16 border-4 border-white/30">
               <AvatarFallback className="bg-white/20 text-white text-xl font-bold">
@@ -530,49 +465,9 @@ function EmployeeDrawer({
             </div>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          <Section title="Contact">
-            <DetailRow icon={<Mail className="h-4 w-4" />} label="Email" value={employee.email} />
-            <DetailRow icon={<Phone className="h-4 w-4" />} label="Phone" value={employee.phone} />
-            <DetailRow icon={<MapPin className="h-4 w-4" />} label="Location" value={employee.location} />
-          </Section>
-          <Section title="Employment">
-            <DetailRow icon={<Building className="h-4 w-4" />} label="Department" value={employee.department} />
-            <DetailRow icon={<Users className="h-4 w-4" />} label="Reporting to" value={employee.reportingManager} />
-            <DetailRow
-              icon={<Calendar className="h-4 w-4" />}
-              label="Joined"
-              value={formatDate(employee.joiningDate)}
-            />
-            <DetailRow icon={<UserCog className="h-4 w-4" />} label="Type" value={employee.employmentType} />
-            <DetailRow icon={<Users className="h-4 w-4" />} label="Employee ID" value={employee.employeeId} />
-          </Section>
-          <Section title="Documents">
-            {employee.documents.length === 0 ? (
-              <p className="text-sm text-gray-500">No documents uploaded yet.</p>
-            ) : (
-              <ul className="space-y-2">
-                {employee.documents.map((d) => (
-                  <li
-                    key={d.name}
-                    className="flex items-center justify-between border border-gray-200 rounded-md p-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-[#464EB8]" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{d.name}</p>
-                        <p className="text-xs text-gray-500">
-                          {d.type} Â· uploaded {formatDate(d.uploadedDate)}
-                        </p>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Section>
-        </div>
-        <div className="p-4 border-t flex gap-2">
+      }
+      footer={
+        <>
           <Button variant="outline" className="flex-1">
             <Pencil className="h-4 w-4 mr-1" />
             Edit
@@ -588,193 +483,173 @@ function EmployeeDrawer({
           >
             {employee.status === "active" ? "Deactivate" : "Reactivate"}
           </Button>
-        </div>
-      </aside>
-    </div>
+        </>
+      }
+    >
+      <div className="space-y-5">
+        <Section title="Contact">
+          <DetailRow icon={<Mail className="h-4 w-4" />} label="Email" value={employee.email} />
+          <DetailRow icon={<Phone className="h-4 w-4" />} label="Phone" value={employee.phone} />
+          <DetailRow icon={<MapPin className="h-4 w-4" />} label="Location" value={employee.location} />
+        </Section>
+        <Section title="Employment">
+          <DetailRow icon={<Building className="h-4 w-4" />} label="Department" value={employee.department} />
+          <DetailRow icon={<Users className="h-4 w-4" />} label="Reporting to" value={employee.reportingManager} />
+          <DetailRow
+            icon={<Calendar className="h-4 w-4" />}
+            label="Joined"
+            value={formatDate(employee.joiningDate)}
+          />
+          <DetailRow icon={<UserCog className="h-4 w-4" />} label="Type" value={employee.employmentType} />
+          <DetailRow icon={<Users className="h-4 w-4" />} label="Employee ID" value={employee.employeeId} />
+        </Section>
+        <Section title="Documents">
+          {employee.documents.length === 0 ? (
+            <p className="text-sm text-gray-500">No documents uploaded yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {employee.documents.map((d) => (
+                <li
+                  key={d.name}
+                  className="flex items-center justify-between border border-gray-200 rounded-md p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <FileText className="h-4 w-4 text-[#464EB8]" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{d.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {d.type} · uploaded {formatDate(d.uploadedDate)}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+      </div>
+    </AppSheet>
   );
 }
 
+const EMPLOYMENT_TYPE_OPTIONS = toOptions(EMPLOYMENT_TYPES);
+
+const emptyEmployee = (department: string): AddEmployeeFormValues => ({
+  name: "",
+  employeeId: "",
+  joiningDate: new Date().toISOString().slice(0, 10),
+  email: "",
+  phone: "",
+  designation: "",
+  department,
+  employmentType: "Full-time",
+  reportingManager: "",
+  location: "",
+});
+
 function AddEmployeeModal({
-  onCancel,
+  open,
+  onOpenChange,
   onSubmit,
   existingDepartments,
 }: {
-  onCancel: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSubmit: (data: Omit<Employee, "id" | "documents" | "status">) => void;
   existingDepartments: string[];
 }) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [designation, setDesignation] = useState("");
-  const [department, setDepartment] = useState(existingDepartments[0] ?? "Engineering");
-  const [employeeId, setEmployeeId] = useState("");
-  const [reportingManager, setReportingManager] = useState("");
-  const [joiningDate, setJoiningDate] = useState(
-    new Date().toISOString().slice(0, 10)
+  const defaultDepartment = existingDepartments[0] ?? "Engineering";
+  const departmentOptions = useMemo(
+    () =>
+      toOptions(
+        Array.from(new Set([...existingDepartments, "Human Resources", "Sales"]))
+      ),
+    [existingDepartments]
   );
-  const [location, setLocation] = useState("");
-  const [employmentType, setEmploymentType] =
-    useState<Employee["employmentType"]>("Full-time");
 
-  const canSubmit =
-    name.trim() && email.trim() && employeeId.trim() && designation.trim();
+  const form = useForm<AddEmployeeFormValues>({
+    resolver: zodResolver(addEmployeeSchema),
+    defaultValues: emptyEmployee(defaultDepartment),
+  });
+
+  useEffect(() => {
+    if (open) form.reset(emptyEmployee(defaultDepartment));
+  }, [open, defaultDepartment, form]);
+
+  const save = (values: AddEmployeeFormValues) =>
+    onSubmit({
+      name: values.name.trim(),
+      email: values.email.trim(),
+      phone: values.phone?.trim() ?? "",
+      designation: values.designation.trim(),
+      department: values.department,
+      employeeId: values.employeeId.trim(),
+      reportingManager: values.reportingManager?.trim() ?? "",
+      // The directory shows a joining date, so a blank one falls back to today
+      joiningDate: values.joiningDate || new Date().toISOString().slice(0, 10),
+      location: values.location?.trim() ?? "",
+      employmentType: values.employmentType,
+    });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-5 text-white flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold">Add New Employee</h2>
-            <p className="text-xs text-white/80">Create a new employee record.</p>
-          </div>
-          <button
-            onClick={onCancel}
-            className="p-1.5 rounded-md bg-white/20 hover:bg-white/30 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="p-5 max-h-[70vh] overflow-y-auto space-y-3">
-          <FormField label="Full name">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-          </FormField>
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="Employee ID">
-              <input
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
-                placeholder="HR-assigned ID"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              />
-            </FormField>
-            <FormField label="Joining date">
-              <input
-                type="date"
-                value={joiningDate}
-                onChange={(e) => setJoiningDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              />
-            </FormField>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="Email">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              />
-            </FormField>
-            <FormField label="Phone">
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              />
-            </FormField>
-          </div>
-          <FormField label="Designation">
-            <input
-              value={designation}
-              onChange={(e) => setDesignation(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-          </FormField>
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="Department">
-              <select
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              >
-                {existingDepartments.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-                <option value="Human Resources">Human Resources</option>
-                <option value="Sales">Sales</option>
-              </select>
-            </FormField>
-            <FormField label="Type">
-              <select
-                value={employmentType}
-                onChange={(e) =>
-                  setEmploymentType(e.target.value as Employee["employmentType"])
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              >
-                <option value="Full-time">Full-time</option>
-                <option value="Contract">Contract</option>
-                <option value="Intern">Intern</option>
-              </select>
-            </FormField>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="Reporting to">
-              <input
-                value={reportingManager}
-                onChange={(e) => setReportingManager(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              />
-            </FormField>
-            <FormField label="Location">
-              <input
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              />
-            </FormField>
-          </div>
-        </div>
-        <div className="p-4 border-t flex justify-end gap-2 bg-gray-50">
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button
-            disabled={!canSubmit}
-            onClick={() =>
-              onSubmit({
-                name,
-                email,
-                phone,
-                designation,
-                department,
-                employeeId,
-                reportingManager,
-                joiningDate,
-                location,
-                employmentType,
-              })
-            }
-            className="bg-[#464EB8] hover:bg-[#3a3f9a]"
-          >
-            Add employee
-          </Button>
-        </div>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={save}
+      title="Add New Employee"
+      description="Create a new employee record."
+      size="lg"
+      submitLabel="Add employee"
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField
+          control={form.control}
+          name="name"
+          label="Full name"
+          className="sm:col-span-2"
+          required
+        />
+        <TextField
+          control={form.control}
+          name="employeeId"
+          label="Employee ID"
+          placeholder="HR-assigned ID"
+          required
+        />
+        <TextField control={form.control} name="joiningDate" label="Joining date" type="date" />
+        <TextField
+          control={form.control}
+          name="email"
+          label="Email"
+          type="email"
+          autoComplete="off"
+          required
+        />
+        <TextField control={form.control} name="phone" label="Phone" type="tel" />
+        <TextField
+          control={form.control}
+          name="designation"
+          label="Designation"
+          className="sm:col-span-2"
+          required
+        />
+        <SelectField
+          control={form.control}
+          name="department"
+          label="Department"
+          options={departmentOptions}
+        />
+        <SelectField
+          control={form.control}
+          name="employmentType"
+          label="Type"
+          options={EMPLOYMENT_TYPE_OPTIONS}
+        />
+        <TextField control={form.control} name="reportingManager" label="Reporting to" />
+        <TextField control={form.control} name="location" label="Location" />
       </div>
-    </div>
-  );
-}
-
-function FormField({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs font-medium text-gray-700 mb-1 block">{label}</span>
-      {children}
-    </label>
+    </FormDialog>
   );
 }
 

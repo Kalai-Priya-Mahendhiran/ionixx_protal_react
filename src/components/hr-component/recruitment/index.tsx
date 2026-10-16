@@ -1,4 +1,7 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
   Briefcase,
   Plus,
@@ -8,7 +11,6 @@ import {
   CalendarClock,
   Mail,
   Phone,
-  X,
   ChevronRight,
   Search,
   CheckCircle2,
@@ -21,10 +23,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader, headerPrimaryButtonClass } from "@/components/ui/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { FormDialog } from "@/components/ui/form-dialog";
+import { SelectField, TextareaField, TextField, toOptions } from "@/components/ui/form-fields";
+import { AppSheet } from "@/components/ui/sheet";
 import { CANDIDATE_STAGE_ORDER, CANDIDATE_STAGE_LABELS, CANDIDATE_STAGE_COLORS, JOB_POSTING_STATUS_COLORS, INTERVIEW_MODE_COLORS } from "@/lib/constants";
+import { EMPLOYMENT_TYPES, postJobSchema, type PostJobFormValues } from "@/lib/form-schemas/hr";
 
 type Tab = "postings" | "candidates" | "interviews";
 
@@ -134,7 +142,7 @@ const seedPostings: JobPosting[] = [
     status: "closed",
     postedDate: "2026-02-15",
     applicants: 42,
-    description: "Closed â€” role filled in March 2026.",
+    description: "Closed — role filled in March 2026.",
   },
   {
     id: "JOB-106",
@@ -146,7 +154,7 @@ const seedPostings: JobPosting[] = [
     status: "draft",
     postedDate: "2026-05-06",
     applicants: 0,
-    description: "Draft â€” not yet published.",
+    description: "Draft — not yet published.",
   },
 ];
 
@@ -291,7 +299,6 @@ export default function Recruitment() {
   const [activeTab, setActiveTab] = useState<Tab>("postings");
   const [search, setSearch] = useState("");
   const [showJobModal, setShowJobModal] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
 
   const stats = useMemo(() => {
     return {
@@ -313,11 +320,6 @@ export default function Recruitment() {
     );
   }, [postings, search]);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 3000);
-  };
-
   const advanceStage = (id: string) => {
     const target = candidates.find((c) => c.id === id);
     if (!target) return;
@@ -327,7 +329,7 @@ export default function Recruitment() {
     setCandidates((prev) =>
       prev.map((c) => (c.id === id ? { ...c, stage: next } : c))
     );
-    showToast(`${target.name} moved to ${CANDIDATE_STAGE_LABELS[next]}.`);
+    toast.success(`${target.name} moved to ${CANDIDATE_STAGE_LABELS[next]}.`);
   };
 
   const rejectCandidate = (id: string) => {
@@ -336,7 +338,7 @@ export default function Recruitment() {
     setCandidates((prev) =>
       prev.map((c) => (c.id === id ? { ...c, stage: "rejected" } : c))
     );
-    showToast(`${target.name} rejected.`);
+    toast.success(`${target.name} rejected.`);
   };
 
   const handleAddJob = (data: Omit<JobPosting, "id" | "applicants" | "postedDate" | "status">) => {
@@ -349,62 +351,32 @@ export default function Recruitment() {
     };
     setPostings((prev) => [newJob, ...prev]);
     setShowJobModal(false);
-    showToast(`"${newJob.title}" posted.`);
+    toast.success(`"${newJob.title}" posted.`);
   };
 
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <Briefcase className="h-10 w-10 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">Recruitment</h1>
-                <p className="text-white/90 mt-1">
-                  {stats.open} open roles Â· {stats.candidates} candidates Â· {stats.interviews} interviews scheduled
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowJobModal(true)}
-              className="bg-white text-[#464EB8] hover:bg-white/90"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Post Job
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={Briefcase}
+          title="Recruitment"
+          description={`${stats.open} open roles · ${stats.candidates} candidates · ${stats.interviews} interviews scheduled`}
+          actions={
+            <>
+              <Button onClick={() => setShowJobModal(true)} className={headerPrimaryButtonClass}>
+                <Plus className="h-4 w-4 mr-2" />
+                Post Job
+              </Button>
+            </>
+          }
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <SummaryCard
-            label="Open Roles"
-            count={stats.open}
-            icon={<Briefcase className="h-6 w-6 text-indigo-600" />}
-            tone="bg-indigo-50"
-          />
-          <SummaryCard
-            label="Candidates"
-            count={stats.candidates}
-            icon={<Users2 className="h-6 w-6 text-blue-600" />}
-            tone="bg-blue-50"
-          />
-          <SummaryCard
-            label="Interviews"
-            count={stats.interviews}
-            icon={<CalendarClock className="h-6 w-6 text-purple-600" />}
-            tone="bg-purple-50"
-          />
-          <SummaryCard
-            label="Hired"
-            count={stats.hires}
-            icon={<CheckCircle2 className="h-6 w-6 text-green-600" />}
-            tone="bg-green-50"
-          />
-        </div>
+        <StatGrid>
+          <StatCard icon={Briefcase} label="Open Roles" value={stats.open} tone="indigo" />
+          <StatCard icon={Users2} label="Candidates" value={stats.candidates} tone="blue" />
+          <StatCard icon={CalendarClock} label="Interviews" value={stats.interviews} tone="purple" />
+          <StatCard icon={CheckCircle2} label="Hired" value={stats.hires} tone="green" />
+        </StatGrid>
 
         <Card className="border-0 shadow-lg">
           <CardHeader>
@@ -417,7 +389,7 @@ export default function Recruitment() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex border-b border-gray-200 mb-4">
+            <div className="flex border-b border-gray-200 mb-4 overflow-x-auto [&>button]:shrink-0 [&>button]:whitespace-nowrap">
               <TabButton
                 tab="postings"
                 activeTab={activeTab}
@@ -461,18 +433,11 @@ export default function Recruitment() {
         </Card>
       </div>
 
-      {showJobModal && (
-        <PostJobModal
-          onCancel={() => setShowJobModal(false)}
-          onSubmit={handleAddJob}
-        />
-      )}
-
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-2 text-sm">
-          <span>{toast}</span>
-        </div>
-      )}
+      <PostJobModal
+        open={showJobModal}
+        onOpenChange={setShowJobModal}
+        onSubmit={handleAddJob}
+      />
     </MainLayout>
   );
 }
@@ -507,7 +472,7 @@ function PostingsView({
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
                 <p className="font-semibold text-gray-900 text-base">{p.title}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{p.id} Â· {p.department}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{p.id} · {p.department}</p>
               </div>
               <Badge className={JOB_POSTING_STATUS_COLORS[p.status]}>{p.status}</Badge>
             </div>
@@ -633,7 +598,7 @@ function CandidatesView({
                 className="text-left bg-red-50 border border-red-100 rounded-md p-2 text-xs"
               >
                 <span className="font-medium text-red-800">{c.name}</span>
-                <span className="text-red-600"> Â· {c.appliedFor}</span>
+                <span className="text-red-600"> · {c.appliedFor}</span>
               </button>
             ))}
           </div>
@@ -674,17 +639,13 @@ function CandidateDrawer({
     candidate.stage !== "rejected";
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/40" onClick={onClose} />
-      <aside className="w-full max-w-md bg-white shadow-2xl flex flex-col">
+    <AppSheet
+      open
+      onOpenChange={(open) => !open && onClose()}
+      title={candidate.name}
+      description={candidate.appliedFor}
+      header={
         <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-6 text-white relative">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-md bg-white/20 hover:bg-white/30 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
           <div className="flex items-center gap-4">
             <Avatar className="w-16 h-16 border-4 border-white/30">
               <AvatarFallback className="bg-white/20 text-white text-xl font-bold">
@@ -700,57 +661,57 @@ function CandidateDrawer({
             </div>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 text-sm">
-          <DetailRow icon={<Mail className="h-4 w-4" />} label="Email" value={candidate.email} />
-          <DetailRow icon={<Phone className="h-4 w-4" />} label="Phone" value={candidate.phone} />
-          <DetailRow icon={<Briefcase className="h-4 w-4" />} label="Experience" value={candidate.experience} />
-          <DetailRow
-            icon={<Clock className="h-4 w-4" />}
-            label="Applied"
-            value={formatDate(candidate.appliedDate)}
-          />
-          <div>
-            <p className="text-xs text-gray-500 mb-1">Rating</p>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <span
-                  key={n}
-                  className={
-                    n <= candidate.rating ? "text-yellow-500" : "text-gray-300"
-                  }
-                >
-                  â˜…
-                </span>
-              ))}
-            </div>
+      }
+      footer={
+        canAdvance ? (
+          <>
+            <Button
+              onClick={onAdvance}
+              className="flex-1 bg-[#464EB8] hover:bg-[#3a3f9a]"
+            >
+              Move forward
+            </Button>
+            <Button
+              variant="outline"
+              onClick={onReject}
+              className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+            >
+              Reject
+            </Button>
+          </>
+        ) : (
+          <Button variant="outline" onClick={onClose} className="flex-1">
+            Close
+          </Button>
+        )
+      }
+    >
+      <div className="space-y-4 text-sm">
+        <DetailRow icon={<Mail className="h-4 w-4" />} label="Email" value={candidate.email} />
+        <DetailRow icon={<Phone className="h-4 w-4" />} label="Phone" value={candidate.phone} />
+        <DetailRow icon={<Briefcase className="h-4 w-4" />} label="Experience" value={candidate.experience} />
+        <DetailRow
+          icon={<Clock className="h-4 w-4" />}
+          label="Applied"
+          value={formatDate(candidate.appliedDate)}
+        />
+        <div>
+          <p className="text-xs text-gray-500 mb-1">Rating</p>
+          <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <span
+                key={n}
+                className={
+                  n <= candidate.rating ? "text-yellow-500" : "text-gray-300"
+                }
+              >
+                ★
+              </span>
+            ))}
           </div>
         </div>
-        <div className="p-4 border-t flex gap-2">
-          {canAdvance && (
-            <>
-              <Button
-                onClick={onAdvance}
-                className="flex-1 bg-[#464EB8] hover:bg-[#3a3f9a]"
-              >
-                Move forward
-              </Button>
-              <Button
-                variant="outline"
-                onClick={onReject}
-                className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
-              >
-                Reject
-              </Button>
-            </>
-          )}
-          {!canAdvance && (
-            <Button variant="outline" onClick={onClose} className="flex-1">
-              Close
-            </Button>
-          )}
-        </div>
-      </aside>
-    </div>
+      </div>
+    </AppSheet>
   );
 }
 
@@ -772,7 +733,7 @@ function InterviewsView({ interviews }: { interviews: Interview[] }) {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <p className="font-semibold text-gray-900">{i.candidateName}</p>
-                  <span className="text-xs text-gray-500">Â·</span>
+                  <span className="text-xs text-gray-500">·</span>
                   <span className="text-xs text-gray-500">{i.id}</span>
                   <Badge className={INTERVIEW_MODE_COLORS[i.mode]}>{i.mode}</Badge>
                 </div>
@@ -784,7 +745,7 @@ function InterviewsView({ interviews }: { interviews: Interview[] }) {
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <CalendarClock className="h-4 w-4 text-[#464EB8]" />
                 <span className="font-medium">
-                  {formatDate(i.date)} Â· {i.time}
+                  {formatDate(i.date)} · {i.time}
                 </span>
               </div>
               <Badge
@@ -811,124 +772,91 @@ function InterviewsView({ interviews }: { interviews: Interview[] }) {
   );
 }
 
+const JOB_DEPARTMENTS = toOptions([
+  "Engineering",
+  "Design",
+  "Quality",
+  "Infrastructure",
+  "Human Resources",
+  "Sales",
+]);
+const JOB_TYPES = toOptions(EMPLOYMENT_TYPES);
+
+const EMPTY_JOB: PostJobFormValues = {
+  title: "",
+  department: "Engineering",
+  location: "",
+  type: "Full-time",
+  experience: "",
+  description: "",
+};
+
 function PostJobModal({
-  onCancel,
+  open,
+  onOpenChange,
   onSubmit,
 }: {
-  onCancel: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSubmit: (
     data: Omit<JobPosting, "id" | "applicants" | "postedDate" | "status">
   ) => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [department, setDepartment] = useState("Engineering");
-  const [location, setLocation] = useState("");
-  const [type, setType] = useState<JobPosting["type"]>("Full-time");
-  const [experience, setExperience] = useState("");
-  const [description, setDescription] = useState("");
+  const form = useForm<PostJobFormValues>({
+    resolver: zodResolver(postJobSchema),
+    defaultValues: EMPTY_JOB,
+  });
 
-  const canSubmit = title.trim() && location.trim() && description.trim();
+  useEffect(() => {
+    if (open) form.reset(EMPTY_JOB);
+  }, [open, form]);
+
+  const save = (values: PostJobFormValues) =>
+    onSubmit({
+      title: values.title.trim(),
+      department: values.department,
+      location: values.location.trim(),
+      type: values.type,
+      experience: values.experience?.trim() ?? "",
+      description: values.description.trim(),
+    });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-5 text-white flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold">Post a Job</h2>
-            <p className="text-xs text-white/80">Create a new job posting.</p>
-          </div>
-          <button
-            onClick={onCancel}
-            className="p-1.5 rounded-md bg-white/20 hover:bg-white/30 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="p-5 max-h-[70vh] overflow-y-auto space-y-3">
-          <FormField label="Job title">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-          </FormField>
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="Department">
-              <select
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              >
-                <option>Engineering</option>
-                <option>Design</option>
-                <option>Quality</option>
-                <option>Infrastructure</option>
-                <option>Human Resources</option>
-                <option>Sales</option>
-              </select>
-            </FormField>
-            <FormField label="Type">
-              <select
-                value={type}
-                onChange={(e) => setType(e.target.value as JobPosting["type"])}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              >
-                <option>Full-time</option>
-                <option>Contract</option>
-                <option>Intern</option>
-              </select>
-            </FormField>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="Location">
-              <input
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              />
-            </FormField>
-            <FormField label="Experience">
-              <input
-                value={experience}
-                onChange={(e) => setExperience(e.target.value)}
-                placeholder="3-5 years"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              />
-            </FormField>
-          </div>
-          <FormField label="Description">
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-          </FormField>
-        </div>
-        <div className="p-4 border-t flex justify-end gap-2 bg-gray-50">
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button
-            disabled={!canSubmit}
-            onClick={() =>
-              onSubmit({
-                title,
-                department,
-                location,
-                type,
-                experience,
-                description,
-              })
-            }
-            className="bg-[#464EB8] hover:bg-[#3a3f9a]"
-          >
-            Publish posting
-          </Button>
-        </div>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={save}
+      title="Post a Job"
+      description="Create a new job posting."
+      size="lg"
+      submitLabel="Publish posting"
+    >
+      <TextField control={form.control} name="title" label="Job title" required />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SelectField
+          control={form.control}
+          name="department"
+          label="Department"
+          options={JOB_DEPARTMENTS}
+        />
+        <SelectField control={form.control} name="type" label="Type" options={JOB_TYPES} />
+        <TextField control={form.control} name="location" label="Location" required />
+        <TextField
+          control={form.control}
+          name="experience"
+          label="Experience"
+          placeholder="3-5 years"
+        />
       </div>
-    </div>
+      <TextareaField
+        control={form.control}
+        name="description"
+        label="Description"
+        rows={4}
+        required
+      />
+    </FormDialog>
   );
 }
 
@@ -967,47 +895,6 @@ function TabButton({
         {count}
       </span>
     </button>
-  );
-}
-
-function SummaryCard({
-  label,
-  count,
-  icon,
-  tone,
-}: {
-  label: string;
-  count: number;
-  icon: React.ReactNode;
-  tone: string;
-}) {
-  return (
-    <Card className="border-0 shadow-md">
-      <CardContent className="p-5 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {label}
-          </p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">{count}</p>
-        </div>
-        <div className={`p-3 rounded-xl ${tone}`}>{icon}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function FormField({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs font-medium text-gray-700 mb-1 block">{label}</span>
-      {children}
-    </label>
   );
 }
 

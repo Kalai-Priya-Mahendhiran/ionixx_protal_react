@@ -1,18 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { History, MoreHorizontal, Plus, Search } from 'lucide-react';
+import { History, Laptop, MoreHorizontal, PackageCheck, Plus, Search, UserCheck, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PageHeader, headerPrimaryButtonClass } from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
-import { RequiredLabel, SelectField, fieldClass } from '@/components/ui/form-fields';
-import { FormLabel } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { AppDialog, FormDialog } from '@/components/ui/form-dialog';
+import { SelectField, TextField } from '@/components/ui/form-fields';
+import { StatCard, StatGrid } from '@/components/ui/stat-card';
 import MainLayout from '@/components/layout/main-layout';
 import { ASSET_STATUS_LABELS, ASSET_TAG_PREFIX, ASSET_TYPES, ASSET_TYPE_LABELS } from '@/lib/desk-config';
+import { issueAssetSchema, type IssueAssetFormValues } from '@/lib/form-schemas/desk';
 import { ASSET_TYPE_VALUES, assetSchema, type AssetFormValues } from '@/lib/schemas';
 import { getActiveUsers, getUserById } from '@/lib/user-directory';
 import { cn, formatDate, formatDateTime } from '@/lib/utils';
@@ -35,151 +35,92 @@ const HISTORY_LABELS: Record<Asset['history'][number]['action'], string> = {
   updated: 'Updated',
 };
 
+const EMPTY_ASSET: AssetFormValues = { type: 'laptop', model: '', serialNumber: '', tag: '' };
+
 function AddAssetDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const create = useCreateAsset();
-  const form = useForm<AssetFormValues>({ resolver: zodResolver(assetSchema), defaultValues: { type: 'laptop', model: '', serialNumber: '', tag: '' } });
+  const form = useForm<AssetFormValues>({ resolver: zodResolver(assetSchema), defaultValues: EMPTY_ASSET });
   const type = form.watch('type');
   useEffect(() => {
-    if (open) form.reset({ type: 'laptop', model: '', serialNumber: '', tag: '' });
+    if (open) form.reset(EMPTY_ASSET);
   }, [open, form]);
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !create.isPending && onOpenChange(next)}>
-      <DialogContent className="max-w-md bg-white">
-        <DialogHeader>
-          <DialogTitle>Add an asset</DialogTitle>
-          <DialogDescription>New assets start in stock, ready to issue.</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit((values) => create.mutate(values, { onSuccess: () => onOpenChange(false) }))} className="space-y-4">
-            <SelectField control={form.control} name="type" label="Type" options={ASSET_TYPE_VALUES.map((value) => ({ value, label: ASSET_TYPE_LABELS[value] }))} />
-            <FormField
-              control={form.control}
-              name="model"
-              render={({ field }) => (
-                <FormItem>
-                  <RequiredLabel>Make and model</RequiredLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="e.g. Dell Latitude 5440" className={fieldClass} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="serialNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700">Serial number</FormLabel>
-                    <FormControl>
-                      <Input {...field} className={fieldClass} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="tag"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700">Asset tag</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder={`Auto, e.g. ${ASSET_TAG_PREFIX[type as AssetType]}-0012`} className={fieldClass} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={create.isPending}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={create.isPending} className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-                {create.isPending ? 'Adding…' : 'Add asset'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={(values) => create.mutate(values, { onSuccess: () => onOpenChange(false) })}
+      title="Add an asset"
+      description="New assets start in stock, ready to issue."
+      submitLabel="Add asset"
+      pendingLabel="Adding…"
+      pending={create.isPending}
+    >
+      <SelectField control={form.control} name="type" label="Type" options={ASSET_TYPE_VALUES.map((value) => ({ value, label: ASSET_TYPE_LABELS[value] }))} />
+      <TextField control={form.control} name="model" label="Make and model" placeholder="e.g. Dell Latitude 5440" required />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField control={form.control} name="serialNumber" label="Serial number" />
+        <TextField control={form.control} name="tag" label="Asset tag" placeholder={`Auto, e.g. ${ASSET_TAG_PREFIX[type as AssetType]}-0012`} />
+      </div>
+    </FormDialog>
   );
 }
 
+const EMPTY_ISSUE: IssueAssetFormValues = { userId: '', requestKey: '' };
+
 function IssueDialog({ asset, onOpenChange }: { asset: Asset | null; onOpenChange: (open: boolean) => void }) {
   const issue = useIssueAsset();
-  const [userId, setUserId] = useState('');
-  const [requestKey, setRequestKey] = useState('');
+  const form = useForm<IssueAssetFormValues>({ resolver: zodResolver(issueAssetSchema), defaultValues: EMPTY_ISSUE });
   useEffect(() => {
-    setUserId('');
-    setRequestKey('');
-  }, [asset]);
+    if (asset) form.reset(EMPTY_ISSUE);
+  }, [asset, form]);
+  const people = getActiveUsers()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((member) => ({ value: member.id, label: `${member.name} · ${member.designation}` }));
+
+  const onSubmit = (values: IssueAssetFormValues) =>
+    asset && issue.mutate({ id: asset.id, userId: values.userId, requestKey: values.requestKey.toUpperCase() || undefined }, { onSuccess: () => onOpenChange(false) });
+
   return (
-    <Dialog open={!!asset} onOpenChange={(next) => !issue.isPending && onOpenChange(next)}>
-      <DialogContent className="max-w-sm bg-white">
-        <DialogHeader>
-          <DialogTitle>Issue {asset?.tag}</DialogTitle>
-          <DialogDescription>{asset?.model}</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <select value={userId} onChange={(event) => setUserId(event.target.value)} aria-label="Issue to" className="h-10 w-full rounded-md border border-input bg-white px-3 text-sm">
-            <option value="">Choose a person…</option>
-            {getActiveUsers()
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name} · {member.designation}
-                </option>
-              ))}
-          </select>
-          <Input value={requestKey} onChange={(event) => setRequestKey(event.target.value)} placeholder="Request key (optional), e.g. ADM-107" aria-label="Request key" className={fieldClass} />
-        </div>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={issue.isPending}>
-            Cancel
-          </Button>
-          <Button
-            disabled={!userId || issue.isPending}
-            onClick={() => asset && issue.mutate({ id: asset.id, userId, requestKey: requestKey.trim().toUpperCase() || undefined }, { onSuccess: () => onOpenChange(false) })}
-            className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]"
-          >
-            Issue
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={!!asset}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={onSubmit}
+      title={`Issue ${asset?.tag ?? 'asset'}`}
+      description={asset?.model}
+      size="sm"
+      submitLabel="Issue"
+      pendingLabel="Issuing…"
+      pending={issue.isPending}
+    >
+      <SelectField control={form.control} name="userId" label="Issue to" options={people} placeholder="Choose a person…" />
+      <TextField control={form.control} name="requestKey" label="Request key" placeholder="e.g. ADM-107" />
+    </FormDialog>
   );
 }
 
 function HistoryDialog({ asset, onOpenChange }: { asset: Asset | null; onOpenChange: (open: boolean) => void }) {
   return (
-    <Dialog open={!!asset} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-white">
-        <DialogHeader>
-          <DialogTitle>{asset?.tag} history</DialogTitle>
-          <DialogDescription>{asset?.model}</DialogDescription>
-        </DialogHeader>
-        <ol className="max-h-80 space-y-3 overflow-y-auto text-sm">
-          {[...(asset?.history ?? [])].reverse().map((entry) => (
-            <li key={entry.id} className="border-l-2 border-gray-200 pl-3">
-              <p className="font-medium text-gray-900">
-                {HISTORY_LABELS[entry.action]}
-                {entry.userId && (entry.action === 'issued' ? ' to ' : ' by ')}
-                {entry.userId && (getUserById(entry.userId)?.name ?? 'Unknown')}
-                {entry.requestKey && <span className="font-normal text-gray-500"> · {entry.requestKey}</span>}
-              </p>
-              {entry.note && <p className="text-gray-700">{entry.note}</p>}
-              <p className="text-xs text-gray-500">
-                {formatDateTime(entry.at)} · {getUserById(entry.actorId)?.name ?? 'Admin'}
-              </p>
-            </li>
-          ))}
-        </ol>
-      </DialogContent>
-    </Dialog>
+    <AppDialog open={!!asset} onOpenChange={onOpenChange} title={`${asset?.tag ?? 'Asset'} history`} description={asset?.model}>
+      <ol className="space-y-3 text-sm">
+        {[...(asset?.history ?? [])].reverse().map((entry) => (
+          <li key={entry.id} className="border-l-2 border-gray-200 pl-3">
+            <p className="font-medium text-gray-900">
+              {HISTORY_LABELS[entry.action]}
+              {entry.userId && (entry.action === 'issued' ? ' to ' : ' by ')}
+              {entry.userId && (getUserById(entry.userId)?.name ?? 'Unknown')}
+              {entry.requestKey && <span className="font-normal text-gray-500"> · {entry.requestKey}</span>}
+            </p>
+            {entry.note && <p className="text-gray-700">{entry.note}</p>}
+            <p className="text-xs text-gray-500">
+              {formatDateTime(entry.at)} · {getUserById(entry.actorId)?.name ?? 'Admin'}
+            </p>
+          </li>
+        ))}
+      </ol>
+    </AppDialog>
   );
 }
 
@@ -207,38 +148,30 @@ export default function AssetLog() {
   return (
     <MainLayout>
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Asset Log</h1>
-            <p className="mt-2 text-gray-600">Which asset is issued to whom: laptops, monitors, headsets, ID and access cards</p>
-          </div>
-          <Button onClick={() => setAdding(true)} className="gap-2 bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-            <Plus className="h-4 w-4" />
-            Add asset
-          </Button>
-        </div>
+        <PageHeader
+          icon={Laptop}
+          title="Asset Log"
+          description="Which asset is issued to whom: laptops, monitors, headsets, ID and access cards"
+          actions={
+            <Button onClick={() => setAdding(true)} className={cn('gap-2', headerPrimaryButtonClass)}>
+              <Plus className="h-4 w-4" />
+              Add asset
+            </Button>
+          }
+        />
 
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatGrid>
           {(
             [
-              ['', 'All assets', assets.length],
-              ['issued', 'Issued', count('issued')],
-              ['in-stock', 'In stock', count('in-stock')],
-              ['in-repair', 'In repair', count('in-repair')],
+              ['', 'All assets', assets.length, Laptop, 'indigo'],
+              ['issued', 'Issued', count('issued'), UserCheck, 'indigo'],
+              ['in-stock', 'In stock', count('in-stock'), PackageCheck, 'green'],
+              ['in-repair', 'In repair', count('in-repair'), Wrench, 'amber'],
             ] as const
-          ).map(([value, label, total]) => (
-            <button
-              key={label}
-              type="button"
-              aria-pressed={status === value}
-              onClick={() => setStatusFilter(value)}
-              className={cn('rounded-xl border bg-white p-4 text-left shadow-sm hover:border-[#464EB8]/40', status === value ? 'border-[#464EB8] ring-1 ring-[#464EB8]' : 'border-gray-200')}
-            >
-              <p className="text-sm font-medium text-gray-600">{label}</p>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">{total}</p>
-            </button>
+          ).map(([value, label, total, icon, tone]) => (
+            <StatCard key={label} icon={icon} label={label} value={total} tone={tone} loading={isLoading} active={status === value} onClick={() => setStatusFilter(value)} />
           ))}
-        </div>
+        </StatGrid>
 
         <Card>
           <CardContent className="grid gap-3 p-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]">

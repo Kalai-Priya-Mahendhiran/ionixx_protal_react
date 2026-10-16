@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react';
 import { Timer } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
+import { PageHeader } from '@/components/ui/page-header';
 import { sampleTodaysTasks, sampleProductivity, sampleWeeklyTimeDistribution } from '@/lib/sample-data/time-tracker-sample-data';
 import { useCreateTimeEntry, useDeleteTimeEntry, useTimeEntries, useUpdateTimeEntry } from '@/services/apis/time-tracker/use-time-entries';
 import {
@@ -69,18 +70,7 @@ export default function TimeTracker() {
     <MainLayout>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl px-6 py-4 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">
-              <Timer className="h-7 w-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold">Time Tracker</h1>
-              <p className="text-sm text-white/90 mt-0.5">Track time spent on projects and tasks</p>
-            </div>
-          </div>
-        </div>
+        <PageHeader icon={Timer} title="Time Tracker" description="Track time spent on projects and tasks" />
 
         {/* Time Tracking Stats */}
         <TimeTrackingStatsSection entries={entries} tasks={tasks} productivity={sampleProductivity} />

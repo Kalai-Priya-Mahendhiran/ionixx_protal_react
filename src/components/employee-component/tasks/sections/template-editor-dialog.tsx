@@ -5,8 +5,8 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormDialog } from '@/components/ui/form-dialog';
 import { RequiredLabel, SelectField, fieldClass, type Option } from '@/components/ui/form-fields';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TASK_PRIORITIES, TEMPLATE_KINDS, TEMPLATE_OWNERS, templateSchema, type TemplateFormValues } from '@/lib/schemas';
@@ -223,78 +223,70 @@ export function TemplateEditorDialog({ open, template, initial, onOpenChange }: 
   const itemsError = form.formState.errors.items?.root?.message ?? form.formState.errors.items?.message;
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !isSaving && onOpenChange(next)}>
-      <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden bg-white p-0">
-        <DialogHeader className="border-b border-indigo-100 px-6 py-4 pr-12">
-          <DialogTitle className="text-xl">{template ? `Edit "${template.name}"` : 'New template'}</DialogTitle>
-          <DialogDescription>Changes apply to checklists created from now on; existing checklists keep their tasks.</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col" noValidate>
-            <div className="ionixx-scrollbar flex-1 space-y-5 overflow-y-auto px-6 py-5">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem className="sm:col-span-2">
-                      <RequiredLabel>Template name</RequiredLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g. Intern Onboarding" className={fieldClass} autoFocus />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <SelectField control={form.control} name="kind" label="Type" options={KIND_OPTIONS} />
-              </div>
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-gray-700">Description</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} rows={2} placeholder="When to use this template" className={fieldClass} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={onSubmit}
+      title={template ? `Edit "${template.name}"` : 'New template'}
+      description="Changes apply to checklists created from now on; existing checklists keep their tasks."
+      size="2xl"
+      submitLabel={template ? 'Save template' : 'Create template'}
+      pending={isSaving}
+    >
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <RequiredLabel>Template name</RequiredLabel>
+                <FormControl>
+                  <Input {...field} placeholder="e.g. Intern Onboarding" className={fieldClass} autoFocus />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <SelectField control={form.control} name="kind" label="Type" options={KIND_OPTIONS} />
+        </div>
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-gray-700">Description</FormLabel>
+              <FormControl>
+                <Textarea {...field} rows={2} placeholder="When to use this template" className={fieldClass} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-              <section className="space-y-2">
-                <div className="flex flex-wrap items-end justify-between gap-2">
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900">Items ({fields.length})</h3>
-                    <p className="text-xs text-gray-500">
-                      Day is counted from the {TEMPLATE_ANCHOR_LABELS[kind ?? 'onboarding'].toLowerCase()}: −3 is three days before, 0 is the day itself.
-                    </p>
-                  </div>
-                  <p className="hidden text-xs text-gray-400 sm:block">Title · Owner · Day · Priority · Estimate</p>
-                </div>
-                <ul className="space-y-2">
-                  {fields.map((field, index) => (
-                    <ItemRow key={field.id} control={form.control} index={index} count={fields.length} onMove={move} onRemove={() => remove(index)} />
-                  ))}
-                </ul>
-                {itemsError && <p className="text-sm text-red-600">{itemsError}</p>}
-                <Button type="button" variant="outline" size="sm" onClick={() => append(newItem())} disabled={fields.length >= 30} className="gap-1.5">
-                  <Plus className="h-4 w-4" />
-                  Add item
-                </Button>
-              </section>
+        <section className="space-y-2">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">Items ({fields.length})</h3>
+              <p className="text-xs text-gray-500">
+                Day is counted from the {TEMPLATE_ANCHOR_LABELS[kind ?? 'onboarding'].toLowerCase()}: −3 is three days before, 0 is the day itself.
+              </p>
             </div>
-            <div className="flex justify-end gap-2 border-t border-indigo-100 bg-gray-50/60 px-6 py-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSaving} className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-                {isSaving ? 'Saving…' : template ? 'Save template' : 'Create template'}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+            <p className="hidden text-xs text-gray-400 sm:block">Title · Owner · Day · Priority · Estimate</p>
+          </div>
+          <ul className="space-y-2">
+            {fields.map((field, index) => (
+              <ItemRow key={field.id} control={form.control} index={index} count={fields.length} onMove={move} onRemove={() => remove(index)} />
+            ))}
+          </ul>
+          {itemsError && <p className="text-sm text-red-600">{itemsError}</p>}
+          <Button type="button" variant="outline" size="sm" onClick={() => append(newItem())} disabled={fields.length >= 30} className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            Add item
+          </Button>
+        </section>
+      </div>
+    </FormDialog>
   );
 }

@@ -40,7 +40,7 @@ const FormLayout: React.FC<FormLayoutProps> = ({ children, title, description })
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-purple-200 text-sm">
-            Â© 2026 Ionixx Technologies. All rights reserved.
+            © 2026 Ionixx Technologies. All rights reserved.
           </p>
         </div>
       </div>

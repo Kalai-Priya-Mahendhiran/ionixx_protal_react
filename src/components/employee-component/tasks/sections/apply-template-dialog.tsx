@@ -2,10 +2,9 @@ import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, CalendarOff } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { FormDialog } from '@/components/ui/form-dialog';
 import { RequiredLabel, SelectField, fieldClass, type Option } from '@/components/ui/form-fields';
 import { useAuth } from '@/context/auth-context';
 import { applyTemplateSchema, type ApplyTemplateFormValues } from '@/lib/schemas';
@@ -86,110 +85,104 @@ export function ApplyTemplateDialog({ template, onOpenChange, onApplied }: Apply
   };
 
   return (
-    <Dialog open={!!template} onOpenChange={(next) => !applyTemplate.isPending && onOpenChange(next)}>
-      <DialogContent className="flex max-h-[90vh] max-w-3xl flex-col gap-0 overflow-hidden bg-white p-0">
-        <DialogHeader className="border-b border-indigo-100 px-6 py-4 pr-12">
-          <DialogTitle className="text-xl">Apply "{template?.name}"</DialogTitle>
-          <DialogDescription>Creates one checklist task with {template?.items.length} sub-tasks, each assigned to its owner with a real due date.</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col" noValidate>
-            <div className="ionixx-scrollbar flex-1 space-y-5 overflow-y-auto px-6 py-5">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <SelectField
-                  control={form.control}
-                  name="subjectId"
-                  label="Employee"
-                  options={subjectOptions}
-                  placeholder="Choose the employee"
-                  onValueChange={(id) => template && form.setValue('anchorDate', defaultAnchor(template, id), { shouldValidate: true })}
-                />
-                <FormField
-                  control={form.control}
-                  name="anchorDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <RequiredLabel>{template ? TEMPLATE_ANCHOR_LABELS[template.kind] : 'Date'}</RequiredLabel>
-                      <FormControl>
-                        <Input {...field} type="date" className={fieldClass} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+    <FormDialog
+      open={!!template}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={onSubmit}
+      title={`Apply "${template?.name ?? ''}"`}
+      description={`Creates one checklist task with ${template?.items.length ?? 0} sub-tasks, each assigned to its owner with a real due date.`}
+      size="2xl"
+      submitLabel={`Create checklist (${template?.items.length ?? 0} tasks)`}
+      pendingLabel="Creating…"
+      pending={applyTemplate.isPending}
+      submitDisabled={!plan}
+    >
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <SelectField
+            control={form.control}
+            name="subjectId"
+            label="Employee"
+            options={subjectOptions}
+            placeholder="Choose the employee"
+            onValueChange={(id) => template && form.setValue('anchorDate', defaultAnchor(template, id), { shouldValidate: true })}
+          />
+          <FormField
+            control={form.control}
+            name="anchorDate"
+            render={({ field }) => (
+              <FormItem>
+                <RequiredLabel>{template ? TEMPLATE_ANCHOR_LABELS[template.kind] : 'Date'}</RequiredLabel>
+                <FormControl>
+                  <Input {...field} type="date" className={fieldClass} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-              {plan ? (
-                <section className="space-y-2">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-gray-900">{plan.title}</h3>
-                    <span className="text-xs text-gray-500">
-                      {formatShortDate(plan.startDate)} – {formatShortDate(plan.dueDate)} · {plan.estimateHours}h estimated
-                    </span>
-                  </div>
-                  {pastItems > 0 && (
-                    <p className="flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                      <AlertTriangle className="h-4 w-4 shrink-0" />
-                      {pastItems} {pastItems === 1 ? 'item is' : 'items are'} due before today and will show as overdue.
-                    </p>
-                  )}
-                  <div className="overflow-hidden rounded-lg border border-gray-200">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50 text-left text-xs font-semibold text-gray-600">
-                        <tr>
-                          <th className="px-3 py-2">Day</th>
-                          <th className="px-3 py-2">Task</th>
-                          <th className="px-3 py-2">Owner</th>
-                          <th className="px-3 py-2">Due</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {plan.items.map(({ item, assigneeId, dueDate }) => {
-                          const onLeave = findAbsence(absences, assigneeId, dueDate);
-                          return (
-                            <tr key={item.id}>
-                              <td className="whitespace-nowrap px-3 py-2 text-xs font-medium text-gray-500">{formatOffset(item.offsetDays)}</td>
-                              <td className="px-3 py-2">
-                                <span className="block text-gray-900">{item.title}</span>
-                                <PriorityIndicator priority={item.priority} />
-                              </td>
-                              <td className="px-3 py-2">
-                                <span className="block text-gray-800">{item.owner === 'admin' ? 'Admin team' : (getUserById(assigneeId)?.name ?? 'Unknown')}</span>
-                                {item.owner === 'admin' && <span className="block text-xs text-gray-500">Service desk request · you track it</span>}
-                                {onLeave && (
-                                  <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
-                                    <CalendarOff className="h-3 w-3" />
-                                    On leave that day
-                                  </span>
-                                )}
-                              </td>
-                              <td className={cn('whitespace-nowrap px-3 py-2', dueDate < today ? 'font-medium text-red-700' : 'text-gray-700')}>
-                                {formatShortDate(dueDate)}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              ) : (
-                <p className="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500">
-                  Choose the employee and date to preview the checklist.
-                </p>
-              )}
+        {plan ? (
+          <section className="space-y-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h3 className="text-sm font-semibold text-gray-900">{plan.title}</h3>
+              <span className="text-xs text-gray-500">
+                {formatShortDate(plan.startDate)} – {formatShortDate(plan.dueDate)} · {plan.estimateHours}h estimated
+              </span>
             </div>
-            <div className="flex justify-end gap-2 border-t border-indigo-100 bg-gray-50/60 px-6 py-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={applyTemplate.isPending}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={applyTemplate.isPending || !plan} className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-                {applyTemplate.isPending ? 'Creating…' : `Create checklist (${template?.items.length ?? 0} tasks)`}
-              </Button>
+            {pastItems > 0 && (
+              <p className="flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                {pastItems} {pastItems === 1 ? 'item is' : 'items are'} due before today and will show as overdue.
+              </p>
+            )}
+            <div className="overflow-hidden rounded-lg border border-gray-200">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 text-left text-xs font-semibold text-gray-600">
+                  <tr>
+                    <th className="px-3 py-2">Day</th>
+                    <th className="px-3 py-2">Task</th>
+                    <th className="px-3 py-2">Owner</th>
+                    <th className="px-3 py-2">Due</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {plan.items.map(({ item, assigneeId, dueDate }) => {
+                    const onLeave = findAbsence(absences, assigneeId, dueDate);
+                    return (
+                      <tr key={item.id}>
+                        <td className="whitespace-nowrap px-3 py-2 text-xs font-medium text-gray-500">{formatOffset(item.offsetDays)}</td>
+                        <td className="px-3 py-2">
+                          <span className="block text-gray-900">{item.title}</span>
+                          <PriorityIndicator priority={item.priority} />
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className="block text-gray-800">{item.owner === 'admin' ? 'Admin team' : (getUserById(assigneeId)?.name ?? 'Unknown')}</span>
+                          {item.owner === 'admin' && <span className="block text-xs text-gray-500">Service desk request · you track it</span>}
+                          {onLeave && (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
+                              <CalendarOff className="h-3 w-3" />
+                              On leave that day
+                            </span>
+                          )}
+                        </td>
+                        <td className={cn('whitespace-nowrap px-3 py-2', dueDate < today ? 'font-medium text-red-700' : 'text-gray-700')}>
+                          {formatShortDate(dueDate)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          </section>
+        ) : (
+          <p className="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500">
+            Choose the employee and date to preview the checklist.
+          </p>
+        )}
+      </div>
+    </FormDialog>
   );
 }

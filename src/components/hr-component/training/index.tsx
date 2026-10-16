@@ -1,12 +1,13 @@
-﻿import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import {
   GraduationCap,
   Plus,
   Clock,
   Users,
-  CheckCircle2,
   PlayCircle,
-  X,
   BookOpen,
   Award,
   Search,
@@ -19,10 +20,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader, headerPrimaryButtonClass } from "@/components/ui/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { FormDialog } from "@/components/ui/form-dialog";
+import { MultiCheckboxField, SelectField, TextareaField, TextField, toOptions } from "@/components/ui/form-fields";
 import { COURSE_LEVEL_COLORS, COURSE_STATUS_COLORS, TRAINING_ASSIGNMENT_STATUS_COLORS, TRAINING_ASSIGNMENT_STATUS_LABELS } from "@/lib/constants";
+import {
+  assignLearnersSchema,
+  COURSE_LEVELS,
+  createCourseSchema,
+  type AssignLearnersFormValues,
+  type CreateCourseFormValues,
+} from "@/lib/form-schemas/hr";
 
 type Tab = "courses" | "assignments";
 
@@ -232,7 +244,6 @@ export default function Training() {
   const [search, setSearch] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [assignTarget, setAssignTarget] = useState<Course | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
 
   const stats = useMemo(() => {
     const totalCourses = courses.length;
@@ -255,11 +266,6 @@ export default function Training() {
     );
   }, [courses, search]);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    window.setTimeout(() => setToast(null), 3000);
-  };
-
   const handleCreateCourse = (
     data: Omit<Course, "id" | "enrolled" | "completed" | "status">
   ) => {
@@ -272,7 +278,7 @@ export default function Training() {
     };
     setCourses((prev) => [newCourse, ...prev]);
     setShowCreateModal(false);
-    showToast(`"${newCourse.title}" published.`);
+    toast.success(`"${newCourse.title}" published.`);
   };
 
   const handleAssignLearners = (course: Course, names: string[]) => {
@@ -282,7 +288,7 @@ export default function Training() {
       courseTitle: course.title,
       employeeName: name,
       employeeId: `EMP-${idx + 1}`,
-      department: "â€”",
+      department: "—",
       assignedDate: new Date().toISOString().slice(0, 10),
       dueDate: new Date(Date.now() + 30 * 86400 * 1000).toISOString().slice(0, 10),
       progress: 0,
@@ -295,63 +301,32 @@ export default function Training() {
       )
     );
     setAssignTarget(null);
-    showToast(`Assigned ${names.length} learner${names.length > 1 ? "s" : ""} to "${course.title}".`);
+    toast.success(`Assigned ${names.length} learner${names.length > 1 ? "s" : ""} to "${course.title}".`);
   };
 
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <GraduationCap className="h-10 w-10 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">Training</h1>
-                <p className="text-white/90 mt-1">
-                  {stats.activeCourses} active courses Â· {stats.totalLearners} learners Â· {stats.completionRate}% completion
-                </p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-white text-[#464EB8] hover:bg-white/90"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Course
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={GraduationCap}
+          title="Training"
+          description={`${stats.activeCourses} active courses · ${stats.totalLearners} learners · ${stats.completionRate}% completion`}
+          actions={
+            <>
+              <Button onClick={() => setShowCreateModal(true)} className={headerPrimaryButtonClass}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Course
+              </Button>
+            </>
+          }
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <SummaryCard
-            label="Total Courses"
-            count={stats.totalCourses}
-            icon={<BookOpen className="h-6 w-6 text-indigo-600" />}
-            tone="bg-indigo-50"
-          />
-          <SummaryCard
-            label="Active"
-            count={stats.activeCourses}
-            icon={<PlayCircle className="h-6 w-6 text-blue-600" />}
-            tone="bg-blue-50"
-          />
-          <SummaryCard
-            label="Learners"
-            count={stats.totalLearners}
-            icon={<Users className="h-6 w-6 text-purple-600" />}
-            tone="bg-purple-50"
-          />
-          <SummaryCard
-            label="Completion"
-            count={stats.completionRate}
-            suffix="%"
-            icon={<Award className="h-6 w-6 text-green-600" />}
-            tone="bg-green-50"
-          />
-        </div>
+        <StatGrid>
+          <StatCard icon={BookOpen} label="Total Courses" value={stats.totalCourses} tone="indigo" />
+          <StatCard icon={PlayCircle} label="Active" value={stats.activeCourses} tone="blue" />
+          <StatCard icon={Users} label="Learners" value={stats.totalLearners} tone="purple" />
+          <StatCard icon={Award} label="Completion" value={`${stats.completionRate}%`} tone="green" />
+        </StatGrid>
 
         <Card className="border-0 shadow-lg">
           <CardHeader>
@@ -395,12 +370,11 @@ export default function Training() {
         </Card>
       </div>
 
-      {showCreateModal && (
-        <CreateCourseModal
-          onCancel={() => setShowCreateModal(false)}
-          onSubmit={handleCreateCourse}
-        />
-      )}
+      <CreateCourseModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onSubmit={handleCreateCourse}
+      />
 
       {assignTarget && (
         <AssignLearnersModal
@@ -408,12 +382,6 @@ export default function Training() {
           onCancel={() => setAssignTarget(null)}
           onSubmit={(names) => handleAssignLearners(assignTarget, names)}
         />
-      )}
-
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-2 text-sm">
-          <span>{toast}</span>
-        </div>
       )}
     </MainLayout>
   );
@@ -493,7 +461,7 @@ function CoursesView({
                   <div className="flex items-center justify-between text-xs mb-1">
                     <span className="text-gray-600">Completion</span>
                     <span className="font-medium text-gray-900">
-                      {c.completed}/{c.enrolled || 0} Â· {completionPct}%
+                      {c.completed}/{c.enrolled || 0} · {completionPct}%
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
@@ -592,139 +560,108 @@ function AssignmentsView({ assignments }: { assignments: Assignment[] }) {
   );
 }
 
+const COURSE_CATEGORIES = toOptions([
+  "Engineering",
+  "Compliance",
+  "Soft Skills",
+  "Security",
+  "Design",
+  "Leadership",
+]);
+const COURSE_LEVEL_OPTIONS = toOptions(COURSE_LEVELS);
+
+const EMPTY_COURSE: CreateCourseFormValues = {
+  title: "",
+  category: "Engineering",
+  level: "Beginner",
+  instructor: "",
+  duration: "",
+  modules: "1",
+  description: "",
+};
+
 function CreateCourseModal({
-  onCancel,
+  open,
+  onOpenChange,
   onSubmit,
 }: {
-  onCancel: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSubmit: (
     data: Omit<Course, "id" | "enrolled" | "completed" | "status">
   ) => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Engineering");
-  const [instructor, setInstructor] = useState("");
-  const [duration, setDuration] = useState("");
-  const [level, setLevel] = useState<Course["level"]>("Beginner");
-  const [modules, setModules] = useState(1);
-  const [description, setDescription] = useState("");
+  const form = useForm<CreateCourseFormValues>({
+    resolver: zodResolver(createCourseSchema),
+    defaultValues: EMPTY_COURSE,
+  });
 
-  const canSubmit = title.trim() && instructor.trim() && duration.trim();
+  useEffect(() => {
+    if (open) form.reset(EMPTY_COURSE);
+  }, [open, form]);
+
+  const save = (values: CreateCourseFormValues) =>
+    onSubmit({
+      title: values.title.trim(),
+      category: values.category,
+      instructor: values.instructor.trim(),
+      duration: values.duration.trim(),
+      level: values.level,
+      modules: Number(values.modules),
+      description: values.description?.trim() ?? "",
+    });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-5 text-white flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold">Create Course</h2>
-            <p className="text-xs text-white/80">Author a new training course.</p>
-          </div>
-          <button
-            onClick={onCancel}
-            className="p-1.5 rounded-md bg-white/20 hover:bg-white/30 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="p-5 max-h-[70vh] overflow-y-auto space-y-3">
-          <FormField label="Course title">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-          </FormField>
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="Category">
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              >
-                <option>Engineering</option>
-                <option>Compliance</option>
-                <option>Soft Skills</option>
-                <option>Security</option>
-                <option>Design</option>
-                <option>Leadership</option>
-              </select>
-            </FormField>
-            <FormField label="Level">
-              <select
-                value={level}
-                onChange={(e) => setLevel(e.target.value as Course["level"])}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              >
-                <option>Beginner</option>
-                <option>Intermediate</option>
-                <option>Advanced</option>
-              </select>
-            </FormField>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="Instructor">
-              <input
-                value={instructor}
-                onChange={(e) => setInstructor(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              />
-            </FormField>
-            <FormField label="Duration">
-              <input
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                placeholder="2h 30m"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-              />
-            </FormField>
-          </div>
-          <FormField label="Modules">
-            <input
-              type="number"
-              min={1}
-              value={modules}
-              onChange={(e) => setModules(Number(e.target.value) || 1)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-          </FormField>
-          <FormField label="Description">
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
-          </FormField>
-        </div>
-        <div className="p-4 border-t flex justify-end gap-2 bg-gray-50">
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button
-            disabled={!canSubmit}
-            onClick={() =>
-              onSubmit({
-                title,
-                category,
-                instructor,
-                duration,
-                level,
-                modules,
-                description,
-              })
-            }
-            className="bg-[#464EB8] hover:bg-[#3a3f9a]"
-          >
-            Publish course
-          </Button>
-        </div>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={save}
+      title="Create Course"
+      description="Author a new training course."
+      size="lg"
+      submitLabel="Publish course"
+    >
+      <TextField control={form.control} name="title" label="Course title" required />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SelectField
+          control={form.control}
+          name="category"
+          label="Category"
+          options={COURSE_CATEGORIES}
+        />
+        <SelectField
+          control={form.control}
+          name="level"
+          label="Level"
+          options={COURSE_LEVEL_OPTIONS}
+        />
+        <TextField control={form.control} name="instructor" label="Instructor" required />
+        <TextField
+          control={form.control}
+          name="duration"
+          label="Duration"
+          placeholder="2h 30m"
+          required
+        />
       </div>
-    </div>
+      <TextField
+        control={form.control}
+        name="modules"
+        label="Modules"
+        type="number"
+        inputMode="numeric"
+        min={1}
+        max={50}
+        step={1}
+        required
+      />
+      <TextareaField control={form.control} name="description" label="Description" />
+    </FormDialog>
   );
 }
 
-const candidateLearners = [
+const candidateLearners = toOptions([
   "Kalai Priya",
   "Arjun Rao",
   "Meera Sundar",
@@ -732,7 +669,7 @@ const candidateLearners = [
   "Divya Menon",
   "Karthik Subramanian",
   "Sneha Iyer",
-];
+]);
 
 function AssignLearnersModal({
   course,
@@ -743,72 +680,30 @@ function AssignLearnersModal({
   onCancel: () => void;
   onSubmit: (names: string[]) => void;
 }) {
-  const [selected, setSelected] = useState<string[]>([]);
-
-  const toggle = (name: string) => {
-    setSelected((prev) =>
-      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
-    );
-  };
+  const form = useForm<AssignLearnersFormValues>({
+    resolver: zodResolver(assignLearnersSchema),
+    defaultValues: { learners: [] },
+  });
+  const count = form.watch("learners").length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-5 text-white flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold">Assign Learners</h2>
-            <p className="text-xs text-white/80 truncate">{course.title}</p>
-          </div>
-          <button
-            onClick={onCancel}
-            className="p-1.5 rounded-md bg-white/20 hover:bg-white/30 transition-colors"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="p-5 max-h-[60vh] overflow-y-auto space-y-2">
-          {candidateLearners.map((name) => {
-            const isSelected = selected.includes(name);
-            return (
-              <button
-                key={name}
-                onClick={() => toggle(name)}
-                className={`w-full text-left flex items-center justify-between p-3 border rounded-lg transition-all ${
-                  isSelected
-                    ? "border-[#464EB8] bg-[#464EB8]/5"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-8 h-8">
-                    <AvatarFallback className="bg-gradient-to-br from-indigo-600 to-violet-600 text-white text-xs font-semibold">
-                      {initials(name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium text-gray-900">{name}</span>
-                </div>
-                {isSelected && (
-                  <CheckCircle2 className="h-4 w-4 text-[#464EB8]" />
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <div className="p-4 border-t flex justify-end gap-2 bg-gray-50">
-          <Button variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button
-            disabled={selected.length === 0}
-            onClick={() => onSubmit(selected)}
-            className="bg-[#464EB8] hover:bg-[#3a3f9a]"
-          >
-            Assign {selected.length || ""}
-          </Button>
-        </div>
-      </div>
-    </div>
+    <FormDialog
+      open
+      onOpenChange={(open) => !open && onCancel()}
+      form={form}
+      onSubmit={(values) => onSubmit(values.learners)}
+      title="Assign Learners"
+      description={course.title}
+      submitLabel={`Assign ${count || ""}`.trim()}
+    >
+      <MultiCheckboxField
+        control={form.control}
+        name="learners"
+        label="Learners"
+        options={candidateLearners}
+        required
+      />
+    </FormDialog>
   );
 }
 
@@ -846,56 +741,6 @@ function TabButton({
         {count}
       </span>
     </button>
-  );
-}
-
-function SummaryCard({
-  label,
-  count,
-  icon,
-  tone,
-  suffix,
-}: {
-  label: string;
-  count: number;
-  icon: React.ReactNode;
-  tone: string;
-  suffix?: string;
-}) {
-  return (
-    <Card className="border-0 shadow-md">
-      <CardContent className="p-5 flex items-center justify-between">
-        <div>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {label}
-          </p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">
-            {count}
-            {suffix && (
-              <span className="text-base font-semibold text-gray-500">
-                {suffix}
-              </span>
-            )}
-          </p>
-        </div>
-        <div className={`p-3 rounded-xl ${tone}`}>{icon}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function FormField({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs font-medium text-gray-700 mb-1 block">{label}</span>
-      {children}
-    </label>
   );
 }
 

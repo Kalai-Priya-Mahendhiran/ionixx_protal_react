@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AppDialog } from '@/components/ui/form-dialog';
 
 export interface ShortcutHelp {
   keys: string;
@@ -12,21 +12,15 @@ export function Kbd({ children }: { children: string }) {
 // Lists the shortcuts available on the current page (opened with "?")
 export function ShortcutsDialog({ open, onOpenChange, shortcuts }: { open: boolean; onOpenChange: (open: boolean) => void; shortcuts: ShortcutHelp[] }) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm bg-white">
-        <DialogHeader>
-          <DialogTitle>Keyboard shortcuts</DialogTitle>
-          <DialogDescription>They work anywhere on this page except while typing in a field.</DialogDescription>
-        </DialogHeader>
-        <ul className="divide-y divide-gray-100">
-          {shortcuts.map((shortcut) => (
-            <li key={shortcut.keys} className="flex items-center justify-between py-2 text-sm text-gray-700">
-              {shortcut.label}
-              <Kbd>{shortcut.keys}</Kbd>
-            </li>
-          ))}
-        </ul>
-      </DialogContent>
-    </Dialog>
+    <AppDialog open={open} onOpenChange={onOpenChange} title="Keyboard shortcuts" description="They work anywhere on this page except while typing in a field." size="sm">
+      <ul className="divide-y divide-gray-100">
+        {shortcuts.map((shortcut) => (
+          <li key={shortcut.keys} className="flex items-center justify-between py-2 text-sm text-gray-700">
+            {shortcut.label}
+            <Kbd>{shortcut.keys}</Kbd>
+          </li>
+        ))}
+      </ul>
+    </AppDialog>
   );
 }

@@ -9,8 +9,6 @@ import {
   Building2,
   Download,
   Calendar,
-  ArrowUpRight,
-  ArrowDownRight,
   Briefcase,
   Target,
   PieChart as PieIcon,
@@ -24,8 +22,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader, headerPrimaryButtonClass } from "@/components/ui/page-header";
 
 type Period = "1M" | "3M" | "6M" | "1Y";
 
@@ -159,21 +159,12 @@ export default function Analytics() {
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                <LineChart className="h-10 w-10 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">Analytics</h1>
-                <p className="text-white/90 mt-1">
-                  Workforce trends, forecasting, and department insights
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
+        <PageHeader
+          icon={LineChart}
+          title="Analytics"
+          description="Workforce trends, forecasting, and department insights"
+          actions={
+            <>
               <div className="bg-white/15 backdrop-blur-sm rounded-lg p-1 flex gap-1">
                 {(["1M", "3M", "6M", "1Y"] as Period[]).map((p) => (
                   <button
@@ -189,48 +180,38 @@ export default function Analytics() {
                   </button>
                 ))}
               </div>
-              <Button className="bg-white text-[#464EB8] hover:bg-white/90">
+              <Button className={headerPrimaryButtonClass}>
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard
+        <StatGrid>
+          <StatCard
+            icon={Users}
             label="Total Headcount"
-            value={summary.currentHeadcount.toString()}
-            change={`${summary.headcountChange >= 0 ? "+" : ""}${summary.headcountChange} (${summary.headcountChangePct}%)`}
-            trend={summary.headcountChange >= 0 ? "up" : "down"}
-            icon={<Users className="h-5 w-5" />}
-            tone="bg-indigo-50 text-indigo-600"
+            value={summary.currentHeadcount}
+            hint={`${summary.headcountChange >= 0 ? "+" : ""}${summary.headcountChange} (${summary.headcountChangePct}%)`}
+            tone="indigo"
           />
-          <KpiCard
+          <StatCard
+            icon={TrendingUp}
             label="New Hires"
-            value={summary.totalHires.toString()}
-            change={`+${summary.netGrowth} net`}
-            trend="up"
-            icon={<TrendingUp className="h-5 w-5" />}
-            tone="bg-green-50 text-green-600"
+            value={summary.totalHires}
+            hint={`+${summary.netGrowth} net`}
+            tone="green"
           />
-          <KpiCard
+          <StatCard
+            icon={UserMinus}
             label="Attrition Rate"
             value={`${summary.avgAttrition}%`}
-            change={`${summary.totalExits} exits`}
-            trend="down"
-            icon={<UserMinus className="h-5 w-5" />}
-            tone="bg-orange-50 text-orange-600"
+            hint={`${summary.totalExits} exits`}
+            tone="orange"
           />
-          <KpiCard
-            label="Avg. Tenure"
-            value="2.8 yr"
-            change="+0.2 yr YoY"
-            trend="up"
-            icon={<Calendar className="h-5 w-5" />}
-            tone="bg-cyan-50 text-cyan-600"
-          />
-        </div>
+          <StatCard icon={Calendar} label="Avg. Tenure" value="2.8 yr" hint="+0.2 yr YoY" tone="sky" />
+        </StatGrid>
 
         <Card className="border-0 shadow-lg">
           <CardHeader>
@@ -293,7 +274,7 @@ export default function Analytics() {
                 <span>Headcount Forecast</span>
               </CardTitle>
               <CardDescription>
-                Projected growth â€” next 3 months
+                Projected growth — next 3 months
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -323,7 +304,7 @@ export default function Analytics() {
               <ForecastChart data={attritionForecast} color="#f59e0b" suffix="%" />
               <div className="mt-4 p-3 bg-orange-50 rounded-lg border border-orange-100">
                 <p className="text-xs font-medium text-orange-900">
-                  Watch zone: <span className="font-bold">1.6% â€“ 1.8%</span> through Q3
+                  Watch zone: <span className="font-bold">1.6% – 1.8%</span> through Q3
                 </p>
                 <p className="text-xs text-orange-700 mt-0.5">
                   Sales and Engineering are showing elevated risk
@@ -375,7 +356,7 @@ export default function Analytics() {
                         <span className="text-green-600 font-medium">+{d.hires}</span>
                       </td>
                       <td className="py-3 px-2">
-                        <span className="text-red-500 font-medium">âˆ’{d.exits}</span>
+                        <span className="text-red-500 font-medium">−{d.exits}</span>
                       </td>
                       <td className="py-3 px-2">
                         <div className="flex items-center gap-2">
@@ -439,25 +420,25 @@ export default function Analytics() {
                 <Insight
                   icon={<TrendingUp className="h-4 w-4 text-green-600" />}
                   title="Engineering grew fastest"
-                  body="18 new hires this quarter â€” driven by platform expansion."
+                  body="18 new hires this quarter — driven by platform expansion."
                   tone="bg-green-50"
                 />
                 <Insight
                   icon={<TrendingDown className="h-4 w-4 text-orange-600" />}
                   title="Sales attrition up 0.4 pts"
-                  body="Three exits in May â€” recommend targeted retention review."
+                  body="Three exits in May — recommend targeted retention review."
                   tone="bg-orange-50"
                 />
                 <Insight
                   icon={<DollarSign className="h-4 w-4 text-amber-600" />}
                   title="Sales budget at 82%"
-                  body="Approaching threshold â€” flag for finance review before next hire."
+                  body="Approaching threshold — flag for finance review before next hire."
                   tone="bg-amber-50"
                 />
                 <Insight
                   icon={<Users className="h-4 w-4 text-indigo-600" />}
                   title="HR productivity leads"
-                  body="94% productivity score â€” highest across all teams this period."
+                  body="94% productivity score — highest across all teams this period."
                   tone="bg-indigo-50"
                 />
               </ul>
@@ -466,46 +447,6 @@ export default function Analytics() {
         </div>
       </div>
     </MainLayout>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  change,
-  trend,
-  icon,
-  tone,
-}: {
-  label: string;
-  value: string;
-  change: string;
-  trend: "up" | "down";
-  icon: React.ReactNode;
-  tone: string;
-}) {
-  return (
-    <Card className="border-0 shadow-md">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-3">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {label}
-          </p>
-          <div className={`p-2 rounded-lg ${tone}`}>{icon}</div>
-        </div>
-        <p className="text-3xl font-bold text-gray-900">{value}</p>
-        <div className="flex items-center gap-1 mt-2 text-xs">
-          {trend === "up" ? (
-            <ArrowUpRight className="h-3.5 w-3.5 text-green-600" />
-          ) : (
-            <ArrowDownRight className="h-3.5 w-3.5 text-orange-500" />
-          )}
-          <span className={trend === "up" ? "text-green-700" : "text-orange-600"}>
-            {change}
-          </span>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

@@ -1,5 +1,7 @@
 ﻿import { useState } from 'react';
+import { Building } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
+import { PageHeader } from '@/components/ui/page-header';
 import { sampleUsers, sampleDepartments } from '@/lib/sample-data/organization-sample-data';
 import {
   OrganizationStatsSection,
@@ -25,10 +27,7 @@ export default function Organization() {
     <MainLayout>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Organization</h1>
-          <p className="text-gray-600 mt-2">Explore company structure and employee directory</p>
-        </div>
+        <PageHeader icon={Building} title="Organization" description="Explore company structure and employee directory" />
 
         {/* Organization Stats */}
         <OrganizationStatsSection users={sampleUsers} departmentCount={sampleDepartments.length - 1} />

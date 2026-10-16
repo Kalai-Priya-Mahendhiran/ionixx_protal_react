@@ -2,23 +2,24 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, MoreHorizontal, Pencil, Plus, Trash2, Wallet } from 'lucide-react';
+import { AlertTriangle, MoreHorizontal, Pencil, Plus, Receipt, Trash2, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PageHeader, headerPrimaryButtonClass, headerSecondaryButtonClass } from '@/components/ui/page-header';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { RequiredLabel, SelectField, fieldClass } from '@/components/ui/form-fields';
-import { Input } from '@/components/ui/input';
+import { FormDialog } from '@/components/ui/form-dialog';
+import { SelectField, TextField } from '@/components/ui/form-fields';
+import { StatCard, StatGrid } from '@/components/ui/stat-card';
 import MainLayout from '@/components/layout/main-layout';
 import { useAuth } from '@/context/auth-context';
 import { DEFAULT_DESK_SETTINGS, EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS, formatRupees } from '@/lib/desk-config';
 import { budgetState, currentMonthKey, getBudgetReport, monthKey, type BudgetState } from '@/lib/desk-reports';
+import { budgetsSchema, type BudgetsFormValues } from '@/lib/form-schemas/desk';
 import { canConfigureDesk } from '@/lib/permissions/desk-permissions';
 import { EXPENSE_CATEGORY_VALUES, expenseSchema, type ExpenseFormValues } from '@/lib/schemas';
 import { getUserById } from '@/lib/user-directory';
-import { cn, formatDate, todayAsDateInput } from '@/lib/utils';
+import { formatDate, todayAsDateInput } from '@/lib/utils';
 import { useCreateExpense, useDeleteExpense, useDeskSettings, useExpenses, useSaveBudgets, useUpdateExpense } from '@/services/apis/service-desk/use-service-desk';
 import type { Expense, ExpenseBudgets, TaskAttachment } from '@/types';
 import { AttachmentDropzone, AttachmentList } from '@/components/employee-component/tasks/sections/task-attachments-field';
@@ -78,146 +79,62 @@ function ExpenseDialog({ open, expense, onOpenChange }: { open: boolean; expense
   };
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !pending && onOpenChange(next)}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto bg-white">
-        <DialogHeader>
-          <DialogTitle>{expense ? 'Edit expense' : 'Record an expense'}</DialogTitle>
-          <DialogDescription>Office spend counts against the category's monthly budget.</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <RequiredLabel>Date</RequiredLabel>
-                    <FormControl>
-                      <Input type="date" max={todayAsDateInput()} {...field} className={fieldClass} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <RequiredLabel>Amount (₹)</RequiredLabel>
-                    <FormControl>
-                      <Input inputMode="decimal" placeholder="e.g. 4500" {...field} className={fieldClass} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <SelectField control={form.control} name="category" label="Category" options={EXPENSE_CATEGORY_VALUES.map((value) => ({ value, label: EXPENSE_CATEGORY_LABELS[value] }))} />
-            <FormField
-              control={form.control}
-              name="vendor"
-              render={({ field }) => (
-                <FormItem>
-                  <RequiredLabel>Vendor or payee</RequiredLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="e.g. Amazon Business" className={fieldClass} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-gray-700">What for</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="e.g. Printer toner ×2" className={fieldClass} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="requestKey"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-gray-700">Related request</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Optional, e.g. ADM-103" className={fieldClass} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-gray-700">Receipt</p>
-              {receipt ? <AttachmentList attachments={[receipt]} onRemove={() => setReceipt(undefined)} /> : <AttachmentDropzone compact onUploaded={(uploaded) => setReceipt(uploaded[0])} />}
-            </div>
-            <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={pending} className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-                {pending ? 'Saving…' : expense ? 'Save changes' : 'Record expense'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={onSubmit}
+      title={expense ? 'Edit expense' : 'Record an expense'}
+      description="Office spend counts against the category's monthly budget."
+      size="lg"
+      submitLabel={expense ? 'Save changes' : 'Record expense'}
+      pending={pending}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <TextField control={form.control} name="date" label="Date" type="date" max={todayAsDateInput()} required />
+        <TextField control={form.control} name="amount" label="Amount (₹)" inputMode="decimal" placeholder="e.g. 4500" required />
+      </div>
+      <SelectField control={form.control} name="category" label="Category" options={EXPENSE_CATEGORY_VALUES.map((value) => ({ value, label: EXPENSE_CATEGORY_LABELS[value] }))} />
+      <TextField control={form.control} name="vendor" label="Vendor or payee" placeholder="e.g. Amazon Business" required />
+      <TextField control={form.control} name="description" label="What for" placeholder="e.g. Printer toner ×2" />
+      <TextField control={form.control} name="requestKey" label="Related request" placeholder="Optional, e.g. ADM-103" />
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-gray-700">Receipt</p>
+        {receipt ? <AttachmentList attachments={[receipt]} onRemove={() => setReceipt(undefined)} /> : <AttachmentDropzone compact onUploaded={(uploaded) => setReceipt(uploaded[0])} />}
+      </div>
+    </FormDialog>
   );
 }
 
+const toBudgetValues = (budgets: ExpenseBudgets) => Object.fromEntries(EXPENSE_CATEGORIES.map((category) => [category, String(budgets[category])])) as BudgetsFormValues;
+
 function BudgetsDialog({ open, budgets, onOpenChange }: { open: boolean; budgets: ExpenseBudgets; onOpenChange: (open: boolean) => void }) {
   const save = useSaveBudgets();
-  const [draft, setDraft] = useState<Record<string, string>>({});
+  const form = useForm<BudgetsFormValues>({ resolver: zodResolver(budgetsSchema), defaultValues: toBudgetValues(budgets) });
   useEffect(() => {
-    if (open) setDraft(Object.fromEntries(EXPENSE_CATEGORIES.map((category) => [category, String(budgets[category])])));
-  }, [open, budgets]);
-  const invalid = EXPENSE_CATEGORIES.some((category) => !/^\d+$/.test(draft[category] ?? ''));
+    if (open) form.reset(toBudgetValues(budgets));
+  }, [open, budgets, form]);
+
+  const onSubmit = (values: BudgetsFormValues) =>
+    save.mutate(Object.fromEntries(EXPENSE_CATEGORIES.map((category) => [category, Number(values[category])])) as ExpenseBudgets, { onSuccess: () => onOpenChange(false) });
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !save.isPending && onOpenChange(next)}>
-      <DialogContent className="max-w-md bg-white">
-        <DialogHeader>
-          <DialogTitle>Monthly budgets</DialogTitle>
-          <DialogDescription>Per category, in rupees. Categories turn amber at 80% used and red when over.</DialogDescription>
-        </DialogHeader>
-        <ul className="max-h-[50vh] space-y-2 overflow-y-auto">
-          {EXPENSE_CATEGORIES.map((category) => (
-            <li key={category} className="grid grid-cols-[minmax(0,1fr)_9rem] items-center gap-3 text-sm">
-              <label htmlFor={`budget-${category}`} className="text-gray-800">
-                {EXPENSE_CATEGORY_LABELS[category]}
-              </label>
-              <Input
-                id={`budget-${category}`}
-                inputMode="numeric"
-                value={draft[category] ?? ''}
-                onChange={(event) => setDraft({ ...draft, [category]: event.target.value.replace(/[^\d]/g, '') })}
-                className={cn(fieldClass, 'h-9 text-right tabular-nums')}
-              />
-            </li>
-          ))}
-        </ul>
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={save.isPending}>
-            Cancel
-          </Button>
-          <Button
-            disabled={invalid || save.isPending}
-            onClick={() => save.mutate(Object.fromEntries(EXPENSE_CATEGORIES.map((category) => [category, Number(draft[category])])) as ExpenseBudgets, { onSuccess: () => onOpenChange(false) })}
-            className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]"
-          >
-            {save.isPending ? 'Saving…' : 'Save budgets'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <FormDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      form={form}
+      onSubmit={onSubmit}
+      title="Monthly budgets"
+      description="Per category, in rupees. Categories turn amber at 80% used and red when over."
+      submitLabel="Save budgets"
+      pending={save.isPending}
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        {EXPENSE_CATEGORIES.map((category) => (
+          <TextField key={category} control={form.control} name={category} label={EXPENSE_CATEGORY_LABELS[category]} inputMode="numeric" placeholder="e.g. 30000" required />
+        ))}
+      </div>
+    </FormDialog>
   );
 }
 
@@ -237,36 +154,41 @@ export default function Expenses() {
   const spent = report.reduce((sum, row) => sum + row.spent, 0);
   const budget = report.reduce((sum, row) => sum + row.budget, 0);
   const inMonth = expenses.filter((expense) => monthKey(expense.date) === month);
-  const flagged = report.filter((row) => row.state === 'over' || row.state === 'warning');
 
   return (
     <MainLayout>
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Office Expenses</h1>
-            <p className="mt-2 text-gray-600">What the office spends, against each category's monthly budget</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <select value={month} onChange={(event) => setMonth(event.target.value)} aria-label="Month" className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm">
-              {months.map((key) => (
-                <option key={key} value={key}>
-                  {monthName(key)}
-                </option>
-              ))}
-            </select>
-            {canConfigureDesk(user) && (
-              <Button variant="outline" onClick={() => setBudgetsOpen(true)} className="gap-2">
-                <Wallet className="h-4 w-4" />
-                Budgets
+        <PageHeader
+          icon={Receipt}
+          title="Office Expenses"
+          description="What the office spends, against each category's monthly budget"
+          actions={
+            <>
+              <select
+                value={month}
+                onChange={(event) => setMonth(event.target.value)}
+                aria-label="Month"
+                className="h-10 rounded-md border border-white/30 bg-white/15 px-3 text-sm text-white [&>option]:text-gray-900"
+              >
+                {months.map((key) => (
+                  <option key={key} value={key}>
+                    {monthName(key)}
+                  </option>
+                ))}
+              </select>
+              {canConfigureDesk(user) && (
+                <Button variant="outline" onClick={() => setBudgetsOpen(true)} className={`gap-2 ${headerSecondaryButtonClass}`}>
+                  <Wallet className="h-4 w-4" />
+                  Budgets
+                </Button>
+              )}
+              <Button onClick={() => setEditing({ open: true })} className={`gap-2 ${headerPrimaryButtonClass}`}>
+                <Plus className="h-4 w-4" />
+                Record expense
               </Button>
-            )}
-            <Button onClick={() => setEditing({ open: true })} className="gap-2 bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-              <Plus className="h-4 w-4" />
-              Record expense
-            </Button>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {isLoading ? (
           <div className="h-72 animate-pulse rounded-xl bg-gray-100" aria-busy="true" aria-label="Loading expenses" />
@@ -279,51 +201,39 @@ export default function Expenses() {
           </div>
         ) : (
           <>
-            <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-              <Card>
-                <CardContent className="flex h-full flex-col justify-center gap-2 p-5">
-                  <p className="text-sm font-medium text-gray-600">Spent in {monthName(month)}</p>
-                  <p className="text-4xl font-bold tabular-nums text-gray-900">{formatRupees(spent)}</p>
-                  <p className="text-sm text-gray-600">of {formatRupees(budget)} budgeted</p>
-                  <BudgetNote spent={spent} budget={budget} />
-                  {flagged.length > 0 && (
-                    <p className="text-xs text-gray-500">
-                      {flagged.length} {flagged.length === 1 ? 'category needs' : 'categories need'} attention
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="space-y-3 p-5">
-                  <h2 className="text-base font-semibold text-gray-900">By category</h2>
-                  <ul className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
-                    {report
-                      .filter((row) => row.budget > 0 || row.spent > 0)
-                      .map((row) => (
-                        <li key={row.category} className="space-y-1">
-                          <div className="flex items-baseline justify-between gap-2 text-sm">
-                            <span className="truncate text-gray-800">{EXPENSE_CATEGORY_LABELS[row.category]}</span>
-                            <span className="shrink-0 tabular-nums text-gray-900">
-                              {formatRupees(row.spent)} <span className="text-xs text-gray-500">/ {formatRupees(row.budget)}</span>
-                            </span>
-                          </div>
-                          <div
-                            className="h-2 overflow-hidden rounded-full bg-gray-100"
-                            role="progressbar"
-                            aria-valuenow={Math.round((row.share ?? 0) * 100)}
-                            aria-valuemin={0}
-                            aria-valuemax={100}
-                            aria-label={`${EXPENSE_CATEGORY_LABELS[row.category]} budget used`}
-                          >
-                            <div className="h-full rounded-full" style={{ width: `${Math.min(100, (row.share ?? (row.spent > 0 ? 1 : 0)) * 100)}%`, backgroundColor: BAR_COLOR[row.state] }} />
-                          </div>
-                          <BudgetNote spent={row.spent} budget={row.budget} />
-                        </li>
-                      ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
+            <StatGrid>
+              <StatCard icon={Wallet} label={`Spent in ${monthName(month)}`} value={formatRupees(spent)} tone="indigo" hint={`of ${formatRupees(budget)} budget`} />
+            </StatGrid>
+            <Card>
+              <CardContent className="space-y-3 p-5">
+                <h2 className="text-base font-semibold text-gray-900">By category</h2>
+                <ul className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+                  {report
+                    .filter((row) => row.budget > 0 || row.spent > 0)
+                    .map((row) => (
+                      <li key={row.category} className="space-y-1">
+                        <div className="flex items-baseline justify-between gap-2 text-sm">
+                          <span className="truncate text-gray-800">{EXPENSE_CATEGORY_LABELS[row.category]}</span>
+                          <span className="shrink-0 tabular-nums text-gray-900">
+                            {formatRupees(row.spent)} <span className="text-xs text-gray-500">/ {formatRupees(row.budget)}</span>
+                          </span>
+                        </div>
+                        <div
+                          className="h-2 overflow-hidden rounded-full bg-gray-100"
+                          role="progressbar"
+                          aria-valuenow={Math.round((row.share ?? 0) * 100)}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-label={`${EXPENSE_CATEGORY_LABELS[row.category]} budget used`}
+                        >
+                          <div className="h-full rounded-full" style={{ width: `${Math.min(100, (row.share ?? (row.spent > 0 ? 1 : 0)) * 100)}%`, backgroundColor: BAR_COLOR[row.state] }} />
+                        </div>
+                        <BudgetNote spent={row.spent} budget={row.budget} />
+                      </li>
+                    ))}
+                </ul>
+              </CardContent>
+            </Card>
 
             {inMonth.length === 0 ? (
               <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-sm text-gray-600">Nothing recorded for {monthName(month)}.</div>

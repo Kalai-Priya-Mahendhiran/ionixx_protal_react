@@ -117,18 +117,30 @@
   background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
 }
 
-/* Slim themed scrollbar for fixed-height panels */
+/*
+ * One slim, rounded lavender scrollbar everywhere: the page, the sidebar, tables, boards,
+ * dialogs and menus. `.ionixx-scrollbar` is kept as an alias for markup that already uses it.
+ */
+*,
 .ionixx-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #c7caf0 transparent;
 }
 
-.ionixx-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.ionixx-scrollbar::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
   background-color: #c7caf0;
   border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #a9aee8;
 }

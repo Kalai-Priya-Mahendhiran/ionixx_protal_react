@@ -2,6 +2,7 @@
 import MainLayout from "@/components/layout/main-layout";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { AuditLogSection } from "@/components/employee-component/tasks/settings/audit-log-section";
 import { SERVICE_HEALTH_LABELS, SERVICE_HEALTH_STYLES } from "@/lib/constants";
 
@@ -29,18 +30,11 @@ export default function Logs() {
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10" />
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-              <ScrollText className="h-10 w-10 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold">Logs & Monitoring</h1>
-              <p className="text-white/90 mt-1">Audit trail of every change, and the health of core services</p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          icon={ScrollText}
+          title="Logs & Monitoring"
+          description="Audit trail of every change, and the health of core services"
+        />
 
         <Card className="border-0 shadow-lg">
           <CardHeader>

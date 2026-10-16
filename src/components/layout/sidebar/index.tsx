@@ -2,7 +2,6 @@ import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
-import { ROLE_LABELS } from "@/lib/mock-users";
 import { getSidebarItems } from "@/lib/modules";
 import { getIcon } from "@/lib/constants";
 
@@ -50,16 +49,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
           </svg>
         </button>
       </div>
-
-      {user && (
-        <div className="shrink-0 px-6 py-3 border-b border-white/10">
-          <p className="text-xs text-white/60 uppercase tracking-wider">Signed in as</p>
-          <p className="text-white font-medium text-sm truncate">{user.name}</p>
-          <span className="inline-block mt-1 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-white/20 text-white">
-            {ROLE_LABELS[user.role]}
-          </span>
-        </div>
-      )}
 
       {/* Navigation Items */}
       <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4" aria-label="Main">

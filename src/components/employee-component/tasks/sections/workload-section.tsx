@@ -1,6 +1,7 @@
 import { AlertTriangle, Ban, Gauge, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { StatCard, StatGrid } from '@/components/ui/stat-card';
 import { getUserById } from '@/lib/user-directory';
 import { cn, getInitials } from '@/lib/utils';
 import type { Task } from '@/types';
@@ -22,29 +23,13 @@ export function WorkloadSection({ tasks, userIds, onSelectPerson }: WorkloadSect
   // Bars are drawn against whichever is larger: the threshold or the busiest person
   const scale = Math.max(threshold, ...rows.map((row) => row.remainingHours), 1);
 
-  const summary = [
-    { label: 'People', value: rows.length, icon: Users, iconClass: 'bg-indigo-100 text-indigo-600' },
-    { label: 'Overloaded', value: overloaded.length, icon: AlertTriangle, iconClass: 'bg-red-100 text-red-600' },
-    { label: 'Hours remaining', value: `${Math.round(totalRemaining)}h`, icon: Gauge, iconClass: 'bg-blue-100 text-blue-600' },
-  ];
-
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {summary.map(({ label, value, icon: Icon, iconClass }) => (
-          <Card key={label}>
-            <CardContent className="flex items-center gap-3 p-4">
-              <div className={cn('rounded-lg p-2', iconClass)}>
-                <Icon className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-600">{label}</p>
-                <p className="text-2xl font-bold text-gray-900">{value}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <StatGrid>
+        <StatCard icon={Users} label="People" value={rows.length} tone="indigo" />
+        <StatCard icon={AlertTriangle} label="Overloaded" value={overloaded.length} tone="red" hint={`Above ${threshold}h`} />
+        <StatCard icon={Gauge} label="Hours remaining" value={`${Math.round(totalRemaining)}h`} tone="blue" />
+      </StatGrid>
 
       <Card>
         <CardContent className="p-0">

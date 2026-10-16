@@ -1,18 +1,28 @@
 ﻿import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  BarChart3, 
-  Download, 
+import { StatCard, StatGrid } from '@/components/ui/stat-card';
+import {
+  AlarmClock,
+  AlertTriangle,
+  BarChart3,
+  CheckCircle2,
+  Download,
   Calendar,
+  FolderKanban,
+  Hourglass,
+  ListChecks,
+  Loader,
   Users,
+  UserX,
   Clock,
   TrendingUp,
   FileText,
   Filter
 } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
+import { PageHeader, headerSecondaryButtonClass } from '@/components/ui/page-header';
 import { REPORT_DATE_RANGES } from '@/lib/constants';
 
 export default function Reports() {
@@ -36,40 +46,12 @@ export default function Reports() {
       case 'attendance':
         return (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-green-600">95%</p>
-                    <p className="text-sm text-gray-600">Attendance Rate</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-blue-600">168h</p>
-                    <p className="text-sm text-gray-600">Total Hours</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-yellow-600">3</p>
-                    <p className="text-sm text-gray-600">Late Arrivals</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-red-600">1</p>
-                    <p className="text-sm text-gray-600">Absent Days</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <StatGrid>
+              <StatCard icon={CheckCircle2} label="Attendance Rate" value="95%" tone="green" />
+              <StatCard icon={Clock} label="Total Hours" value="168h" tone="blue" />
+              <StatCard icon={AlarmClock} label="Late Arrivals" value={3} tone="amber" />
+              <StatCard icon={UserX} label="Absent Days" value={1} tone="red" />
+            </StatGrid>
             
             <Card>
               <CardHeader>
@@ -99,32 +81,11 @@ export default function Reports() {
       case 'leave':
         return (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-blue-600">5</p>
-                    <p className="text-sm text-gray-600">Total Requests</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-green-600">4</p>
-                    <p className="text-sm text-gray-600">Approved</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-yellow-600">1</p>
-                    <p className="text-sm text-gray-600">Pending</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <StatGrid>
+              <StatCard icon={FileText} label="Total Requests" value={5} tone="blue" />
+              <StatCard icon={CheckCircle2} label="Approved" value={4} tone="green" />
+              <StatCard icon={Hourglass} label="Pending" value={1} tone="amber" />
+            </StatGrid>
             
             <Card>
               <CardHeader>
@@ -157,32 +118,11 @@ export default function Reports() {
       case 'time-tracker':
         return (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-blue-600">168h</p>
-                    <p className="text-sm text-gray-600">Total Time</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-green-600">85%</p>
-                    <p className="text-sm text-gray-600">Productivity</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-purple-600">3</p>
-                    <p className="text-sm text-gray-600">Active Projects</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <StatGrid>
+              <StatCard icon={Clock} label="Total Time" value="168h" tone="blue" />
+              <StatCard icon={TrendingUp} label="Productivity" value="85%" tone="green" />
+              <StatCard icon={FolderKanban} label="Active Projects" value={3} tone="purple" />
+            </StatGrid>
             
             <Card>
               <CardHeader>
@@ -231,40 +171,12 @@ export default function Reports() {
       case 'task':
         return (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-blue-600">20</p>
-                    <p className="text-sm text-gray-600">Total Tasks</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-green-600">15</p>
-                    <p className="text-sm text-gray-600">Completed</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-yellow-600">3</p>
-                    <p className="text-sm text-gray-600">In Progress</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-red-600">2</p>
-                    <p className="text-sm text-gray-600">Overdue</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <StatGrid>
+              <StatCard icon={ListChecks} label="Total Tasks" value={20} tone="blue" />
+              <StatCard icon={CheckCircle2} label="Completed" value={15} tone="green" />
+              <StatCard icon={Loader} label="In Progress" value={3} tone="amber" />
+              <StatCard icon={AlertTriangle} label="Overdue" value={2} tone="red" />
+            </StatGrid>
             
             <Card>
               <CardHeader>
@@ -316,22 +228,23 @@ export default function Reports() {
     <MainLayout>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
-            <p className="text-gray-600 mt-2">Generate and export comprehensive reports</p>
-          </div>
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={() => handleExport('pdf')}>
-              <Download className="h-4 w-4 mr-2" />
-              Export PDF
-            </Button>
-            <Button variant="outline" onClick={() => handleExport('excel')}>
-              <Download className="h-4 w-4 mr-2" />
-              Export Excel
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          icon={BarChart3}
+          title="Reports"
+          description="Generate and export comprehensive reports"
+          actions={
+            <>
+              <Button variant="outline" className={headerSecondaryButtonClass} onClick={() => handleExport('pdf')}>
+                <Download className="h-4 w-4 mr-2" />
+                Export PDF
+              </Button>
+              <Button variant="outline" className={headerSecondaryButtonClass} onClick={() => handleExport('excel')}>
+                <Download className="h-4 w-4 mr-2" />
+                Export Excel
+              </Button>
+            </>
+          }
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Report Types Sidebar */}

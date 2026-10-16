@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { StatCard, StatGrid } from '@/components/ui/stat-card';
 import { Button } from '@/components/ui/button';
 import { 
   Folder, 
@@ -8,6 +8,7 @@ import {
   Upload
 } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
+import { PageHeader, headerPrimaryButtonClass } from '@/components/ui/page-header';
 import { TASK_ATTACHMENT_CATEGORY } from '@/services/apis/files/file-service';
 import { useFiles } from '@/services/apis/files/use-files';
 import { CategoriesSidebarSection, FilesContentSection, type FileCategory } from './sections';
@@ -37,75 +38,25 @@ export default function Files() {
     <MainLayout>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Files</h1>
-            <p className="text-gray-600 mt-2">Manage and organize your documents</p>
-          </div>
-          <Button className="flex items-center space-x-2">
-            <Upload className="h-4 w-4" />
-            <span>Upload File</span>
-          </Button>
-        </div>
+        <PageHeader
+          icon={Folder}
+          title="Files"
+          description="Manage and organize your documents"
+          actions={
+            <Button className={`flex items-center space-x-2 ${headerPrimaryButtonClass}`}>
+              <Upload className="h-4 w-4" />
+              <span>Upload File</span>
+            </Button>
+          }
+        />
 
         {/* File Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <FileText className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Files</p>
-                  <p className="text-2xl font-bold text-gray-900">{files.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Folder className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Categories</p>
-                  <p className="text-2xl font-bold text-gray-900">{categories.length - 1}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Download className="h-6 w-6 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Downloads</p>
-                  <p className="text-2xl font-bold text-gray-900">156</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Upload className="h-6 w-6 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Storage Used</p>
-                  <p className="text-2xl font-bold text-gray-900">2.4 GB</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <StatGrid>
+          <StatCard icon={FileText} label="Total Files" value={files.length} tone="blue" />
+          <StatCard icon={Folder} label="Categories" value={categories.length - 1} tone="green" />
+          <StatCard icon={Download} label="Downloads" value={156} tone="purple" />
+          <StatCard icon={Upload} label="Storage Used" value="2.4 GB" tone="orange" />
+        </StatGrid>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Categories Sidebar */}

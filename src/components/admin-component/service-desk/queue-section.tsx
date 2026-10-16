@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, Inbox, Search, UserX, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Inbox, Search, UserX } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { StatCard, StatGrid } from '@/components/ui/stat-card';
 import { REQUEST_CATEGORIES, REQUEST_CATEGORY_LABELS } from '@/lib/desk-config';
 import { getDeskTeam } from '@/lib/permissions/desk-permissions';
 import { getSlaStatus, type SlaStatus } from '@/lib/sla';
@@ -29,23 +30,6 @@ const isDone = (request: AdminRequest) => request.status === 'resolved' || reque
 
 // The clock that matters now: response until someone responds, then resolution
 const activeClock = (sla: SlaStatus, request: AdminRequest) => (request.firstResponseAt || isDone(request) ? sla.resolution : sla.response);
-
-function StatTile({ label, value, icon: Icon, iconClass, active, onClick }: { label: string; value: number; icon: LucideIcon; iconClass: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn('rounded-xl border bg-white p-4 text-left shadow-sm transition-colors hover:border-[#464EB8]/40', active ? 'border-[#464EB8] ring-1 ring-[#464EB8]' : 'border-gray-200')}
-    >
-      <p className="flex items-center gap-1.5 text-sm font-medium text-gray-600">
-        <Icon className={cn('h-4 w-4', iconClass)} aria-hidden="true" />
-        {label}
-      </p>
-      <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">{value}</p>
-    </button>
-  );
-}
 
 export function QueueSection({ requests, settings, userId, isLoading }: { requests: AdminRequest[]; settings: DeskSettings; userId: string; isLoading: boolean }) {
   const [params, setParams] = useSearchParams();
@@ -112,12 +96,12 @@ export function QueueSection({ requests, settings, userId, isLoading }: { reques
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile label="Open" value={counts.open} icon={Inbox} iconClass="text-gray-500" active={view === 'open'} onClick={() => setParam('view', '')} />
-        <StatTile label="Unassigned" value={counts.unassigned} icon={UserX} iconClass="text-gray-500" active={view === 'unassigned'} onClick={() => setParam('view', 'unassigned')} />
-        <StatTile label="SLA breached" value={counts.breached} icon={AlertTriangle} iconClass="text-red-600" active={view === 'breached'} onClick={() => setParam('view', 'breached')} />
-        <StatTile label="At risk" value={counts.atRisk} icon={AlertTriangle} iconClass="text-amber-500" active={view === 'at-risk'} onClick={() => setParam('view', 'at-risk')} />
-      </div>
+      <StatGrid>
+        <StatCard icon={Inbox} label="Open" value={counts.open} tone="gray" loading={isLoading} active={view === 'open'} onClick={() => setParam('view', '')} />
+        <StatCard icon={UserX} label="Unassigned" value={counts.unassigned} tone="gray" loading={isLoading} active={view === 'unassigned'} onClick={() => setParam('view', 'unassigned')} />
+        <StatCard icon={AlertTriangle} label="SLA breached" value={counts.breached} tone="red" loading={isLoading} active={view === 'breached'} onClick={() => setParam('view', 'breached')} />
+        <StatCard icon={AlertTriangle} label="At risk" value={counts.atRisk} tone="amber" loading={isLoading} active={view === 'at-risk'} onClick={() => setParam('view', 'at-risk')} />
+      </StatGrid>
 
       <Card>
         <CardContent className="space-y-4 p-4">

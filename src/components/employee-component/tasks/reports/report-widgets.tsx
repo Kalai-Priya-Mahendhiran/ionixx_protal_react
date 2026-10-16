@@ -1,7 +1,5 @@
-import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, Ban, CheckCircle2, ChevronRight, ShieldCheck, type LucideIcon } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { AlertTriangle, Ban, CheckCircle2, ChevronRight, ShieldCheck } from 'lucide-react';
 import { getUserById } from '@/lib/user-directory';
 import { cn, formatDate } from '@/lib/utils';
 import { isOverdue, type Burndown, type ProjectProgress, type WeekThroughput } from '@/lib/task-reports';
@@ -16,35 +14,6 @@ export const STATUS_COLORS = { critical: '#d03b3b', warning: '#fab219', serious:
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const daysLate = (dueDate: string, today: Date) => Math.max(1, Math.round((new Date(today.toDateString()).getTime() - new Date(`${dueDate}T00:00:00`).getTime()) / MS_PER_DAY));
-
-/* ---------- Stat tiles ---------- */
-
-export function HeroStat({ value, label, detail }: { value: string; label: string; detail: ReactNode }) {
-  return (
-    <Card className="col-span-2 lg:col-span-1 lg:row-span-2">
-      <CardContent className="flex h-full flex-col justify-center gap-2 p-5">
-        <p className="text-sm font-medium text-gray-600">{label}</p>
-        <p className="text-5xl font-bold tabular-nums text-gray-900">{value}</p>
-        <div className="text-sm text-gray-600">{detail}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-export function StatTile({ label, value, icon: Icon, iconColor, hint }: { label: string; value: number | string; icon?: LucideIcon; iconColor?: string; hint?: string }) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <p className="flex items-center gap-1.5 text-sm font-medium text-gray-600">
-          {Icon && <Icon className="h-4 w-4" style={{ color: iconColor }} aria-hidden="true" />}
-          {label}
-        </p>
-        <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">{value}</p>
-        {hint && <p className="mt-0.5 text-xs text-gray-500">{hint}</p>}
-      </CardContent>
-    </Card>
-  );
-}
 
 /* ---------- Project progress ---------- */
 
