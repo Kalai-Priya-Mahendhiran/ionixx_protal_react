@@ -1,4 +1,7 @@
 import {
+  CalendarPlus,
+  Flower2,
+  Plane,
   Award,
   Baby,
   BarChart3,
@@ -122,12 +125,15 @@ export const LEAVE_TYPES = [
   { id: "sick", label: "Sick Leave", color: "bg-red-100 text-red-800", icon: "Stethoscope", iconClass: "bg-red-100 text-red-600" },
   { id: "earned", label: "Earned Leave", color: "bg-green-100 text-green-800", icon: "Award", iconClass: "bg-green-100 text-green-600" },
   { id: "loss-of-pay", label: "Loss Of Pay", color: "bg-slate-200 text-slate-800", icon: "Wallet", iconClass: "bg-slate-200 text-slate-600" },
-  { id: "competency", label: "Competency Leave", color: "bg-teal-100 text-teal-800", icon: "Briefcase", iconClass: "bg-teal-100 text-teal-600" },
+  // Earned by working on a holiday or weekend and taken as a day off; named "Off" because it is time owed, not a leave entitlement
+  { id: "compensatory-off", label: "Compensatory Off", color: "bg-teal-100 text-teal-800", icon: "CalendarPlus", iconClass: "bg-teal-100 text-teal-600" },
   { id: "permission", label: "Permission", color: "bg-cyan-100 text-cyan-800", icon: "Clock", iconClass: "bg-cyan-100 text-cyan-600" },
   { id: "marriage", label: "Marriage Leave", color: "bg-rose-100 text-rose-800", icon: "Heart", iconClass: "bg-rose-100 text-rose-600" },
   { id: "paternity", label: "Paternity Leave", color: "bg-purple-100 text-purple-800", icon: "Users", iconClass: "bg-purple-100 text-purple-600" },
   { id: "maternity", label: "Maternity Leave", color: "bg-pink-100 text-pink-800", icon: "Baby", iconClass: "bg-pink-100 text-pink-600" },
   { id: "restricted-holiday", label: "Restricted Holiday", color: "bg-amber-100 text-amber-800", icon: "CalendarDays", iconClass: "bg-amber-100 text-amber-600" },
+  { id: "bereavement", label: "Bereavement Leave", color: "bg-indigo-100 text-indigo-800", icon: "Flower2", iconClass: "bg-indigo-100 text-indigo-600" },
+  { id: "sabbatical", label: "Sabbatical Leave", color: "bg-orange-100 text-orange-800", icon: "Plane", iconClass: "bg-orange-100 text-orange-600" },
 ] ;
 
 // Leave Tracker
@@ -546,6 +552,9 @@ export const formatDuration = (ms: number) => {
 
 // Icons - resolve icon names stored in constants/sample data to components
 export const ICON_MAP: Record<string, LucideIcon> = {
+  CalendarPlus,
+  Flower2,
+  Plane,
   Laptop,
   LifeBuoy,
   PieChart,

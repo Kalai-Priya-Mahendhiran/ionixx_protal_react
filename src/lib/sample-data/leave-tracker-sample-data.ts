@@ -6,12 +6,16 @@ export const LEAVE_BALANCE: Record<LeaveRequest['leaveType'], number | null> = {
   sick: 7,
   earned: 15,
   'loss-of-pay': null,
-  competency: 3,
+  'compensatory-off': 3,
   permission: 4,
   marriage: 5,
   paternity: 15,
   maternity: 90,
   'restricted-holiday': 1,
+  // 1 day on the loss of a close family member
+  bereavement: 1,
+  // Extended time away (study, travel, personal); needs manager and HR approval
+  sabbatical: 30,
 };
 
 export const sampleLeaveRequests: LeaveRequest[] = [

@@ -292,8 +292,8 @@ export type ProfileFormData = z.infer<typeof profileSchema>;
 
 // Leave Tracker
 export const LEAVE_TYPE_IDS = [
-  "casual", "sick", "earned", "loss-of-pay", "competency", "permission",
-  "marriage", "paternity", "maternity", "restricted-holiday",
+  "casual", "sick", "earned", "loss-of-pay", "compensatory-off", "permission",
+  "marriage", "paternity", "maternity", "restricted-holiday", "bereavement", "sabbatical",
 ] as const;
 export const LEAVE_DAY_PART_IDS = ["full-day", "first-half", "second-half"] as const;
 
