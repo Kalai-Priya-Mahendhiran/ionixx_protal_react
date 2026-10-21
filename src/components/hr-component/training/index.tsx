@@ -255,16 +255,25 @@ export default function Training() {
     return { totalCourses, activeCourses, totalLearners, completionRate };
   }, [courses, assignments]);
 
+  // The Total / Active cards filter the course list (and switch to the Courses tab)
+  const [courseFilter, setCourseFilter] = useState<"all" | "active">("all");
+
+  const selectCourseCard = (filter: "all" | "active") => {
+    setActiveTab("courses");
+    setCourseFilter((prev) => (prev === filter ? "all" : filter));
+  };
+
   const filteredCourses = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return courses;
-    return courses.filter(
+    const base = courseFilter === "active" ? courses.filter((c) => c.status === "active") : courses;
+    if (!term) return base;
+    return base.filter(
       (c) =>
         c.title.toLowerCase().includes(term) ||
         c.category.toLowerCase().includes(term) ||
         c.instructor.toLowerCase().includes(term)
     );
-  }, [courses, search]);
+  }, [courses, search, courseFilter]);
 
   const handleCreateCourse = (
     data: Omit<Course, "id" | "enrolled" | "completed" | "status">
@@ -322,8 +331,8 @@ export default function Training() {
         />
 
         <StatGrid>
-          <StatCard icon={BookOpen} label="Total Courses" value={stats.totalCourses} tone="indigo" />
-          <StatCard icon={PlayCircle} label="Active" value={stats.activeCourses} tone="blue" />
+          <StatCard icon={BookOpen} label="Total Courses" value={stats.totalCourses} tone="indigo" active={activeTab === "courses" && courseFilter === "all"} onClick={() => selectCourseCard("all")} />
+          <StatCard icon={PlayCircle} label="Active" value={stats.activeCourses} tone="blue" active={activeTab === "courses" && courseFilter === "active"} onClick={() => selectCourseCard("active")} />
           <StatCard icon={Users} label="Learners" value={stats.totalLearners} tone="purple" />
           <StatCard icon={Award} label="Completion" value={`${stats.completionRate}%`} tone="green" />
         </StatGrid>

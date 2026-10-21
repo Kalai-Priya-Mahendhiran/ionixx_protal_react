@@ -236,6 +236,10 @@ export default function EmployeeManagement() {
     return { total, active, onLeave, inactive };
   }, [employees]);
 
+  // Stat cards share the status filter with the "All statuses" select; clicking the active card clears it
+  const toggleCard = (status: EmploymentStatus) =>
+    setStatusFilter((prev) => (prev === status ? "all" : status));
+
   const handleAdd = (data: Omit<Employee, "id" | "documents" | "status">) => {
     const newEmp: Employee = {
       ...data,
@@ -295,10 +299,10 @@ export default function EmployeeManagement() {
         />
 
         <StatGrid>
-          <StatCard icon={Users} label="Total" value={stats.total} tone="indigo" />
-          <StatCard icon={UserCheck} label="Active" value={stats.active} tone="green" />
-          <StatCard icon={Calendar} label="On Leave" value={stats.onLeave} tone="orange" />
-          <StatCard icon={UserX} label="Inactive" value={stats.inactive} tone="gray" />
+          <StatCard icon={Users} label="Total" value={stats.total} tone="indigo" active={statusFilter === "all"} onClick={() => setStatusFilter("all")} />
+          <StatCard icon={UserCheck} label="Active" value={stats.active} tone="green" active={statusFilter === "active"} onClick={() => toggleCard("active")} />
+          <StatCard icon={Calendar} label="On Leave" value={stats.onLeave} tone="orange" active={statusFilter === "on-leave"} onClick={() => toggleCard("on-leave")} />
+          <StatCard icon={UserX} label="Inactive" value={stats.inactive} tone="gray" active={statusFilter === "inactive"} onClick={() => toggleCard("inactive")} />
         </StatGrid>
 
         <Card className="border-0 shadow-lg">

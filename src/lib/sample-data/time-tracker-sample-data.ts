@@ -1,5 +1,13 @@
 import type { TimeEntry } from '@/types';
 import type { TaskRecord } from '@/components/employee-component/time-tracker/sections/task-form';
+import { toDateInput } from '@/lib/utils';
+
+// Task dates are relative to today so the default "last 7 days" view always has work in it
+const daysAgo = (days: number) => {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return toDateInput(date);
+};
 
 export const sampleTimeEntries: TimeEntry[] = [
   {
@@ -69,7 +77,7 @@ export const sampleWeeklyTimeDistribution = [
 export const sampleTodaysTasks: TaskRecord[] = [
   {
     id: 'task-1',
-    date: '2026-10-10',
+    date: daysAgo(4),
     status: 'completed',
     project: 'Employee Portal',
     module: 'Dashboard',
@@ -81,7 +89,7 @@ export const sampleTodaysTasks: TaskRecord[] = [
   },
   {
     id: 'task-2',
-    date: '2026-10-10',
+    date: daysAgo(4),
     status: 'completed',
     project: 'Employee Portal',
     module: 'Authentication',
@@ -93,7 +101,7 @@ export const sampleTodaysTasks: TaskRecord[] = [
   },
   {
     id: 'task-3',
-    date: '2026-10-11',
+    date: daysAgo(3),
     status: 'started',
     project: 'Mobile App',
     module: 'Time Tracking',
@@ -105,7 +113,7 @@ export const sampleTodaysTasks: TaskRecord[] = [
   },
   {
     id: 'task-4',
-    date: '2026-10-11',
+    date: daysAgo(3),
     status: 'not-started',
     project: 'Mobile App',
     module: 'Reporting',
@@ -117,7 +125,7 @@ export const sampleTodaysTasks: TaskRecord[] = [
   },
   {
     id: 'task-5',
-    date: '2026-10-12',
+    date: daysAgo(2),
     status: 'hold',
     project: 'API Development',
     module: 'Employee Management',
@@ -129,7 +137,7 @@ export const sampleTodaysTasks: TaskRecord[] = [
   },
   {
     id: 'task-6',
-    date: '2026-10-12',
+    date: daysAgo(2),
     status: 'completed',
     project: 'API Development',
     module: 'General',
@@ -141,7 +149,7 @@ export const sampleTodaysTasks: TaskRecord[] = [
   },
   {
     id: 'task-7',
-    date: '2026-10-13',
+    date: daysAgo(1),
     status: 'started',
     project: 'Employee Portal',
     module: 'Reporting',
@@ -153,7 +161,7 @@ export const sampleTodaysTasks: TaskRecord[] = [
   },
   {
     id: 'task-8',
-    date: '2026-10-13',
+    date: daysAgo(1),
     status: 'not-started',
     project: 'Employee Portal',
     module: 'Dashboard',

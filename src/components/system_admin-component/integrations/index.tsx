@@ -255,9 +255,31 @@ export default function Integrations() {
         />
 
         <StatGrid>
-          <StatCard label="Total" value={stats.total} icon={Plug} tone="indigo" />
-          <StatCard label="Connected" value={stats.connected} icon={CheckCircle2} tone="green" />
-          <StatCard label="Errors" value={stats.errors} icon={AlertTriangle} tone="red" />
+          {/* The cards share the status select's filter; clicking the active card goes back to all */}
+          <StatCard
+            label="Total"
+            value={stats.total}
+            icon={Plug}
+            tone="indigo"
+            active={statusFilter === "all"}
+            onClick={() => setStatusFilter("all")}
+          />
+          <StatCard
+            label="Connected"
+            value={stats.connected}
+            icon={CheckCircle2}
+            tone="green"
+            active={statusFilter === "connected"}
+            onClick={() => setStatusFilter((f) => (f === "connected" ? "all" : "connected"))}
+          />
+          <StatCard
+            label="Errors"
+            value={stats.errors}
+            icon={AlertTriangle}
+            tone="red"
+            active={statusFilter === "error"}
+            onClick={() => setStatusFilter((f) => (f === "error" ? "all" : "error"))}
+          />
           <StatCard
             label="Records synced"
             value={stats.syncedRecords.toLocaleString()}

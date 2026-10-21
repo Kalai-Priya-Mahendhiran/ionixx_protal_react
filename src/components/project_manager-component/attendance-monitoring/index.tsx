@@ -99,6 +99,10 @@ export default function AttendanceMonitoring() {
     [resolved]
   );
 
+  // Stat cards share the status filter with the "All statuses" select; clicking the active card clears it
+  const toggleCard = (status: AttendanceEntry["status"]) =>
+    setFilter((prev) => (prev === status ? "all" : status));
+
   const openNote = (employeeId: string) => setActiveNote(employeeId);
 
   const saveNote = (note: string) => {
@@ -139,11 +143,11 @@ export default function AttendanceMonitoring() {
         />
 
         <StatGrid>
-          <StatCard icon={Users} label="Total" value={summary.total} tone="indigo" />
-          <StatCard icon={CheckCircle2} label="Present" value={summary.present} tone="green" />
-          <StatCard icon={AlertTriangle} label="Late" value={summary.late} tone="amber" />
-          <StatCard icon={XCircle} label="Absent" value={summary.absent} tone="red" />
-          <StatCard icon={CalendarIcon} label="On Leave" value={summary.onLeave} tone="blue" />
+          <StatCard icon={Users} label="Total" value={summary.total} tone="indigo" active={filter === "all"} onClick={() => setFilter("all")} />
+          <StatCard icon={CheckCircle2} label="Present" value={summary.present} tone="green" active={filter === "present"} onClick={() => toggleCard("present")} />
+          <StatCard icon={AlertTriangle} label="Late" value={summary.late} tone="amber" active={filter === "late"} onClick={() => toggleCard("late")} />
+          <StatCard icon={XCircle} label="Absent" value={summary.absent} tone="red" active={filter === "absent"} onClick={() => toggleCard("absent")} />
+          <StatCard icon={CalendarIcon} label="On Leave" value={summary.onLeave} tone="blue" active={filter === "leave"} onClick={() => toggleCard("leave")} />
         </StatGrid>
 
         {exceptions.length > 0 && (

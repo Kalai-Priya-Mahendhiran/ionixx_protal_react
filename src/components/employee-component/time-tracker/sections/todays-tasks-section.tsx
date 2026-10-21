@@ -3,36 +3,37 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Trash2, ListChecks } from 'lucide-react';
-import { toDateInput, todayAsDateInput } from '@/lib/utils';
-import { getDailyHours, getTaskHours, type TaskRecord } from './task-form';
+import { todayAsDateInput } from '@/lib/utils';
+import { defaultTaskDateRange, getDailyHours, getTaskHours, isInTaskDateRange, type TaskDateRange, type TaskRecord } from './task-form';
 import { DAILY_HOUR_LIMIT, TIME_TRACKER_STATUS_COLORS, TIME_TRACKER_STATUS_LABELS } from '@/lib/constants';
+import type { TaskCardFilter } from './time-tracking-stats-section';
 
 interface TodaysTasksSectionProps {
   tasks: TaskRecord[];
+  // Set by the task-status stat cards above
+  cardFilter: TaskCardFilter;
+  // Applied date range, shared with the stat cards so their counts match the rows shown
+  dateRange: TaskDateRange;
+  onDateRangeChange: (range: TaskDateRange) => void;
   onAddTask: () => void;
   onEditTask: (task: TaskRecord) => void;
   onDeleteTask: (taskId: string) => void;
 }
 
-// Show the last 7 days by default
-const defaultFromDate = () => {
-  const date = new Date();
-  date.setDate(date.getDate() - 7);
-  return toDateInput(date);
-};
+export function TodaysTasksSection({ tasks, cardFilter, dateRange, onDateRangeChange: setDateRange, onAddTask, onEditTask, onDeleteTask }: TodaysTasksSectionProps) {
+  const [fromDate, setFromDate] = useState(dateRange.from);
+  const [toDate, setToDate] = useState(dateRange.to);
 
-export function TodaysTasksSection({ tasks, onAddTask, onEditTask, onDeleteTask }: TodaysTasksSectionProps) {
-  const [fromDate, setFromDate] = useState(defaultFromDate);
-  const [toDate, setToDate] = useState(todayAsDateInput);
-  const [dateRange, setDateRange] = useState({ from: defaultFromDate(), to: todayAsDateInput() });
-
-  const filteredTasks = tasks.filter((task) =>
-    (!dateRange.from || task.date >= dateRange.from) && (!dateRange.to || task.date <= dateRange.to)
-  );
+  const filteredTasks = tasks.filter((task) => isInTaskDateRange(task, dateRange));
   const dailyHours = getDailyHours(filteredTasks);
   const totalTaskHours = filteredTasks.reduce((total, task) => total + getTaskHours(task), 0);
   const overrunDays = Object.values(dailyHours).filter((hours) => hours > DAILY_HOUR_LIMIT).length;
   const today = todayAsDateInput();
+  // Day totals stay based on the whole date range; the card filter only narrows the rows shown
+  const visibleTasks = cardFilter === 'all'
+    ? filteredTasks
+    : filteredTasks.filter((task) =>
+      cardFilter === 'overrunning' ? dailyHours[task.date] > DAILY_HOUR_LIMIT : task.status === cardFilter);
 
   return (
     <Card className="border-0 shadow-lg">
@@ -81,11 +82,10 @@ export function TodaysTasksSection({ tasks, onAddTask, onEditTask, onDeleteTask 
             variant="outline"
             className="border-[#464EB8]/30 text-[#464EB8] hover:bg-[#464EB8]/5 hover:text-[#464EB8]"
             onClick={() => {
-              const from = defaultFromDate();
-              const today = todayAsDateInput();
-              setFromDate(from);
-              setToDate(today);
-              setDateRange({ from, to: today });
+              const range = defaultTaskDateRange();
+              setFromDate(range.from);
+              setToDate(range.to);
+              setDateRange(range);
             }}
           >
             Reset
@@ -111,7 +111,7 @@ export function TodaysTasksSection({ tasks, onAddTask, onEditTask, onDeleteTask 
               </tr>
             </thead>
             <tbody>
-              {filteredTasks.map((task) => {
+              {visibleTasks.map((task) => {
                 const isOverrun = dailyHours[task.date] > DAILY_HOUR_LIMIT;
                 const rowTone = isOverrun
                   ? 'bg-red-50'
@@ -160,10 +160,10 @@ export function TodaysTasksSection({ tasks, onAddTask, onEditTask, onDeleteTask 
                   </tr>
                 );
               })}
-              {filteredTasks.length === 0 && (
+              {visibleTasks.length === 0 && (
                 <tr>
                   <td colSpan={9} className="px-4 py-10 text-center text-gray-500">
-                    No tasks found for the selected dates.
+                    {filteredTasks.length === 0 ? 'No tasks found for the selected dates.' : 'No tasks match this filter.'}
                   </td>
                 </tr>
               )}

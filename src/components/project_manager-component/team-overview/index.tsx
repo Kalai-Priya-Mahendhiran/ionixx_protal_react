@@ -25,6 +25,11 @@ export default function TeamOverview() {
   const [search, setSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  // Set by the stat cards; clicking the active card again goes back to all members
+  const [statusFilter, setStatusFilter] = useState<TeamMember["status"] | "all">("all");
+
+  const toggleStatus = (status: TeamMember["status"]) =>
+    setStatusFilter((prev) => (prev === status ? "all" : status));
 
   const departments = useMemo(
     () => Array.from(new Set(teamMembers.map((m) => m.department))),
@@ -40,9 +45,10 @@ export default function TeamOverview() {
         m.designation.toLowerCase().includes(term) ||
         m.employeeId.toLowerCase().includes(term);
       const matchesDept = departmentFilter === "all" || m.department === departmentFilter;
-      return matchesSearch && matchesDept;
+      const matchesStatus = statusFilter === "all" || m.status === statusFilter;
+      return matchesSearch && matchesDept && matchesStatus;
     });
-  }, [search, departmentFilter]);
+  }, [search, departmentFilter, statusFilter]);
 
   const stats = useMemo(() => {
     const total = teamMembers.length;
@@ -62,10 +68,10 @@ export default function TeamOverview() {
         />
 
         <StatGrid>
-          <StatCard icon={Users} label="Total Members" value={stats.total} tone="indigo" />
-          <StatCard icon={Building} label="In Office" value={stats.active} tone="green" />
-          <StatCard icon={Home} label="Remote" value={stats.remote} tone="blue" />
-          <StatCard icon={CalendarOff} label="On Leave" value={stats.onLeave} tone="orange" />
+          <StatCard icon={Users} label="Total Members" value={stats.total} tone="indigo" active={statusFilter === "all"} onClick={() => setStatusFilter("all")} />
+          <StatCard icon={Building} label="In Office" value={stats.active} tone="green" active={statusFilter === "active"} onClick={() => toggleStatus("active")} />
+          <StatCard icon={Home} label="Remote" value={stats.remote} tone="blue" active={statusFilter === "remote"} onClick={() => toggleStatus("remote")} />
+          <StatCard icon={CalendarOff} label="On Leave" value={stats.onLeave} tone="orange" active={statusFilter === "on-leave"} onClick={() => toggleStatus("on-leave")} />
         </StatGrid>
 
         <Card className="border-0 shadow-lg">

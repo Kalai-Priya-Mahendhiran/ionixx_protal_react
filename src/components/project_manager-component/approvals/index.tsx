@@ -78,9 +78,10 @@ export default function Approvals() {
         />
 
         <StatGrid>
-          <StatCard icon={AlertCircle} label="Pending" value={grouped.pending.length} tone="amber" />
-          <StatCard icon={CheckCircle2} label="Approved" value={grouped.approved.length} tone="green" />
-          <StatCard icon={XCircle} label="Rejected" value={grouped.rejected.length} tone="red" />
+          {/* The cards are the same filter as the tabs below (the queue has no "All" view) */}
+          <StatCard icon={AlertCircle} label="Pending" value={grouped.pending.length} tone="amber" active={activeTab === "pending"} onClick={() => setActiveTab("pending")} />
+          <StatCard icon={CheckCircle2} label="Approved" value={grouped.approved.length} tone="green" active={activeTab === "approved"} onClick={() => setActiveTab("approved")} />
+          <StatCard icon={XCircle} label="Rejected" value={grouped.rejected.length} tone="red" active={activeTab === "rejected"} onClick={() => setActiveTab("rejected")} />
         </StatGrid>
 
         <Card className="border-0 shadow-lg">

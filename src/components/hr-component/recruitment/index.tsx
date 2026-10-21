@@ -36,6 +36,9 @@ import { EMPLOYMENT_TYPES, postJobSchema, type PostJobFormValues } from "@/lib/f
 
 type Tab = "postings" | "candidates" | "interviews";
 
+// What a stat card narrows its tab to (the Candidates card shows every candidate)
+type CardFilter = "open" | "scheduled" | "hired";
+
 type Stage =
   | "applied"
   | "screening"
@@ -309,16 +312,44 @@ export default function Recruitment() {
     };
   }, [postings, candidates, interviews]);
 
+  // Stat cards filter the tab they belong to; changing tab by hand clears the card filter
+  const [cardFilter, setCardFilter] = useState<CardFilter | null>(null);
+
+  const changeTab = (tab: Tab) => {
+    setActiveTab(tab);
+    setCardFilter(null);
+  };
+
+  const selectCard = (filter: CardFilter | null, tab: Tab) => {
+    if (filter !== null && cardFilter === filter) {
+      setCardFilter(null);
+      return;
+    }
+    setActiveTab(tab);
+    setCardFilter(filter);
+  };
+
   const filteredPostings = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return postings;
-    return postings.filter(
+    const base = cardFilter === "open" ? postings.filter((p) => p.status === "open") : postings;
+    if (!term) return base;
+    return base.filter(
       (p) =>
         p.title.toLowerCase().includes(term) ||
         p.department.toLowerCase().includes(term) ||
         p.location.toLowerCase().includes(term)
     );
-  }, [postings, search]);
+  }, [postings, search, cardFilter]);
+
+  const visibleCandidates = useMemo(
+    () => (cardFilter === "hired" ? candidates.filter((c) => c.stage === "hired") : candidates),
+    [candidates, cardFilter]
+  );
+
+  const visibleInterviews = useMemo(
+    () => (cardFilter === "scheduled" ? interviews.filter((i) => i.status === "scheduled") : interviews),
+    [interviews, cardFilter]
+  );
 
   const advanceStage = (id: string) => {
     const target = candidates.find((c) => c.id === id);
@@ -372,10 +403,10 @@ export default function Recruitment() {
         />
 
         <StatGrid>
-          <StatCard icon={Briefcase} label="Open Roles" value={stats.open} tone="indigo" />
-          <StatCard icon={Users2} label="Candidates" value={stats.candidates} tone="blue" />
-          <StatCard icon={CalendarClock} label="Interviews" value={stats.interviews} tone="purple" />
-          <StatCard icon={CheckCircle2} label="Hired" value={stats.hires} tone="green" />
+          <StatCard icon={Briefcase} label="Open Roles" value={stats.open} tone="indigo" active={cardFilter === "open"} onClick={() => selectCard("open", "postings")} />
+          <StatCard icon={Users2} label="Candidates" value={stats.candidates} tone="blue" active={activeTab === "candidates" && cardFilter === null} onClick={() => selectCard(null, "candidates")} />
+          <StatCard icon={CalendarClock} label="Interviews" value={stats.interviews} tone="purple" active={cardFilter === "scheduled"} onClick={() => selectCard("scheduled", "interviews")} />
+          <StatCard icon={CheckCircle2} label="Hired" value={stats.hires} tone="green" active={cardFilter === "hired"} onClick={() => selectCard("hired", "candidates")} />
         </StatGrid>
 
         <Card className="border-0 shadow-lg">
@@ -393,19 +424,19 @@ export default function Recruitment() {
               <TabButton
                 tab="postings"
                 activeTab={activeTab}
-                onClick={setActiveTab}
+                onClick={changeTab}
                 count={postings.length}
               />
               <TabButton
                 tab="candidates"
                 activeTab={activeTab}
-                onClick={setActiveTab}
+                onClick={changeTab}
                 count={candidates.length}
               />
               <TabButton
                 tab="interviews"
                 activeTab={activeTab}
-                onClick={setActiveTab}
+                onClick={changeTab}
                 count={interviews.length}
               />
             </div>
@@ -420,14 +451,14 @@ export default function Recruitment() {
 
             {activeTab === "candidates" && (
               <CandidatesView
-                candidates={candidates}
+                candidates={visibleCandidates}
                 onAdvance={advanceStage}
                 onReject={rejectCandidate}
               />
             )}
 
             {activeTab === "interviews" && (
-              <InterviewsView interviews={interviews} />
+              <InterviewsView interviews={visibleInterviews} />
             )}
           </CardContent>
         </Card>

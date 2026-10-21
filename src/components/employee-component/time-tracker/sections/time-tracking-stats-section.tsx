@@ -5,20 +5,26 @@ import { toDateInput, todayAsDateInput } from '@/lib/utils';
 import { getDailyHours, type TaskRecord } from './task-form';
 import { DAILY_HOUR_LIMIT } from '@/lib/constants';
 
+// The task-status cards filter the task list below; 'all' = no card filter
+export type TaskCardFilter = 'all' | 'overrunning' | TaskRecord['status'];
+
 interface TimeTrackingStatsSectionProps {
   entries: TimeEntry[];
   tasks: TaskRecord[];
   productivity: number;
+  taskFilter: TaskCardFilter;
+  onTaskFilterChange: (filter: TaskCardFilter) => void;
 }
 
 interface StatusCard {
+  filter: Exclude<TaskCardFilter, 'all'>;
   label: string;
   count: number;
   icon: LucideIcon;
   iconClass: string;
 }
 
-export function TimeTrackingStatsSection({ entries, tasks, productivity }: TimeTrackingStatsSectionProps) {
+export function TimeTrackingStatsSection({ entries, tasks, productivity, taskFilter, onTaskFilterChange }: TimeTrackingStatsSectionProps) {
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const weekEnd = new Date(weekStart);
@@ -39,30 +45,35 @@ export function TimeTrackingStatsSection({ entries, tasks, productivity }: TimeT
   // Icon colours follow the task status colours used in the task list
   const statusCards: StatusCard[] = [
     {
+      filter: 'overrunning',
       label: 'Overrunning',
       count: tasks.filter((task) => dailyHours[task.date] > DAILY_HOUR_LIMIT).length,
       icon: AlertTriangle,
       iconClass: 'bg-red-100 text-red-600',
     },
     {
+      filter: 'not-started',
       label: 'Not Started',
       count: countByStatus('not-started'),
       icon: CircleDashed,
       iconClass: 'bg-yellow-100 text-yellow-600',
     },
     {
+      filter: 'started',
       label: 'In Progress',
       count: countByStatus('started'),
       icon: PlayCircle,
       iconClass: 'bg-white border border-gray-300 text-gray-600',
     },
     {
+      filter: 'completed',
       label: 'Completed',
       count: countByStatus('completed'),
       icon: CheckCircle2,
       iconClass: 'bg-green-100 text-green-600',
     },
     {
+      filter: 'hold',
       label: 'Hold',
       count: countByStatus('hold'),
       icon: PauseCircle,
@@ -78,10 +89,18 @@ export function TimeTrackingStatsSection({ entries, tasks, productivity }: TimeT
         <StatCard icon={BarChart3} label="Productivity" value={`${productivity}%`} tone="purple" />
       </StatGrid>
 
-      {/* Task status */}
+      {/* Task status: each card filters the task list; clicking the active card shows all tasks again */}
       <StatGrid>
         {statusCards.map((card) => (
-          <StatCard key={card.label} icon={card.icon} label={card.label} value={card.count} iconClassName={card.iconClass} />
+          <StatCard
+            key={card.label}
+            icon={card.icon}
+            label={card.label}
+            value={card.count}
+            iconClassName={card.iconClass}
+            active={taskFilter === card.filter}
+            onClick={() => onTaskFilterChange(taskFilter === card.filter ? 'all' : card.filter)}
+          />
         ))}
       </StatGrid>
     </div>

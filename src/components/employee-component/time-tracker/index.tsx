@@ -13,6 +13,8 @@ import {
   EntryDialog
 } from './sections';
 import type { TaskRecord } from './sections/task-form';
+import type { TaskCardFilter } from './sections/time-tracking-stats-section';
+import { defaultTaskDateRange, isInTaskDateRange } from './sections/task-form';
 import { hoursBetween } from './sections/time-entry-form';
 import { todayAsDateInput } from '@/lib/utils';
 import type { TimeEntryFormValues, TimeTrackerTaskFormRow, TimeTrackerTaskFormValues } from '@/lib/schemas';
@@ -22,6 +24,11 @@ import type { TimeEntry } from '@/types';
 export default function TimeTracker() {
   const [tasks, setTasks] = useState<TaskRecord[]>(sampleTodaysTasks);
   const [taskDialog, setTaskDialog] = useState<{ task?: TaskRecord } | null>(null);
+  // Set by the task-status stat cards; narrows the task list
+  const [taskFilter, setTaskFilter] = useState<TaskCardFilter>('all');
+  // The task table's date range; the task-status cards count the same tasks the table shows
+  const [taskRange, setTaskRange] = useState(defaultTaskDateRange);
+  const tasksInRange = tasks.filter((task) => isInTaskDateRange(task, taskRange));
   // Entries come from the shared service, so work logged on a task shows up here too
   const { data: entries = [] } = useTimeEntries();
   const createEntry = useCreateTimeEntry();
@@ -73,7 +80,13 @@ export default function TimeTracker() {
         <PageHeader icon={Timer} title="Time Tracker" description="Track time spent on projects and tasks" />
 
         {/* Time Tracking Stats */}
-        <TimeTrackingStatsSection entries={entries} tasks={tasks} productivity={sampleProductivity} />
+        <TimeTrackingStatsSection
+          entries={entries}
+          tasks={tasksInRange}
+          productivity={sampleProductivity}
+          taskFilter={taskFilter}
+          onTaskFilterChange={setTaskFilter}
+        />
 
         {/* Timer and Today's Entries */}
         <TimerAndEntriesSection
@@ -87,6 +100,9 @@ export default function TimeTracker() {
         {/* Today's Tasks */}
         <TodaysTasksSection
           tasks={tasks}
+          cardFilter={taskFilter}
+          dateRange={taskRange}
+          onDateRangeChange={setTaskRange}
           onAddTask={() => setTaskDialog({})}
           onEditTask={(task) => setTaskDialog({ task })}
           onDeleteTask={(taskId) => setTasks((current) => current.filter((entry) => entry.id !== taskId))}

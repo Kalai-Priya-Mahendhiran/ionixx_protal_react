@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AlertTriangle, Ban, Gauge, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,8 +18,11 @@ interface WorkloadSectionProps {
 
 export function WorkloadSection({ tasks, userIds, onSelectPerson }: WorkloadSectionProps) {
   const [threshold, setThreshold] = useWorkloadThreshold();
+  // Set by the People / Overloaded stat cards
+  const [showOverloadedOnly, setShowOverloadedOnly] = useState(false);
   const rows = getWorkload(tasks, userIds).sort((a, b) => b.remainingHours - a.remainingHours);
   const overloaded = rows.filter((row) => row.remainingHours > threshold);
+  const visibleRows = showOverloadedOnly ? overloaded : rows;
   const totalRemaining = rows.reduce((sum, row) => sum + row.remainingHours, 0);
   // Bars are drawn against whichever is larger: the threshold or the busiest person
   const scale = Math.max(threshold, ...rows.map((row) => row.remainingHours), 1);
@@ -26,8 +30,16 @@ export function WorkloadSection({ tasks, userIds, onSelectPerson }: WorkloadSect
   return (
     <div className="space-y-6">
       <StatGrid>
-        <StatCard icon={Users} label="People" value={rows.length} tone="indigo" />
-        <StatCard icon={AlertTriangle} label="Overloaded" value={overloaded.length} tone="red" hint={`Above ${threshold}h`} />
+        <StatCard icon={Users} label="People" value={rows.length} tone="indigo" active={!showOverloadedOnly} onClick={() => setShowOverloadedOnly(false)} />
+        <StatCard
+          icon={AlertTriangle}
+          label="Overloaded"
+          value={overloaded.length}
+          tone="red"
+          hint={`Above ${threshold}h`}
+          active={showOverloadedOnly}
+          onClick={() => setShowOverloadedOnly((current) => !current)}
+        />
         <StatCard icon={Gauge} label="Hours remaining" value={`${Math.round(totalRemaining)}h`} tone="blue" />
       </StatGrid>
 
@@ -58,6 +70,8 @@ export function WorkloadSection({ tasks, userIds, onSelectPerson }: WorkloadSect
 
           {rows.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-gray-500">No one on your team yet.</p>
+          ) : visibleRows.length === 0 ? (
+            <p className="px-5 py-10 text-center text-sm text-gray-500">No one is overloaded right now.</p>
           ) : (
             <div className="ionixx-scrollbar relative overflow-x-auto">
               <table className="w-full min-w-[820px] text-sm">
@@ -72,7 +86,7 @@ export function WorkloadSection({ tasks, userIds, onSelectPerson }: WorkloadSect
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {rows.map((row) => {
+                  {visibleRows.map((row) => {
                     const person = getUserById(row.userId);
                     const isOver = row.remainingHours > threshold;
                     return (

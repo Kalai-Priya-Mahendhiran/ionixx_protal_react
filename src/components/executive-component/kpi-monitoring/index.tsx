@@ -318,7 +318,11 @@ export default function KpiMonitoring() {
     };
   }, []);
 
-  const overallHealth = Math.round((counts.onTrack / counts.total) * 100);
+  // Clicking the active status card again goes back to all statuses
+  const toggleStatus = (status: Status) =>
+    setStatusFilter((current) => (current === status ? "all" : status));
+
+  const overallHealth =Math.round((counts.onTrack / counts.total) * 100);
 
   return (
     <MainLayout>
@@ -342,10 +346,39 @@ export default function KpiMonitoring() {
         />
 
         <StatGrid>
-          <StatCard icon={Target} label="Total KPIs" value={counts.total} tone="indigo" />
-          <StatCard icon={CheckCircle2} label="On Track" value={counts.onTrack} tone="green" />
-          <StatCard icon={AlertTriangle} label="At Risk" value={counts.atRisk} tone="amber" />
-          <StatCard icon={Zap} label="Off Track" value={counts.offTrack} tone="red" />
+          {/* The cards share the status select's filter (combined with the category toggle) */}
+          <StatCard
+            icon={Target}
+            label="Total KPIs"
+            value={counts.total}
+            tone="indigo"
+            active={statusFilter === "all"}
+            onClick={() => setStatusFilter("all")}
+          />
+          <StatCard
+            icon={CheckCircle2}
+            label="On Track"
+            value={counts.onTrack}
+            tone="green"
+            active={statusFilter === "on-track"}
+            onClick={() => toggleStatus("on-track")}
+          />
+          <StatCard
+            icon={AlertTriangle}
+            label="At Risk"
+            value={counts.atRisk}
+            tone="amber"
+            active={statusFilter === "at-risk"}
+            onClick={() => toggleStatus("at-risk")}
+          />
+          <StatCard
+            icon={Zap}
+            label="Off Track"
+            value={counts.offTrack}
+            tone="red"
+            active={statusFilter === "off-track"}
+            onClick={() => toggleStatus("off-track")}
+          />
         </StatGrid>
 
         <Card className="border-0 shadow-lg">

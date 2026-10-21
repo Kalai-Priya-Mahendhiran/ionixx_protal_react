@@ -35,6 +35,9 @@ import { uploadDocumentSchema, type UploadDocumentFormValues } from "@/lib/form-
 
 type Tab = "documents" | "status" | "audit";
 
+// What a stat card narrows its tab to (Documents and Audit Entries show their whole tab)
+type CardFilter = "compliant" | "action";
+
 type DocStatus = "valid" | "expiring" | "expired" | "missing";
 
 interface ComplianceDocument {
@@ -284,16 +287,45 @@ export default function Compliance() {
     };
   }, [documents, employeeCompliance, auditLogs]);
 
+  // Stat cards filter the tab they belong to; changing tab by hand clears the card filter
+  const [cardFilter, setCardFilter] = useState<CardFilter | null>(null);
+
+  const changeTab = (tab: Tab) => {
+    setActiveTab(tab);
+    setCardFilter(null);
+  };
+
+  const selectCard = (filter: CardFilter | null, tab: Tab) => {
+    if (filter !== null && cardFilter === filter) {
+      setCardFilter(null);
+      return;
+    }
+    setActiveTab(tab);
+    setCardFilter(filter);
+  };
+
   const filteredDocs = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return documents;
-    return documents.filter(
+    const base =
+      cardFilter === "action"
+        ? documents.filter((d) => d.status === "expiring" || d.status === "expired")
+        : documents;
+    if (!term) return base;
+    return base.filter(
       (d) =>
         d.name.toLowerCase().includes(term) ||
         d.category.toLowerCase().includes(term) ||
         d.uploadedBy.toLowerCase().includes(term)
     );
-  }, [documents, search]);
+  }, [documents, search, cardFilter]);
+
+  const visibleRecords = useMemo(
+    () =>
+      cardFilter === "compliant"
+        ? employeeCompliance.filter((e) => e.status === "compliant")
+        : employeeCompliance,
+    [employeeCompliance, cardFilter]
+  );
 
   const handleUpload = (
     data: Pick<
@@ -345,10 +377,10 @@ export default function Compliance() {
         />
 
         <StatGrid>
-          <StatCard icon={FileText} label="Documents" value={stats.documents} tone="indigo" />
-          <StatCard icon={CheckCircle2} label="Compliant" value={stats.compliant} tone="green" />
-          <StatCard icon={AlertTriangle} label="Action Items" value={stats.pending} tone="amber" />
-          <StatCard icon={History} label="Audit Entries" value={stats.auditEntries} tone="purple" />
+          <StatCard icon={FileText} label="Documents" value={stats.documents} tone="indigo" active={activeTab === "documents" && cardFilter === null} onClick={() => selectCard(null, "documents")} />
+          <StatCard icon={CheckCircle2} label="Compliant" value={stats.compliant} tone="green" active={cardFilter === "compliant"} onClick={() => selectCard("compliant", "status")} />
+          <StatCard icon={AlertTriangle} label="Action Items" value={stats.pending} tone="amber" active={cardFilter === "action"} onClick={() => selectCard("action", "documents")} />
+          <StatCard icon={History} label="Audit Entries" value={stats.auditEntries} tone="purple" active={activeTab === "audit"} onClick={() => selectCard(null, activeTab === "audit" ? "documents" : "audit")} />
         </StatGrid>
 
         <Card className="border-0 shadow-lg">
@@ -366,21 +398,21 @@ export default function Compliance() {
               <TabButton
                 tab="documents"
                 activeTab={activeTab}
-                onClick={setActiveTab}
+                onClick={changeTab}
                 count={documents.length}
                 icon={<FileText className="h-3.5 w-3.5" />}
               />
               <TabButton
                 tab="status"
                 activeTab={activeTab}
-                onClick={setActiveTab}
+                onClick={changeTab}
                 count={employeeCompliance.length}
                 icon={<ListChecks className="h-3.5 w-3.5" />}
               />
               <TabButton
                 tab="audit"
                 activeTab={activeTab}
-                onClick={setActiveTab}
+                onClick={changeTab}
                 count={auditLogs.length}
                 icon={<History className="h-3.5 w-3.5" />}
               />
@@ -395,7 +427,7 @@ export default function Compliance() {
             )}
 
             {activeTab === "status" && (
-              <StatusView records={employeeCompliance} />
+              <StatusView records={visibleRecords} />
             )}
 
             {activeTab === "audit" && <AuditView logs={auditLogs} />}
@@ -581,6 +613,13 @@ function StatusView({ records }: { records: EmployeeCompliance[] }) {
               </tr>
             );
           })}
+          {records.length === 0 && (
+            <tr>
+              <td colSpan={5} className="py-10 text-center text-sm text-gray-500">
+                No employees match this filter.
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
