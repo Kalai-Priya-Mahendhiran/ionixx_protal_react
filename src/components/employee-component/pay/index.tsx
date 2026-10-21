@@ -130,7 +130,7 @@ export default function Pay() {
           description="Your salary, income tax, tax-saving declarations and reimbursements"
         />
 
-        <div role="tablist" aria-label="Pay and tax" className="ionixx-scrollbar flex gap-1 overflow-x-auto border-b border-gray-200">
+        <div role="tablist" aria-label="Pay and tax" className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-gray-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}

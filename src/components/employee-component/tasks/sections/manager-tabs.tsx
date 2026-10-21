@@ -28,7 +28,7 @@ interface SectionTabsProps {
 // Tool tabs at the top of the Tasks page (manager tools on team views, HR tools on the HR view)
 export function SectionTabs({ sections, active, counts = {}, onChange }: SectionTabsProps) {
   return (
-    <div role="tablist" aria-label="Task tools" className="ionixx-scrollbar flex gap-1 overflow-x-auto border-b border-gray-200">
+    <div role="tablist" aria-label="Task tools" className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-gray-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {sections.map((section) => {
         const { label, icon: Icon } = SECTION_META[section];
         const isActive = section === active;

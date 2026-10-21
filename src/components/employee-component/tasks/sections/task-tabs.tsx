@@ -9,7 +9,7 @@ interface TaskTabsProps {
 
 export function TaskTabs({ active, counts, onChange }: TaskTabsProps) {
   return (
-    <div role="tablist" aria-label="My tasks" className="ionixx-scrollbar flex gap-1 overflow-x-auto border-b border-gray-200">
+    <div role="tablist" aria-label="My tasks" className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-gray-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {MY_TASKS_TABS.map((tab) => {
         const isActive = tab.value === active;
         return (
