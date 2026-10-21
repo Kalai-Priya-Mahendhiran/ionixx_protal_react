@@ -1,54 +1,46 @@
-import type { User, Department } from '@/types';
+import type { StatTone } from '@/components/ui/stat-card';
 
-export const sampleUsers: User[] = [
-  {
-    id: '1',
-    name: 'John Doe',
-    email: 'john.doe@ionixx.com',
-    phone: '+1-555-0123',
-    address: '123 Main St, City, State',
-    department: 'Engineering',
-    designation: 'Senior Developer',
-    employeeId: 'EMP001',
-    joiningDate: '2022-01-15',
-    reportingManager: 'Jane Smith',
-    role: 'employee',
-    bankName: 'State Bank of India',
-    ifscCode: 'SBIN0001234',
-    accountType: 'Savings',
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    email: 'jane.smith@ionixx.com',
-    phone: '+1-555-0124',
-    address: '456 Oak Ave, City, State',
-    department: 'Engineering',
-    designation: 'Engineering Manager',
-    employeeId: 'EMP002',
-    joiningDate: '2021-03-10',
-    reportingManager: 'Mike Johnson',
-    role: 'manager',
-  },
-  {
-    id: '3',
-    name: 'Mike Johnson',
-    email: 'mike.johnson@ionixx.com',
-    phone: '+1-555-0125',
-    address: '789 Pine St, City, State',
-    department: 'Engineering',
-    designation: 'VP Engineering',
-    employeeId: 'EMP003',
-    joiningDate: '2020-06-01',
-    reportingManager: 'CEO',
-    role: 'admin',
-  },
+/*
+ * Organization chart sample data. People come from the shared user directory (src/lib/user-directory.ts);
+ * this file only adds what the org chart needs on top of it.
+ */
+
+// Leadership reporting lines, used by the org chart only (Tasks and team views keep the directory's own managerIds)
+export const ORG_REPORTING_LINES: Record<string, string> = {
+  PM001: 'EXE001',
+  HR001: 'EXE001',
+  ADM001: 'EXE001',
+  SYS001: 'EXE001',
+};
+
+export interface DepartmentInfo {
+  name: string;
+  email: string;
+  tone: StatTone;
+  // Short line shown on the department card
+  about: string;
+}
+
+export const DEPARTMENTS: DepartmentInfo[] = [
+  { name: 'Executive Office', email: 'leadership@ionixx.com', tone: 'purple', about: 'Company leadership and strategy' },
+  { name: 'Engineering', email: 'engineering@ionixx.com', tone: 'indigo', about: 'Product development and delivery' },
+  { name: 'Quality', email: 'quality@ionixx.com', tone: 'teal', about: 'Testing and release quality' },
+  { name: 'Design', email: 'design@ionixx.com', tone: 'pink', about: 'Product and UX design' },
+  { name: 'Infrastructure', email: 'infra@ionixx.com', tone: 'sky', about: 'Cloud, CI/CD and environments' },
+  { name: 'Human Resources', email: 'hr@ionixx.com', tone: 'amber', about: 'People, hiring and policies' },
+  { name: 'Operations', email: 'operations@ionixx.com', tone: 'orange', about: 'Office, assets and facilities' },
+  { name: 'IT', email: 'it@ionixx.com', tone: 'blue', about: 'Systems, access and security' },
 ];
 
-export const sampleDepartments: Department[] = [
-  { id: 'all', name: 'All Departments', count: sampleUsers.length },
-  { id: 'engineering', name: 'Engineering', count: sampleUsers.filter(u => u.department === 'Engineering').length },
-  { id: 'hr', name: 'Human Resources', count: 0 },
-  { id: 'marketing', name: 'Marketing', count: 0 },
-  { id: 'sales', name: 'Sales', count: 0 },
-];
+export type WorkStatus = 'in-office' | 'remote' | 'on-leave';
+
+// Contact details for people the team roster doesn't cover (leadership logins, office staff)
+export const PERSON_DETAILS: Record<string, { employeeId: string; phone: string; location: string; joiningDate: string; status: WorkStatus }> = {
+  EXE001: { employeeId: 'EXE00106', phone: '+91 98765 10006', location: 'Mumbai, IN', joiningDate: '2016-06-01', status: 'in-office' },
+  PM001: { employeeId: 'PM00103', phone: '+91 98765 10003', location: 'Bengaluru, IN', joiningDate: '2018-01-15', status: 'in-office' },
+  HR001: { employeeId: 'HR00102', phone: '+91 98765 10002', location: 'Chennai, IN', joiningDate: '2019-03-04', status: 'in-office' },
+  ADM001: { employeeId: 'ADM00104', phone: '+91 98765 10004', location: 'Mumbai, IN', joiningDate: '2025-08-01', status: 'in-office' },
+  SYS001: { employeeId: 'SYS00105', phone: '+91 98765 10005', location: 'Hyderabad, IN', joiningDate: '2021-05-10', status: 'remote' },
+  ADM002: { employeeId: 'ADM00201', phone: '+91 98765 10021', location: 'Mumbai, IN', joiningDate: '2024-02-12', status: 'in-office' },
+  ADM003: { employeeId: 'ADM00202', phone: '+91 98765 10022', location: 'Mumbai, IN', joiningDate: '2025-01-06', status: 'on-leave' },
+};

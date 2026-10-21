@@ -184,6 +184,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.profile,
     ITEM.pay,
     ITEM.files,
+    ITEM.organization,
     ITEM.tasks,
     ITEM.myRequests,
     ITEM.teamOverview,
@@ -197,6 +198,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.profile,
     ITEM.pay,
     ITEM.files,
+    ITEM.organization,
     ITEM.tasks,
     ITEM.myRequests,
     ITEM.employeeManagement,
@@ -210,6 +212,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.profile,
     ITEM.pay,
     ITEM.files,
+    ITEM.organization,
     ITEM.tasks,
     ITEM.myRequests,
     ITEM.analytics,
@@ -221,6 +224,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.profile,
     ITEM.pay,
     ITEM.files,
+    ITEM.organization,
     ITEM.tasks,
     ITEM.myRequests,
     ITEM.userManagement,
@@ -230,7 +234,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.logs,
   ],
   // Admin is office operations: the service desk, assets and expenses (no project tasks or system config)
-  admin: [ITEM.dashboard, ITEM.profile, ITEM.pay, ITEM.files, ITEM.serviceDesk, ITEM.assetLog, ITEM.expenses, ITEM.deskReports],
+  admin: [ITEM.dashboard, ITEM.profile, ITEM.pay, ITEM.files, ITEM.organization, ITEM.serviceDesk, ITEM.assetLog, ITEM.expenses, ITEM.deskReports],
 };
 
 export const ROLE_ROUTE_ACCESS: Record<string, UserRole[]> = {
@@ -248,7 +252,8 @@ export const ROLE_ROUTE_ACCESS: Record<string, UserRole[]> = {
   [ROUTES.Tasks]: ["employee", "hr", "project_manager", "system_admin", "executive"],
   // Everyone has their own documents (offer letter, Form 16…) plus company and department files
   [ROUTES.Files]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
-  [ROUTES.Organization]: ["employee"],
+  // Everyone can look up colleagues and reporting lines
+  [ROUTES.Organization]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
 
   // Manager (MSS)
   [ROUTES.TeamOverview]: ["project_manager"],
