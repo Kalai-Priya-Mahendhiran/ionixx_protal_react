@@ -1,3 +1,3 @@
-export { CategoriesSidebarSection } from './categories-sidebar-section';
-export type { FileCategory } from './categories-sidebar-section';
 export { FilesContentSection } from './files-content-section';
+export { UploadFileDialog } from './upload-file-dialog';
+export { FILE_CATEGORIES, formatFileSize } from './file-utils';

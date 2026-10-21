@@ -1,79 +1,85 @@
-﻿import { useState } from 'react';
-import { StatCard, StatGrid } from '@/components/ui/stat-card';
-import { Button } from '@/components/ui/button';
-import { 
-  Folder, 
-  FileText, 
-  Download, 
-  Upload
-} from 'lucide-react';
+import { useState } from 'react';
+import { Folder, HardDrive, Upload } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
+import { Button } from '@/components/ui/button';
 import { PageHeader, headerPrimaryButtonClass } from '@/components/ui/page-header';
-import { TASK_ATTACHMENT_CATEGORY } from '@/services/apis/files/file-service';
+import { StatCard, StatGrid } from '@/components/ui/stat-card';
+import { useAuth } from '@/context/auth-context';
+import { STORAGE_QUOTA_BYTES } from '@/services/apis/files/file-service';
 import { useFiles } from '@/services/apis/files/use-files';
-import { CategoriesSidebarSection, FilesContentSection, type FileCategory } from './sections';
+import { FILE_CATEGORIES, FilesContentSection, UploadFileDialog, formatFileSize } from './sections';
 
 export default function Files() {
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  // Shared with task attachments, so files uploaded to a task appear under "Task Attachments"
-  const { data: files = [] } = useFiles();
+  const [uploading, setUploading] = useState(false);
+  // Only what this person may see: company files, their department, their own documents and uploads
+  const { data: files = [], isLoading } = useFiles();
 
-  const categories: FileCategory[] = [
-    { id: 'all', label: 'All Files', count: files.length },
-    { id: 'hr-policies', label: 'HR Policies', count: files.filter(f => f.category === 'hr-policies').length },
-    { id: 'training', label: 'Training', count: files.filter(f => f.category === 'training').length },
-    { id: 'salary', label: 'Salary', count: files.filter(f => f.category === 'salary').length },
-    { id: 'general', label: 'General', count: files.filter(f => f.category === 'general').length },
-    { id: TASK_ATTACHMENT_CATEGORY, label: 'Task Attachments', count: files.filter(f => f.category === TASK_ATTACHMENT_CATEGORY).length },
-  ];
+  if (!user) return null;
+  const viewer = { id: user.id, role: user.role };
+  const storageUsed = files.filter((file) => file.uploadedById === user.id).reduce((total, file) => total + file.size, 0);
 
-  const filteredFiles = files.filter(file => {
-    const matchesCategory = selectedCategory === 'all' || file.category === selectedCategory;
-    const matchesSearch = file.name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  // Category cards act as the filter; empty categories are hidden unless selected
+  const categoryCards = FILE_CATEGORIES.map((category) => ({
+    ...category,
+    count: files.filter((file) => file.category === category.id).length,
+  })).filter((category) => category.count > 0 || category.id === selectedCategory);
+
+  const filteredFiles = files
+    .filter((file) => selectedCategory === 'all' || file.category === selectedCategory)
+    .filter((file) => file.name.toLowerCase().includes(searchTerm.trim().toLowerCase()))
+    .sort((a, b) => b.uploadedDate.localeCompare(a.uploadedDate));
 
   return (
     <MainLayout>
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
+      <div className="mx-auto max-w-6xl space-y-6">
         <PageHeader
           icon={Folder}
           title="Files"
-          description="Manage and organize your documents"
+          description={`Company documents, ${user.department} team files and your own documents`}
           actions={
-            <Button className={`flex items-center space-x-2 ${headerPrimaryButtonClass}`}>
-              <Upload className="h-4 w-4" />
-              <span>Upload File</span>
+            <Button className={headerPrimaryButtonClass} onClick={() => setUploading(true)}>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload File
             </Button>
           }
         />
 
-        {/* File Stats */}
-        <StatGrid>
-          <StatCard icon={FileText} label="Total Files" value={files.length} tone="blue" />
-          <StatCard icon={Folder} label="Categories" value={categories.length - 1} tone="green" />
-          <StatCard icon={Download} label="Downloads" value={156} tone="purple" />
-          <StatCard icon={Upload} label="Storage Used" value="2.4 GB" tone="orange" />
+        {/* Four per row on wide screens, so the cards wrap evenly */}
+        <StatGrid className="lg:grid-cols-4">
+          <StatCard icon={Folder} label="All Files" value={files.length} tone="indigo" loading={isLoading} active={selectedCategory === 'all'} onClick={() => setSelectedCategory('all')} />
+          {categoryCards.map((category) => (
+            <StatCard
+              key={category.id}
+              icon={category.icon}
+              label={category.label}
+              value={category.count}
+              tone={category.tone}
+              loading={isLoading}
+              active={selectedCategory === category.id}
+              // Clicking the selected card again shows all files
+              onClick={() => setSelectedCategory((current) => (current === category.id ? 'all' : category.id))}
+            />
+          ))}
         </StatGrid>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Categories Sidebar */}
-          <CategoriesSidebarSection
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-          />
-
-          {/* Files Content */}
-          <FilesContentSection
-            files={filteredFiles}
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-          />
-        </div>
+        <FilesContentSection
+          files={filteredFiles}
+          viewer={viewer}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          toolbarNote={
+            <span className="flex shrink-0 items-center gap-1.5 text-sm text-gray-600" title="Space used by files you uploaded">
+              <HardDrive className="h-4 w-4 text-teal-600" aria-hidden="true" />
+              {formatFileSize(storageUsed)} of {formatFileSize(STORAGE_QUOTA_BYTES)} used
+            </span>
+          }
+        />
       </div>
+
+      <UploadFileDialog open={uploading} onOpenChange={setUploading} role={user.role} department={user.department} />
     </MainLayout>
   );
 }

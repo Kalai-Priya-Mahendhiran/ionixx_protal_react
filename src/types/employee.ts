@@ -1,4 +1,5 @@
 import type { LEAVE_TYPE_IDS } from '@/lib/schemas'
+import type { UserRole } from '@/lib/mock-users'
 export interface User {
   id: string
   name: string
@@ -77,9 +78,16 @@ export interface File {
   uploadedBy: string
   uploadedDate: string
   category: string
-  accessLevel: 'public' | 'private'
+  // public: everyone (or only `roles`, when set) · department: people in `department` · private: only `ownerId` / the uploader
+  accessLevel: 'public' | 'department' | 'private'
   url: string
   uploadedById?: string
+  // The person a private document belongs to (e.g. their offer letter)
+  ownerId?: string
+  // For department files
+  department?: string
+  // Limits a public file to these roles (e.g. salary bands for HR and executives)
+  roles?: UserRole[]
   // Set for files attached to a task
   taskId?: string
 }
