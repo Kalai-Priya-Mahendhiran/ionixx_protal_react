@@ -13,6 +13,7 @@ import Reports from '@/components/common-component/reports';
 import Attendance from '@/components/employee-component/attendance';
 import TimeTracker from '@/components/employee-component/time-tracker';
 import Leave from '@/components/employee-component/leave-tracker';
+import Pay from '@/components/employee-component/pay';
 import Tasks from '@/components/employee-component/tasks';
 import ProjectSummary from '@/components/employee-component/tasks/reports/project-summary';
 import ServiceDesk from '@/components/admin-component/service-desk';
@@ -117,6 +118,15 @@ export default function App() {
         element={
           <ProtectedRoute module={ROUTES.Leave}>
             <Leave />
+          </ProtectedRoute>
+        }
+      />
+      {/* Pay & Tax: payslips, tax statement, investment declarations and claims */}
+      <Route
+        path={ROUTES.Pay}
+        element={
+          <ProtectedRoute module={ROUTES.Pay}>
+            <Pay />
           </ProtectedRoute>
         }
       />

@@ -58,6 +58,7 @@ export const ROUTES = {
   Attendance: "/attendance",
   TimeTracker: "/time-tracker",
   Leave: "/leave",
+  Pay: "/pay",
   Files: "/files",
   Organization: "/organization",
   Tasks: "/tasks",

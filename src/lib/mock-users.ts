@@ -128,6 +128,7 @@ export const SIDEBAR_ITEMS = {
   attendance: { id: "attendance", label: "Attendance", icon: "Clock", path: ROUTES.Attendance },
   timeTracker: { id: "time-tracker", label: "Time Tracker", icon: "Timer", path: ROUTES.TimeTracker },
   leave: { id: "leave", label: "Leave Tracker", icon: "Calendar", path: ROUTES.Leave },
+  pay: { id: "pay", label: "Pay & Tax", icon: "Wallet", path: ROUTES.Pay },
   tasks: { id: "tasks", label: "Tasks", icon: "CheckSquare", path: ROUTES.Tasks },
   files: { id: "files", label: "Files", icon: "Folder", path: ROUTES.Files },
   organization: { id: "organization", label: "Organization", icon: "Building", path: ROUTES.Organization },
@@ -169,6 +170,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
   employee: [
     ITEM.dashboard,
     ITEM.profile,
+    ITEM.pay,
     ITEM.attendance,
     ITEM.timeTracker,
     ITEM.leave,
@@ -180,6 +182,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
   project_manager: [
     ITEM.dashboard,
     ITEM.profile,
+    ITEM.pay,
     ITEM.tasks,
     ITEM.myRequests,
     ITEM.teamOverview,
@@ -191,6 +194,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
   hr: [
     ITEM.dashboard,
     ITEM.profile,
+    ITEM.pay,
     ITEM.tasks,
     ITEM.myRequests,
     ITEM.employeeManagement,
@@ -202,6 +206,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
   executive: [
     ITEM.dashboard,
     ITEM.profile,
+    ITEM.pay,
     ITEM.tasks,
     ITEM.myRequests,
     ITEM.analytics,
@@ -211,6 +216,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
   system_admin: [
     ITEM.dashboard,
     ITEM.profile,
+    ITEM.pay,
     ITEM.tasks,
     ITEM.myRequests,
     ITEM.userManagement,
@@ -220,7 +226,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.logs,
   ],
   // Admin is office operations: the service desk, assets and expenses (no project tasks or system config)
-  admin: [ITEM.dashboard, ITEM.profile, ITEM.serviceDesk, ITEM.assetLog, ITEM.expenses, ITEM.deskReports],
+  admin: [ITEM.dashboard, ITEM.profile, ITEM.pay, ITEM.serviceDesk, ITEM.assetLog, ITEM.expenses, ITEM.deskReports],
 };
 
 export const ROLE_ROUTE_ACCESS: Record<string, UserRole[]> = {
@@ -233,6 +239,8 @@ export const ROLE_ROUTE_ACCESS: Record<string, UserRole[]> = {
   [ROUTES.Attendance]: ["employee"],
   [ROUTES.TimeTracker]: ["employee"],
   [ROUTES.Leave]: ["employee"],
+  // Everyone is paid, so everyone sees their own pay and tax
+  [ROUTES.Pay]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
   [ROUTES.Tasks]: ["employee", "hr", "project_manager", "system_admin", "executive"],
   [ROUTES.Files]: ["employee"],
   [ROUTES.Organization]: ["employee"],

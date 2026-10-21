@@ -12,8 +12,9 @@ import { cn } from '@/lib/utils';
  *   </AppSheet>
  */
 
-type SheetWidth = 'md' | 'lg' | 'xl';
-const WIDTH: Record<SheetWidth, string> = { md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-xl' };
+type SheetWidth = 'md' | 'lg' | 'xl' | '5xl';
+// '5xl' is for wide content such as a pay history grid or a statement table
+const WIDTH: Record<SheetWidth, string> = { md: 'max-w-md', lg: 'max-w-lg', xl: 'max-w-xl', '5xl': 'max-w-5xl' };
 
 interface AppSheetProps {
   open: boolean;

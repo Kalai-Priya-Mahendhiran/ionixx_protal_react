@@ -27,6 +27,7 @@ export const MODULE_CATALOG: PortalModule[] = [
   { path: ROUTES.Attendance, label: 'Attendance', group: 'Self-service' },
   { path: ROUTES.TimeTracker, label: 'Time Tracker', group: 'Self-service' },
   { path: ROUTES.Leave, label: 'Leave Tracker', group: 'Self-service' },
+  { path: ROUTES.Pay, label: 'Pay & Tax', group: 'Self-service' },
   { path: ROUTES.Files, label: 'Files', group: 'Self-service' },
   { path: ROUTES.Organization, label: 'Organization', group: 'Self-service' },
   { path: ROUTES.Tasks, label: 'Tasks', group: 'Work' },
