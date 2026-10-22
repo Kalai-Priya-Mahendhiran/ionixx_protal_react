@@ -2,6 +2,7 @@
   "name": "ionixx-diff-validate",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@12.10.1",
   "type": "module",
   "scripts": {
     "dev": "vite",

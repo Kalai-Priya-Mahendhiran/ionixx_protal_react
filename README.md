@@ -18,7 +18,7 @@ A powerful, privacy-focused tool for comparing and validating JSON, XML, and tex
 ### Prerequisites
 
 - Node.js 18+ 
-- npm or yarn
+- pnpm 12+ (`npm install -g pnpm` or `corepack enable`)
 
 ### Installation
 
@@ -30,16 +30,12 @@ cd ionixx-diff-validate
 
 2. Install dependencies:
 ```bash
-npm install
-# or
-yarn install
+pnpm install
 ```
 
 3. Run the development server:
 ```bash
-npm run dev
-# or
-yarn dev
+pnpm dev
 ```
 
 4. Open [http://localhost:3000](http://localhost:3000) in your browser.
@@ -107,25 +103,19 @@ This tool processes all content locally in your browser. No data is transmitted 
 ### Running Tests
 
 ```bash
-npm test
-# or
-yarn test
+pnpm test
 ```
 
 ### Building for Production
 
 ```bash
-npm run build
-# or
-yarn build
+pnpm build
 ```
 
 ### Linting
 
 ```bash
-npm run lint
-# or
-yarn lint
+pnpm lint
 ```
 
 ## Contributing
