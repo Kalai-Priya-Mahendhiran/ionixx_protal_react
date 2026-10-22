@@ -175,7 +175,7 @@ const initialWorkflows: WorkflowRule[] = [
 ];
 
 const initialDefaults: DefaultsState = {
-  organizationName: "Ionixx Technologies",
+  organizationName: "Knowledge & People Self-Service",
   primaryDomain: "ionixx.com",
   supportEmail: "support@ionixx.com",
   defaultTimezone: "Asia/Kolkata",

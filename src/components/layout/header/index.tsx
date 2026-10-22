@@ -125,7 +125,7 @@ interface HeaderProps {
         
         {/* Breadcrumb */}
         <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600 font-medium">
-          <span className="font-bold">Ionixx Portal</span>
+          <span className="font-bold">KPSS</span>
           <span><ChevronRight /></span>
           <span>{getCurrentPageName()}</span>
         </div>

@@ -20,10 +20,9 @@ const FormLayout: React.FC<FormLayoutProps> = ({ children, title, description })
         {/* Company Logo/Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4">
-            <span className="text-2xl font-bold text-[#3FCCE8]">Ix</span>
+            <span className="text-lg font-bold tracking-tight text-[#3FCCE8]">KPSS</span>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Ionixx Portal</h1>
-          <p className="text-purple-200">Employee Management System</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Knowledge &amp; People Self-Service</h1>
         </div>
 
         {/* Login Card */}
@@ -40,7 +39,7 @@ const FormLayout: React.FC<FormLayoutProps> = ({ children, title, description })
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-purple-200 text-sm">
-            © 2026 Ionixx Technologies. All rights reserved.
+            © 2026 Knowledge &amp; People Self-Service. All rights reserved.
           </p>
         </div>
       </div>

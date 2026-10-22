@@ -35,9 +35,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       <div className="flex shrink-0 items-center justify-between h-16 px-6 border-b border-gray-700">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">Ix</span>
+            <span className="text-white font-bold text-[10px] tracking-tight">KPSS</span>
           </div>
-          <span className="text-white font-semibold text-lg">Ionixx Portal</span>
+          <span className="text-white font-semibold text-[10px] leading-tight">Knowledge &amp; People Self-Service</span>
         </div>
         <button
           onClick={onToggle}
@@ -81,7 +81,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       {/* Sidebar Footer */}
       <div className="shrink-0 p-4 border-t border-gray-700">
         <div className="text-xs text-gray-400 text-center">
-          <p>© 2026 Ionixx Technologies</p>
+          <p>© 2026 KPSS</p>
           <p>Version 1.0.0</p>
         </div>
       </div>

@@ -1,6 +1,6 @@
-# EPM – Employee Portal Management
+# KPSS – Knowledge & People Self-Service
 
-EPM is Ionixx's internal employee portal. Employees use it for day-to-day self-service (attendance, time tracking, leave, pay, tasks and documents). Managers, HR, executives, office admins and system admins each get extra screens for their role.
+Knowledge & People Self-Service (KPSS) is an internal employee portal. Employees use it for day-to-day self-service (attendance, time tracking, leave, pay, tasks and documents). Managers, HR, executives, office admins and system admins each get extra screens for their role.
 
 The app is a React single-page application built with Vite. Most screens run on sample data stored in the browser (`localStorage`), so you can try every role without a backend.
 
