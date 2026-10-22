@@ -1,4 +1,4 @@
-import { REQUEST_CATEGORIES, REQUEST_CATEGORY_LABELS, REQUEST_STATUS_LABELS, WAITING_REASON_LABELS } from '@/lib/desk-config';
+import { REQUEST_CATEGORIES, REQUEST_CATEGORY_LABELS, REQUEST_STATUS_LABELS, WAITING_REASON_LABELS, deskOf } from '@/lib/desk-config';
 import {
   REOPEN_WINDOW_DAYS,
   canChangeRequestStatus,
@@ -20,9 +20,10 @@ import { notificationService } from '../notifications/notification-service';
 import { getSlaTarget } from './desk-settings-service';
 
 /*
- * Admin service desk requests. In-memory mock (resets on refresh); each method notes its endpoint.
+ * Service desk requests for every desk (Admin, System Admin…; see DESKS). Each request goes to the desk
+ * that owns its category. In-memory mock (resets on refresh); each method notes its endpoint.
  * The backend must apply the same rules: requesters only see their own requests and never internal notes,
- * and only the Admin team assigns requests or moves them through the workflow.
+ * and only the desk's own team assigns requests or moves them through the workflow.
  */
 
 export interface RequestInput {
@@ -74,9 +75,10 @@ const now = () => new Date().toISOString();
 const nameOf = (id?: string) => (id ? (getUserById(id)?.name ?? 'Someone') : 'Nobody');
 const requestPath = (key: string) => `/service-desk/${key}`;
 
-function nextKey(): string {
+// One running number across desks, prefixed by the desk: ADM-108, SYS-109
+function nextKey(category: RequestCategory): string {
   const highest = requests.reduce((max, request) => Math.max(max, Number(request.key.split('-')[1]) || 0), 100);
-  return `ADM-${highest + 1}`;
+  return `${deskOf(category).keyPrefix}-${highest + 1}`;
 }
 
 function findRequest(id: string): AdminRequest {
@@ -98,8 +100,8 @@ function log(request: AdminRequest, actorId: string, summary: string, action = '
 
 // The requester and whoever it was raised for hear about progress
 const followers = (request: AdminRequest) => [request.requesterId, request.onBehalfOfId ?? ''];
-// New or unassigned work goes to the whole Admin team; assigned work to the assignee
-const handlers = (request: AdminRequest) => (request.assigneeId ? [request.assigneeId] : getDeskTeam().map((member) => member.id));
+// New or unassigned work goes to the whole team of the request's desk; assigned work to the assignee
+const handlers = (request: AdminRequest) => (request.assigneeId ? [request.assigneeId] : getDeskTeam(deskOf(request.category).id).map((member) => member.id));
 
 function validate(input: RequestInput) {
   if (!REQUEST_CATEGORIES.includes(input.category)) throw new Error('Choose a category');
@@ -114,11 +116,11 @@ function validate(input: RequestInput) {
 function create(actor: PermissionUser, input: RequestInput, extra: Partial<AdminRequest> = {}, skipRaiseCheck = false): AdminRequest {
   validate(input);
   const forUserId = input.onBehalfOfId && input.onBehalfOfId !== actor.id ? input.onBehalfOfId : undefined;
-  if (!skipRaiseCheck && !canRaiseRequest(actor, forUserId)) throw new RequestPermissionError(forUserId ? `You can't raise requests for ${nameOf(forUserId)}` : "You can't raise Admin requests");
+  if (!skipRaiseCheck && !canRaiseRequest(actor, forUserId)) throw new RequestPermissionError(forUserId ? `You can't raise requests for ${nameOf(forUserId)}` : "You can't raise requests");
   const timestamp = now();
   const request: AdminRequest = {
     id: generateId(),
-    key: nextKey(),
+    key: nextKey(input.category),
     category: input.category,
     title: input.title.trim(),
     description: input.description.trim(),
@@ -134,7 +136,7 @@ function create(actor: PermissionUser, input: RequestInput, extra: Partial<Admin
     ...extra,
   };
   requests = [request, ...requests];
-  log(request, actor.id, forUserId ? `Raised the request for ${nameOf(forUserId)}` : 'Raised the request', 'created');
+  log(request, actor.id, `${forUserId ? `Raised the request for ${nameOf(forUserId)}` : 'Raised the request'} with the ${deskOf(request.category).team}`, 'created');
   notificationService.notify(handlers(request), actor.id, {
     type: request.priority === 'urgent' ? 'warning' : 'info',
     title: `New ${REQUEST_CATEGORY_LABELS[request.category].toLowerCase()} request ${request.key}`,
@@ -157,8 +159,8 @@ function applyStatus(request: AdminRequest, actor: PermissionUser, change: Statu
     next.waitingSince = timestamp;
     next.waitingReason = change.waitingReason;
   }
-  // An Admin picking the request up (or resolving it) is its first response
-  if (!request.firstResponseAt && canManageRequests(actor) && change.to !== 'open') next.firstResponseAt = timestamp;
+  // The desk's team picking the request up (or resolving it) is its first response
+  if (!request.firstResponseAt && canManageRequests(actor, request) && change.to !== 'open') next.firstResponseAt = timestamp;
   if (change.to === 'resolved') next.resolvedAt = timestamp;
   if (request.status === 'resolved' && change.to === 'in-progress') next.resolvedAt = undefined;
   if (change.to === 'closed') next.closedAt = timestamp;
@@ -195,7 +197,7 @@ export function runDeskChecks(at: Date = new Date()): void {
 }
 
 export const requestService = {
-  // GET /api/service-desk/requests — the queue for the Admin team, "My Requests" for everyone else
+  // GET /api/service-desk/requests — each team's queue, and "My Requests" for everyone
   async list(actor: PermissionUser): Promise<AdminRequest[]> {
     await delay();
     runDeskChecks();
@@ -218,25 +220,39 @@ export const requestService = {
   async update(actor: PermissionUser, id: string, changes: Partial<Pick<AdminRequest, 'category' | 'priority'>>): Promise<AdminRequest> {
     await delay();
     const request = findRequest(id);
-    if (!canManageRequests(actor)) throw new RequestPermissionError("You can't change this request");
+    if (!canManageRequests(actor, request)) throw new RequestPermissionError("You can't change this request");
     if (changes.category && !REQUEST_CATEGORIES.includes(changes.category)) throw new Error('Choose a category');
     if (changes.priority && !PRIORITIES.includes(changes.priority)) throw new Error('Choose a priority');
-    const updated = save({ ...request, ...changes });
+    // A request sent to the wrong team can be passed on: it leaves this queue unassigned and the other team is told
+    const fromDesk = deskOf(request.category);
+    const toDesk = changes.category ? deskOf(changes.category) : fromDesk;
+    const handedOver = toDesk.id !== fromDesk.id;
+    const updated = save({ ...request, ...changes, ...(handedOver ? { assigneeId: undefined } : {}) });
     const summary = [
       changes.category && changes.category !== request.category && `Changed the category from ${REQUEST_CATEGORY_LABELS[request.category]} to ${REQUEST_CATEGORY_LABELS[changes.category]}`,
+      handedOver && `passed it to the ${toDesk.team}`,
       changes.priority && changes.priority !== request.priority && `changed the priority from ${request.priority} to ${changes.priority}`,
     ].filter(Boolean);
     if (summary.length) log(updated, actor.id, summary.join(', '));
+    if (handedOver) {
+      notificationService.notify(handlers(updated), actor.id, {
+        type: 'info',
+        title: `${request.key} was passed to the ${toDesk.team}`,
+        message: `${nameOf(request.requesterId)}: ${request.title}`,
+        actionUrl: requestPath(request.key),
+      });
+    }
     return updated;
   },
 
-  // PATCH /api/service-desk/requests/:key { assigneeId } — within the Admin team only
+  // PATCH /api/service-desk/requests/:key { assigneeId } — within the desk's own team only
   async assign(actor: PermissionUser, id: string, assigneeId: string | undefined): Promise<AdminRequest> {
     await delay();
     const request = findRequest(id);
-    if (!canManageRequests(actor)) throw new RequestPermissionError("You can't assign requests");
+    if (!canManageRequests(actor, request)) throw new RequestPermissionError("You can't assign requests");
     if (request.status === 'closed') throw new Error('Closed requests can no longer be reassigned');
-    if (assigneeId && !getDeskTeam().some((member) => member.id === assigneeId)) throw new Error('Requests can only be assigned within the Admin team');
+    const desk = deskOf(request.category);
+    if (assigneeId && !getDeskTeam(desk.id).some((member) => member.id === assigneeId)) throw new Error(`Requests can only be assigned within the ${desk.team}`);
     const updated = save({ ...request, assigneeId });
     log(updated, actor.id, assigneeId ? `Assigned to ${nameOf(assigneeId)}` : 'Unassigned');
     if (assigneeId) {
@@ -274,12 +290,12 @@ export const requestService = {
     return updated;
   },
 
-  // GET /api/service-desk/requests/:key/comments — internal notes only for the Admin team
+  // GET /api/service-desk/requests/:key/comments — internal notes only for the desk's team
   async listComments(actor: PermissionUser, id: string): Promise<RequestComment[]> {
     await delay();
     const request = findRequest(id);
     if (!canViewRequest(actor, request)) throw new RequestPermissionError("You can't see this request");
-    const showInternal = canSeeInternalNotes(actor);
+    const showInternal = canSeeInternalNotes(actor, request);
     return comments.filter((comment) => comment.requestId === id && (showInternal || !comment.internal)).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   },
 
@@ -288,15 +304,15 @@ export const requestService = {
     await delay();
     const request = findRequest(id);
     if (!canCommentOnRequest(actor, request)) throw new RequestPermissionError(request.status === 'closed' ? 'This request is closed' : "You can't comment on this request");
-    if (internal && !canSeeInternalNotes(actor)) throw new RequestPermissionError('Only the Admin team can add internal notes');
+    if (internal && !canSeeInternalNotes(actor, request)) throw new RequestPermissionError(`Only the ${deskOf(request.category).team} can add internal notes`);
     const text = body.trim();
     if (!text) throw new Error('Write something first');
     if (text.length > MAX_COMMENT) throw new Error(`Keep comments under ${MAX_COMMENT} characters`);
 
     const comment: RequestComment = { id: generateId(), requestId: id, authorId: actor.id, body: text, internal, createdAt: now() };
     comments = [...comments, comment];
-    // A public reply from the Admin team counts as the first response
-    const fromDesk = canManageRequests(actor);
+    // A public reply from the desk's team counts as the first response
+    const fromDesk = canManageRequests(actor, request);
     if (fromDesk && !internal && !request.firstResponseAt) save({ ...request, firstResponseAt: comment.createdAt });
     else save(request);
 
@@ -325,7 +341,7 @@ const isOpenFor = (userId: string) => (request: AdminRequest) => request.assigne
 
 export const countOpenRequestsAssignedTo = (userId: string) => requests.filter(isOpenFor(userId)).length;
 
-// When someone on the Admin team is deactivated, their open requests go back to the queue for the team
+// When someone on a desk team is deactivated, their open requests go back to the queue for the team
 export function releaseRequestsAssignedTo(userId: string, actorId: string): string[] {
   const released = requests.filter(isOpenFor(userId));
   released.forEach((request) => {

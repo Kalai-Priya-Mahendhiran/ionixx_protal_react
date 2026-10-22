@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronRight, LifeBuoy, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ASSET_TYPE_LABELS } from '@/lib/desk-config';
+import { ASSET_TYPE_LABELS, deskOf } from '@/lib/desk-config';
 import { getSlaStatus } from '@/lib/sla';
 import { getUserById } from '@/lib/user-directory';
 import { cn, formatDate, formatRelativeTime } from '@/lib/utils';
@@ -100,11 +100,11 @@ export function MyRequestsSection({
           <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center">
             <LifeBuoy className="mx-auto mb-3 h-10 w-10 text-gray-300" aria-hidden="true" />
             <p className="font-medium text-gray-900">{tab === 'open' ? 'No open requests' : 'Nothing resolved yet'}</p>
-            <p className="mt-1 text-sm text-gray-500">Need a laptop fixed, supplies, a cab or a visitor pass? Ask the Admin team.</p>
+            <p className="mt-1 text-sm text-gray-500">Need a laptop fixed, a cab or a visitor pass? Ask the Admin team. Can't log in or need access or software? Ask the System Admin team.</p>
             {tab === 'open' && (
               <Button onClick={onRaise} className="mt-4 gap-2 bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
                 <Plus className="h-4 w-4" />
-                Raise Admin Request
+                Raise a Request
               </Button>
             )}
           </div>
@@ -125,6 +125,7 @@ export function MyRequestsSection({
                     <span className="min-w-0 flex-1 space-y-1">
                       <span className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-semibold text-gray-500">{request.key}</span>
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{deskOf(request.category).team}</span>
                         <RequestStatusBadge request={request} />
                       </span>
                       <span className="block truncate font-medium text-gray-900 group-hover:text-[#464EB8]">{request.title}</span>

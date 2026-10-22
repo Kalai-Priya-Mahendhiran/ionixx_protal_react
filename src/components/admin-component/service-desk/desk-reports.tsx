@@ -5,7 +5,9 @@ import MainLayout from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard, StatGrid } from '@/components/ui/stat-card';
 import { ROUTES } from '@/lib/constants';
+import { useAuth } from '@/context/auth-context';
 import { DEFAULT_DESK_SETTINGS, REQUEST_CATEGORY_LABELS, formatRupees } from '@/lib/desk-config';
+import { canManageRequests, desksHandledBy } from '@/lib/permissions/desk-permissions';
 import { getBreachedRequests, getCategoryReport, getMonthlySpend, getMonthlyTrend, inPeriod, summarizeDesk } from '@/lib/desk-reports';
 import { formatDuration } from '@/lib/sla';
 import { cn } from '@/lib/utils';
@@ -21,9 +23,12 @@ const PERIODS = [
   { days: 0, label: 'All time' },
 ] as const;
 
-// Requests, SLA performance and office spend for the Admin team (desk.reports)
+// Requests, SLA performance and office spend for the desks the viewer works (desk.reports)
 export default function DeskReports() {
-  const { data: requests = [], isLoading, isError, refetch } = useRequests();
+  const { user } = useAuth();
+  const { data: allRequests = [], isLoading, isError, refetch } = useRequests();
+  const requests = useMemo(() => allRequests.filter((request) => canManageRequests(user, request)), [allRequests, user]);
+  const deskCategories = useMemo(() => desksHandledBy(user).flatMap((desk) => desk.categories), [user]);
   const { data: expenses = [] } = useExpenses();
   const { data: settings = DEFAULT_DESK_SETTINGS } = useDeskSettings();
   const [days, setDays] = useState<number>(30);
@@ -33,12 +38,12 @@ export default function DeskReports() {
     const scoped = inPeriod(requests, days || undefined, now);
     return {
       summary: summarizeDesk(scoped, settings.sla, now),
-      categories: getCategoryReport(scoped, settings.sla, now),
+      categories: getCategoryReport(scoped, settings.sla, now, deskCategories),
       breaches: getBreachedRequests(scoped, settings.sla, now),
       trend: getMonthlyTrend(requests, 3, now),
       spend: getMonthlySpend(expenses, settings.budgets, 3, now),
     };
-  }, [requests, expenses, settings, days]);
+  }, [requests, expenses, settings, days, deskCategories]);
 
   const { summary, categories } = report;
   const maxTotal = Math.max(1, ...categories.map((row) => row.total));

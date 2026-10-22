@@ -50,8 +50,8 @@ export interface CategoryReport {
   breaches: number;
 }
 
-export function getCategoryReport(requests: AdminRequest[], sla: SlaTargets, now: Date = new Date()): CategoryReport[] {
-  return REQUEST_CATEGORIES.map((category) => {
+export function getCategoryReport(requests: AdminRequest[], sla: SlaTargets, now: Date = new Date(), categories: RequestCategory[] = REQUEST_CATEGORIES): CategoryReport[] {
+  return categories.map((category) => {
     const rows = requests.filter((request) => request.category === category);
     const statuses = rows.map((request) => ({ request, sla: getSlaStatus(request, sla[category], now) }));
     return {

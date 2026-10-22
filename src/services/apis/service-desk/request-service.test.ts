@@ -37,6 +37,30 @@ describe('requestService', () => {
     expect((await requestService.assign(desk, request.id, 'ADM002')).assigneeId).toBe('ADM002');
   });
 
+  it('sends system requests to the System Admin team, not the Admin team', async () => {
+    const sysAdmin = { id: 'SYS001', role: 'system_admin' as const };
+    const request = await requestService.create(employee, { category: 'account', title: "Can't log in", description: 'Locked out after the password change', priority: 'high' });
+    expect(request.key).toBe('SYS-101');
+    expect((await notificationService.list(sysAdmin))[0].title).toBe('New login & password request SYS-101');
+    expect((await requestService.list(sysAdmin)).map((entry) => entry.key)).toEqual(['SYS-101']);
+    expect(await requestService.list(desk)).toHaveLength(0);
+    await expect(requestService.assign(desk, request.id, 'ADM002')).rejects.toThrow("can't assign");
+    await expect(requestService.assign(sysAdmin, request.id, 'ADM002')).rejects.toThrow('within the System Admin team');
+    expect((await requestService.assign(sysAdmin, request.id, 'SYS001')).assigneeId).toBe('SYS001');
+  });
+
+  it('passes a request raised with the wrong team on to the right one', async () => {
+    const sysAdmin = { id: 'SYS001', role: 'system_admin' as const };
+    const request = await raise();
+    await requestService.assign(desk, request.id, 'ADM002');
+    const moved = await requestService.update(desk, request.id, { category: 'software' });
+    // Unassigned, out of the Admin queue and into the System Admin queue
+    expect(moved.assigneeId).toBeUndefined();
+    expect(await requestService.list(desk)).toHaveLength(0);
+    expect((await requestService.list(sysAdmin)).map((entry) => entry.id)).toEqual([request.id]);
+    expect((await notificationService.list(sysAdmin))[0].title).toContain('passed to the System Admin team');
+  });
+
   it('hides internal notes from the requester', async () => {
     const request = await raise();
     await requestService.addComment(desk, request.id, 'Vendor quote is ₹4,000', true);

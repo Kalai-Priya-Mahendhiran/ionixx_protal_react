@@ -23,11 +23,12 @@ export const DEFAULT_PERMISSION_MATRIX: PermissionMatrix = {
   'workflow.configure': { employee: 'none', project_manager: 'none', hr: 'none', admin: 'none', system_admin: 'all',  executive: 'none' },
   'reports.view':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'none', system_admin: 'all',  executive: 'all' },
   // Service desk: everyone raises and follows their own requests; HR also raises them for new joiners and leavers.
-  // The Admin team works the queue, the asset log and office expenses.
+  // The Admin team works the office queue, the asset log and office expenses; the System Admin team works the
+  // logins/access/software queue. Which requests each one sees and handles follows DESKS in desk-config.
   'request.create':     { employee: 'own',  project_manager: 'own',  hr: 'all',  admin: 'all',  system_admin: 'own',  executive: 'own' },
-  'request.view':       { employee: 'own',  project_manager: 'own',  hr: 'own',  admin: 'all',  system_admin: 'own',  executive: 'own' },
-  'request.comment':    { employee: 'own',  project_manager: 'own',  hr: 'own',  admin: 'all',  system_admin: 'own',  executive: 'own' },
-  'request.manage':     { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },
+  'request.view':       { employee: 'own',  project_manager: 'own',  hr: 'own',  admin: 'all',  system_admin: 'all',  executive: 'own' },
+  'request.comment':    { employee: 'own',  project_manager: 'own',  hr: 'own',  admin: 'all',  system_admin: 'all',  executive: 'own' },
+  'request.manage':     { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'all',  executive: 'none' },
   'asset.manage':       { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },
   'expense.manage':     { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },
   'desk.configure':     { employee: 'none', project_manager: 'none', hr: 'none', admin: 'all',  system_admin: 'none', executive: 'none' },

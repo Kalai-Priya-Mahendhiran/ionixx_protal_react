@@ -2,7 +2,13 @@ import type { TaskAttachment, TaskPriority } from './task'
 
 /* ---------- Requests ---------- */
 
-export type RequestCategory = 'asset' | 'facility' | 'supplies' | 'transport' | 'travel' | 'visitor' | 'other'
+// Office requests go to the Admin team; logins, access and software go to the System Admin team (see DESKS)
+export type AdminRequestCategory = 'asset' | 'facility' | 'supplies' | 'transport' | 'travel' | 'visitor' | 'other'
+export type SystemRequestCategory = 'account' | 'access' | 'software' | 'system-other'
+export type RequestCategory = AdminRequestCategory | SystemRequestCategory
+
+// The teams that work requests
+export type DeskId = 'admin' | 'system'
 
 // Open -> In Progress -> Waiting (vendor/approval) -> Resolved -> Closed
 export type RequestStatus = 'open' | 'in-progress' | 'waiting' | 'resolved' | 'closed'
@@ -14,7 +20,7 @@ export type RequestSource = 'manual' | 'onboarding' | 'offboarding' | 'checklist
 
 export interface AdminRequest {
   id: string
-  key: string // e.g. ADM-12
+  key: string // e.g. ADM-12 (Admin) or SYS-12 (System Admin)
   category: RequestCategory
   title: string
   description: string
@@ -68,7 +74,7 @@ export interface SlaTarget {
 
 export type SlaTargets = Record<RequestCategory, SlaTarget>
 
-export type ExpenseCategory = RequestCategory | 'maintenance' | 'utilities' | 'events'
+export type ExpenseCategory = AdminRequestCategory | 'maintenance' | 'utilities' | 'events'
 
 // Monthly budget per expense category, in rupees
 export type ExpenseBudgets = Record<ExpenseCategory, number>

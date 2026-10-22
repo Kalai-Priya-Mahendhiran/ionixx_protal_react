@@ -5,7 +5,7 @@ import { FormDialog } from '@/components/ui/form-dialog';
 import { FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { RequiredLabel, SelectField, TextField, TextareaField } from '@/components/ui/form-fields';
 import { useAuth } from '@/context/auth-context';
-import { REQUEST_CATEGORIES, REQUEST_CATEGORY_HINTS, REQUEST_CATEGORY_LABELS } from '@/lib/desk-config';
+import { DESKS, REQUEST_CATEGORY_HINTS, REQUEST_CATEGORY_LABELS, deskOf } from '@/lib/desk-config';
 import { canRaiseRequest } from '@/lib/permissions/desk-permissions';
 import { TASK_PRIORITIES, adminRequestSchema, type AdminRequestFormValues } from '@/lib/schemas';
 import { getActiveUsers } from '@/lib/user-directory';
@@ -18,13 +18,14 @@ import { CATEGORY_ICONS } from './desk-icons';
 
 const DEFAULTS: AdminRequestFormValues = { category: 'asset', title: '', description: '', priority: 'medium', onBehalfOfId: '' };
 
-// Raise an Admin request (asset, facility, supplies, transport, travel, visitor, other)
+// Raise a request with any team: first who should handle it (DESKS), then that team's categories
 export function RaiseRequestDialog({ open, onOpenChange, onRaised }: { open: boolean; onOpenChange: (open: boolean) => void; onRaised?: (request: AdminRequest) => void }) {
   const { user } = useAuth();
   const raise = useRaiseRequest();
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const form = useForm<AdminRequestFormValues>({ resolver: zodResolver(adminRequestSchema), defaultValues: DEFAULTS });
   const category = form.watch('category');
+  const desk = deskOf(category);
   // HR (and Admin) can raise requests for someone else, e.g. a new joiner
   const canRaiseForOthers = !!user && getActiveUsers().some((member) => member.id !== user.id && canRaiseRequest(user, member.id));
   const behalfOptions = [
@@ -58,8 +59,8 @@ export function RaiseRequestDialog({ open, onOpenChange, onRaised }: { open: boo
       onOpenChange={onOpenChange}
       form={form}
       onSubmit={onSubmit}
-      title="Raise an Admin request"
-      description="The Admin team gets notified straight away. You'll see updates in My Requests."
+      title="Raise a request"
+      description={`The ${desk.team} gets notified straight away. You'll see updates in My Requests.`}
       size="2xl"
       submitLabel="Raise request"
       pendingLabel="Raising…"
@@ -70,9 +71,34 @@ export function RaiseRequestDialog({ open, onOpenChange, onRaised }: { open: boo
         name="category"
         render={({ field }) => (
           <FormItem>
-            <RequiredLabel>Category</RequiredLabel>
+            <RequiredLabel>Who should handle this?</RequiredLabel>
+            {/* Choosing a team starts on its first category */}
+            <div role="radiogroup" aria-label="Team" className="grid gap-2 sm:grid-cols-2">
+              {DESKS.map((option) => {
+                const selected = option.id === desk.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => !selected && field.onChange(option.categories[0])}
+                    className={cn(
+                      'rounded-lg border p-3 text-left transition-colors',
+                      selected ? 'border-[#464EB8] bg-indigo-50 ring-1 ring-[#464EB8]' : 'border-gray-200 bg-white hover:border-[#464EB8]/40',
+                    )}
+                  >
+                    <span className={cn('block text-sm font-semibold', selected ? 'text-[#464EB8]' : 'text-gray-900')}>{option.team}</span>
+                    <span className="mt-0.5 block text-xs text-gray-500">{option.summary}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="pt-2">
+              <RequiredLabel>Category</RequiredLabel>
+            </div>
             <div role="radiogroup" aria-label="Category" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {REQUEST_CATEGORIES.map((value) => {
+              {desk.categories.map((value) => {
                 const Icon = CATEGORY_ICONS[value];
                 const selected = field.value === value;
                 return (
@@ -100,7 +126,7 @@ export function RaiseRequestDialog({ open, onOpenChange, onRaised }: { open: boo
         )}
       />
 
-      <TextField control={form.control} name="title" label="Summary" placeholder="e.g. AC not working in Meeting Room 3" maxLength={120} required />
+      <TextField control={form.control} name="title" label="Summary" placeholder={desk.id === 'system' ? "e.g. Can't log in after password change" : 'e.g. AC not working in Meeting Room 3'} maxLength={120} required />
 
       <TextareaField
         control={form.control}

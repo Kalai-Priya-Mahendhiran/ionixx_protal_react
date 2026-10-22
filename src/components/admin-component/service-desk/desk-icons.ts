@@ -1,4 +1,4 @@
-import { Building2, Car, HelpCircle, Laptop, Package, Plane, UserCheck, type LucideIcon } from 'lucide-react';
+import { AppWindow, Building2, Car, HelpCircle, KeyRound, Laptop, Package, Plane, ShieldCheck, UserCheck, type LucideIcon } from 'lucide-react';
 import type { RequestCategory } from '@/types';
 
 export const CATEGORY_ICONS: Record<RequestCategory, LucideIcon> = {
@@ -9,4 +9,8 @@ export const CATEGORY_ICONS: Record<RequestCategory, LucideIcon> = {
   travel: Plane,
   visitor: UserCheck,
   other: HelpCircle,
+  account: KeyRound,
+  access: ShieldCheck,
+  software: AppWindow,
+  'system-other': HelpCircle,
 };

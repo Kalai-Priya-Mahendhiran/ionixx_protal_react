@@ -100,7 +100,7 @@ export const QUICK_ADD_OPTIONS = [
   },
   {
     id: "admin-request",
-    label: "Raise Admin Request",
+    label: "Raise a Request",
     icon: "LifeBuoy",
   },
   {

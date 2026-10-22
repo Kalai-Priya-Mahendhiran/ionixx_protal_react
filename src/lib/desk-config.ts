@@ -1,6 +1,8 @@
+import type { UserRole } from '@/lib/mock-users';
 import type {
   AssetStatus,
   AssetType,
+  DeskId,
   DeskSettings,
   ExpenseCategory,
   RequestCategory,
@@ -8,9 +10,53 @@ import type {
   WaitingReason,
 } from '@/types';
 
-/* Names, defaults and formatting for the Admin service desk, shared by services and screens. */
+/* Names, defaults and formatting for the service desk, shared by services and screens. */
 
-export const REQUEST_CATEGORIES: RequestCategory[] = ['asset', 'facility', 'supplies', 'transport', 'travel', 'visitor', 'other'];
+export interface Desk {
+  id: DeskId;
+  // Who it is, as people say it: "Admin team"
+  team: string;
+  // Short label for badges and choices
+  label: string;
+  // One line on what to ask them for
+  summary: string;
+  // Prefix of request keys, e.g. ADM-104
+  keyPrefix: string;
+  // Roles whose members work this desk's queue (they also need request.manage)
+  roles: UserRole[];
+  categories: RequestCategory[];
+}
+
+/*
+ * The teams people can raise requests with. Each category belongs to one desk, so routing, queues,
+ * assignment and notifications all follow from here; a new team is a new entry, with no screen changes.
+ */
+export const DESKS: Desk[] = [
+  {
+    id: 'admin',
+    team: 'Admin team',
+    label: 'Admin',
+    summary: 'Office: laptops and equipment, facilities, supplies, cabs, travel and visitors',
+    keyPrefix: 'ADM',
+    roles: ['admin'],
+    categories: ['asset', 'facility', 'supplies', 'transport', 'travel', 'visitor', 'other'],
+  },
+  {
+    id: 'system',
+    team: 'System Admin team',
+    label: 'System Admin',
+    summary: 'Logins and passwords, page or role access, software and accounts',
+    keyPrefix: 'SYS',
+    roles: ['system_admin'],
+    categories: ['account', 'access', 'software', 'system-other'],
+  },
+];
+
+export const REQUEST_CATEGORIES: RequestCategory[] = DESKS.flatMap((desk) => desk.categories);
+
+export const getDesk = (id: DeskId): Desk => DESKS.find((desk) => desk.id === id)!;
+// The desk that handles a category
+export const deskOf = (category: RequestCategory): Desk => DESKS.find((desk) => desk.categories.includes(category)) ?? DESKS[0];
 
 export const REQUEST_CATEGORY_LABELS: Record<RequestCategory, string> = {
   asset: 'Asset',
@@ -20,6 +66,10 @@ export const REQUEST_CATEGORY_LABELS: Record<RequestCategory, string> = {
   travel: 'Travel',
   visitor: 'Visitor',
   other: 'Other',
+  account: 'Login & password',
+  access: 'Access & permissions',
+  software: 'Software & tools',
+  'system-other': 'Other system issue',
 };
 
 export const REQUEST_CATEGORY_HINTS: Record<RequestCategory, string> = {
@@ -30,6 +80,10 @@ export const REQUEST_CATEGORY_HINTS: Record<RequestCategory, string> = {
   travel: 'Flight, train and hotel bookings',
   visitor: 'Guest passes and front-desk arrangements',
   other: 'Anything else for the Admin team',
+  account: "Can't log in, locked account, password reset, new account",
+  access: 'Access to a page, module or project, or a role change',
+  software: 'Install or licence software, email, VPN or tool access',
+  'system-other': 'Anything else for the System Admin team',
 };
 
 export const REQUEST_STATUSES: RequestStatus[] = ['open', 'in-progress', 'waiting', 'resolved', 'closed'];
@@ -98,6 +152,10 @@ export const DEFAULT_DESK_SETTINGS: DeskSettings = {
     travel: { responseHours: 4, resolutionHours: 48 },
     visitor: { responseHours: 1, resolutionHours: 4 },
     other: { responseHours: 8, resolutionHours: 72 },
+    account: { responseHours: 1, resolutionHours: 4 },
+    access: { responseHours: 4, resolutionHours: 24 },
+    software: { responseHours: 4, resolutionHours: 48 },
+    'system-other': { responseHours: 8, resolutionHours: 72 },
   },
   // Monthly budgets in rupees
   budgets: {

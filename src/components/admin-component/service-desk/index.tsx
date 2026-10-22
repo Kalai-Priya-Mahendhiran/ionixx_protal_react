@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { PageHeader, headerPrimaryButtonClass, headerSecondaryButtonClass } from '@/components/ui/page-header';
 import MainLayout from '@/components/layout/main-layout';
 import { useAuth } from '@/context/auth-context';
-import { DEFAULT_DESK_SETTINGS } from '@/lib/desk-config';
-import { canConfigureDesk, canManageRequests } from '@/lib/permissions/desk-permissions';
+import { DEFAULT_DESK_SETTINGS, DESKS } from '@/lib/desk-config';
+import { canConfigureDesk, canManageRequests, desksHandledBy } from '@/lib/permissions/desk-permissions';
 import type { PermissionUser } from '@/lib/permissions/task-permissions';
 import { cn } from '@/lib/utils';
 import { useDeskSettings, useRequests } from '@/services/apis/service-desk/use-service-desk';
@@ -18,20 +18,21 @@ import { SlaSettingsDialog } from './sla-settings-dialog';
 import { PageTabs } from '@/components/ui/page-tabs';
 
 /*
- * Admin service desk. Everyone raises requests and follows them in My Requests;
- * the Admin team (request.manage) also works the queue.
+ * Service desk. Everyone raises requests with any team (Admin, System Admin…) and follows them in My Requests;
+ * each team also works its own queue.
  */
 function ServiceDeskPage({ user }: { user: PermissionUser }) {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const isDesk = canManageRequests(user);
+  const myDesks = desksHandledBy(user);
   const tab = isDesk && params.get('tab') === 'mine' ? 'mine' : isDesk ? 'queue' : 'mine';
   const { data: requests = [], isLoading, isError, refetch } = useRequests();
   const { data: settings = DEFAULT_DESK_SETTINGS } = useDeskSettings();
   const [raiseOpen, setRaiseOpen] = useState(false);
   const [slaOpen, setSlaOpen] = useState(false);
 
-  // Quick Add → "Raise Admin Request" lands here with ?raise=1
+  // Quick Add → "Raise a Request" lands here with ?raise=1
   useEffect(() => {
     if (params.get('raise') !== '1') return;
     setRaiseOpen(true);
@@ -45,6 +46,8 @@ function ServiceDeskPage({ user }: { user: PermissionUser }) {
   }, [params, setParams]);
 
   const mine = requests.filter((request) => request.requesterId === user.id || request.onBehalfOfId === user.id);
+  // The queue holds only requests for the desks this person works
+  const queue = requests.filter((request) => canManageRequests(user, request));
 
   return (
     <MainLayout>
@@ -52,7 +55,11 @@ function ServiceDeskPage({ user }: { user: PermissionUser }) {
         <PageHeader
           icon={LifeBuoy}
           title={isDesk ? 'Service Desk' : 'My Requests'}
-          description={isDesk ? 'Office operations requests: assets, facilities, supplies, transport, travel and visitors' : 'Ask the Admin team for anything office-related and follow it here'}
+          description={
+            isDesk
+              ? `${myDesks.map((desk) => desk.team).join(' and ')} queue · ${myDesks.map((desk) => desk.summary.toLowerCase()).join('; ')}`
+              : `Ask the ${DESKS.map((desk) => desk.team).join(' or ')} and follow your requests here`
+          }
           actions={
             <>
               {canConfigureDesk(user) && (
@@ -63,7 +70,7 @@ function ServiceDeskPage({ user }: { user: PermissionUser }) {
               )}
               <Button onClick={() => setRaiseOpen(true)} className={cn('gap-2', headerPrimaryButtonClass)}>
                 <Plus className="h-4 w-4" />
-                Raise Admin Request
+                Raise a Request
               </Button>
             </>
           }
@@ -90,7 +97,7 @@ function ServiceDeskPage({ user }: { user: PermissionUser }) {
               </button>
             </div>
           ) : (
-            <QueueSection requests={requests} settings={settings} userId={user.id} isLoading={isLoading} />
+            <QueueSection requests={queue} desks={myDesks} settings={settings} userId={user.id} isLoading={isLoading} />
           )
         ) : (
           <MyRequestsSection

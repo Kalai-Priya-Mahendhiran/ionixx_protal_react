@@ -53,14 +53,28 @@ describe('desk permissions', () => {
     expect(canRaiseRequest(desk, 'EMP007')).toBe(true);
   });
 
-  it('keeps queue work, assets and expenses with the Admin team', () => {
-    expect(canManageRequests(desk)).toBe(true);
+  it('keeps office queue work, assets and expenses with the Admin team', () => {
+    expect(canManageRequests(desk, request())).toBe(true);
     expect(canManageAssets(desk)).toBe(true);
-    for (const user of [employee, hr, sysAdmin]) {
+    for (const user of [employee, hr]) {
       expect(canManageRequests(user)).toBe(false);
       expect(canManageAssets(user)).toBe(false);
     }
-    expect(getDeskTeam().map((member) => member.id).sort()).toEqual(['ADM001', 'ADM002', 'ADM003']);
+    expect(canManageRequests(sysAdmin, request())).toBe(false);
+    expect(canManageAssets(sysAdmin)).toBe(false);
+    expect(getDeskTeam('admin').map((member) => member.id).sort()).toEqual(['ADM001', 'ADM002', 'ADM003']);
+  });
+
+  it('sends login, access and software requests to the System Admin team only', () => {
+    const access = request({ key: 'SYS-1', category: 'access' });
+    expect(canManageRequests(sysAdmin, access)).toBe(true);
+    expect(canViewRequest(sysAdmin, access)).toBe(true);
+    // Each team sees only its own queue (plus what they raised themselves)
+    expect(canManageRequests(desk, access)).toBe(false);
+    expect(canViewRequest(desk, access)).toBe(false);
+    expect(canViewRequest(desk, request({ category: 'access', requesterId: 'ADM002' }))).toBe(true);
+    expect(getDeskTeam('system').every((member) => member.role === 'system_admin')).toBe(true);
+    expect(getDeskTeam('system').length).toBeGreaterThan(0);
   });
 
   it('follows the workflow, and lets requesters reopen within 7 days only', () => {

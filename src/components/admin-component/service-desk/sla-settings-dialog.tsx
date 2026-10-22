@@ -5,7 +5,7 @@ import { FormDialog } from '@/components/ui/form-dialog';
 import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { fieldClass } from '@/components/ui/form-fields';
 import { Input } from '@/components/ui/input';
-import { REQUEST_CATEGORIES, REQUEST_CATEGORY_LABELS } from '@/lib/desk-config';
+import { DESKS, REQUEST_CATEGORIES, REQUEST_CATEGORY_LABELS } from '@/lib/desk-config';
 import { SLA_MAX_HOURS, SLA_MIN_HOURS, slaSchema, type SlaFormValues } from '@/lib/form-schemas/desk';
 import { cn } from '@/lib/utils';
 import { useSaveSla } from '@/services/apis/service-desk/use-service-desk';
@@ -85,8 +85,10 @@ export function SlaSettingsDialog({ open, onOpenChange, sla }: { open: boolean; 
           <ColumnHeader>Respond (h)</ColumnHeader>
           <ColumnHeader>Resolve (h)</ColumnHeader>
         </div>
-        <div className="divide-y divide-gray-100">
-          {REQUEST_CATEGORIES.map((category) => {
+        {DESKS.map((desk) => (
+        <div key={desk.id} className="divide-y divide-gray-100">
+          <p className="pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">{desk.team}</p>
+          {desk.categories.map((category) => {
             const Icon = CATEGORY_ICONS[category];
             const label = REQUEST_CATEGORY_LABELS[category];
             return (
@@ -101,6 +103,7 @@ export function SlaSettingsDialog({ open, onOpenChange, sla }: { open: boolean; 
             );
           })}
         </div>
+        ))}
       </div>
     </FormDialog>
   );

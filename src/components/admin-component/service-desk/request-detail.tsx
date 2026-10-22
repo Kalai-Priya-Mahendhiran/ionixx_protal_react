@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import MainLayout from '@/components/layout/main-layout';
 import { useAuth } from '@/context/auth-context';
 import { ROUTES } from '@/lib/constants';
-import { ASSET_TYPE_LABELS, DEFAULT_DESK_SETTINGS, REQUEST_CATEGORIES, REQUEST_CATEGORY_LABELS, WAITING_REASON_LABELS } from '@/lib/desk-config';
+import { ASSET_TYPE_LABELS, DEFAULT_DESK_SETTINGS, DESKS, REQUEST_CATEGORY_LABELS, WAITING_REASON_LABELS, deskOf } from '@/lib/desk-config';
 import { resolveRequestSchema, type ResolveRequestFormValues } from '@/lib/form-schemas/desk';
 import {
   canChangeRequestStatus,
@@ -148,7 +148,7 @@ function Conversation({ request, user }: { request: AdminRequest; user: Permissi
   const addComment = useAddRequestComment();
   const [body, setBody] = useState('');
   const [internal, setInternal] = useState(false);
-  const canInternal = canSeeInternalNotes(user);
+  const canInternal = canSeeInternalNotes(user, request);
   const canComment = canCommentOnRequest(user, request);
 
   const send = () => addComment.mutate({ id: request.id, body, internal: canInternal && internal }, { onSuccess: () => setBody('') });
@@ -209,7 +209,7 @@ function Conversation({ request, user }: { request: AdminRequest; user: Permissi
               value={body}
               onChange={(event) => setBody(event.target.value)}
               rows={3}
-              placeholder={internal ? 'Only the Admin team sees this' : canInternal ? 'The requester is notified' : 'Add details or ask a question'}
+              placeholder={internal ? `Only the ${deskOf(request.category).team} sees this` : canInternal ? 'The requester is notified' : 'Add details or ask a question'}
               aria-label={internal ? 'Internal note' : 'Reply'}
               className={cn(internal && 'border-amber-300 bg-amber-50/50')}
             />
@@ -295,7 +295,7 @@ function RequestDetailContent({ user }: { user: PermissionUser }) {
   const { data: activity = [] } = useRequestActivity(request?.id);
   const assign = useAssignRequest();
   const update = useUpdateRequest();
-  const isDesk = canManageRequests(user);
+  const isDesk = request ? canManageRequests(user, request) : canManageRequests(user);
   const backLabel = isDesk ? 'Back to the queue' : 'Back to My Requests';
 
   if (isLoading) return <div className="h-96 animate-pulse rounded-xl bg-gray-100" aria-busy="true" aria-label="Loading request" />;
@@ -362,10 +362,15 @@ function RequestDetailContent({ user }: { user: PermissionUser }) {
               <Row label="Category">
                 {isDesk && open ? (
                   <select value={request.category} onChange={(event) => update.mutate({ id: request.id, changes: { category: event.target.value as AdminRequest['category'] } })} aria-label="Category" className={selectClass}>
-                    {REQUEST_CATEGORIES.map((value) => (
-                      <option key={value} value={value}>
-                        {REQUEST_CATEGORY_LABELS[value]}
-                      </option>
+                    {/* Picking another team's category passes the request on to that team */}
+                    {DESKS.map((desk) => (
+                      <optgroup key={desk.id} label={desk.team}>
+                        {desk.categories.map((value) => (
+                          <option key={value} value={value}>
+                            {REQUEST_CATEGORY_LABELS[value]}
+                          </option>
+                        ))}
+                      </optgroup>
                     ))}
                   </select>
                 ) : (
@@ -389,7 +394,7 @@ function RequestDetailContent({ user }: { user: PermissionUser }) {
                 {isDesk && request.status !== 'closed' ? (
                   <select value={request.assigneeId ?? ''} onChange={(event) => assign.mutate({ id: request.id, assigneeId: event.target.value || undefined })} aria-label="Assignee" className={selectClass}>
                     <option value="">Unassigned</option>
-                    {getDeskTeam().map((member) => (
+                    {getDeskTeam(deskOf(request.category).id).map((member) => (
                       <option key={member.id} value={member.id}>
                         {member.id === user.id ? `${member.name} (me)` : member.name}
                       </option>

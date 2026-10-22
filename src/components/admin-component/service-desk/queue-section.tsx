@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2, Inbox, Search, UserX } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatCard, StatGrid } from '@/components/ui/stat-card';
-import { REQUEST_CATEGORIES, REQUEST_CATEGORY_LABELS } from '@/lib/desk-config';
+import { REQUEST_CATEGORY_LABELS, type Desk } from '@/lib/desk-config';
 import { getDeskTeam } from '@/lib/permissions/desk-permissions';
 import { getSlaStatus, type SlaStatus } from '@/lib/sla';
 import { getUserById } from '@/lib/user-directory';
@@ -31,15 +31,16 @@ const isDone = (request: AdminRequest) => request.status === 'resolved' || reque
 // The clock that matters now: response until someone responds, then resolution
 const activeClock = (sla: SlaStatus, request: AdminRequest) => (request.firstResponseAt || isDone(request) ? sla.resolution : sla.response);
 
-export function QueueSection({ requests, settings, userId, isLoading }: { requests: AdminRequest[]; settings: DeskSettings; userId: string; isLoading: boolean }) {
+export function QueueSection({ requests, desks, settings, userId, isLoading }: { requests: AdminRequest[]; desks: Desk[]; settings: DeskSettings; userId: string; isLoading: boolean }) {
+  const categories = desks.flatMap((desk) => desk.categories);
   const [params, setParams] = useSearchParams();
   const view = ([...VIEWS.map((option) => option.value), 'at-risk'].includes(params.get('view') ?? '') ? params.get('view') : 'open') as QueueView;
-  const category = (REQUEST_CATEGORIES as string[]).includes(params.get('category') ?? '') ? (params.get('category') as RequestCategory) : '';
+  const category = (categories as string[]).includes(params.get('category') ?? '') ? (params.get('category') as RequestCategory) : '';
   const priority = (PRIORITIES as string[]).includes(params.get('priority') ?? '') ? (params.get('priority') as TaskPriority) : '';
   const assignee = params.get('assignee') ?? '';
   const search = params.get('q') ?? '';
   const assign = useAssignRequest();
-  const team = getDeskTeam();
+  const team = desks.flatMap((desk) => getDeskTeam(desk.id));
 
   const setParam = (key: string, value: string) =>
     setParams(
@@ -140,7 +141,7 @@ export function QueueSection({ requests, settings, userId, isLoading }: { reques
             </div>
             <select value={category} onChange={(event) => setParam('category', event.target.value)} aria-label="Category" className="h-10 rounded-md border border-gray-300 bg-white px-3 text-sm">
               <option value="">All categories</option>
-              {REQUEST_CATEGORIES.map((value) => (
+              {categories.map((value) => (
                 <option key={value} value={value}>
                   {REQUEST_CATEGORY_LABELS[value]}
                 </option>

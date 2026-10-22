@@ -564,12 +564,12 @@ export const projectSchema = z.object({
 export type ProjectFormValues = z.infer<typeof projectSchema>;
 
 // Admin service desk
-export const REQUEST_CATEGORY_VALUES = ["asset", "facility", "supplies", "transport", "travel", "visitor", "other"] as const;
+export const REQUEST_CATEGORY_VALUES = ["asset", "facility", "supplies", "transport", "travel", "visitor", "other", "account", "access", "software", "system-other"] as const;
 
 export const adminRequestSchema = z.object({
   category: z.enum(REQUEST_CATEGORY_VALUES, { required_error: "Choose a category", invalid_type_error: "Choose a category" }),
   title: z.string().trim().min(1, "Add a short summary").max(120, "Keep it under 120 characters"),
-  description: z.string().trim().min(10, "Add a few details so the Admin team can act on it").max(2000, "Keep it under 2000 characters"),
+  description: z.string().trim().min(10, "Add a few details so the team can act on it").max(2000, "Keep it under 2000 characters"),
   priority: z.enum(TASK_PRIORITIES),
   // Empty = for yourself
   onBehalfOfId: z.string(),

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/auth-context';
+import { deskOf } from '@/lib/desk-config';
 import { canManageAssets, canManageExpenses } from '@/lib/permissions/desk-permissions';
 import type { PermissionUser } from '@/lib/permissions/task-permissions';
 import type { AssetStatus, ExpenseBudgets, SlaTargets } from '@/types';
@@ -59,7 +60,7 @@ export function useRequestActivity(requestId: string | undefined) {
 }
 
 export const useRaiseRequest = () =>
-  useDeskMutation((actor, input: RequestInput) => requestService.create(actor, input), [REQUESTS_KEY], (request) => `${request.key} raised. The Admin team has been notified.`);
+  useDeskMutation((actor, input: RequestInput) => requestService.create(actor, input), [REQUESTS_KEY], (request) => `${request.key} raised. The ${deskOf(request.category).team} has been notified.`);
 
 export const useUpdateRequest = () =>
   useDeskMutation(
