@@ -6,8 +6,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PermissionsSettingsSection } from "@/components/employee-component/tasks/settings/permissions-settings";
 import { ROLE_LABELS, type UserRole } from "@/lib/mock-users";
 import { CORE_MODULES, MODULE_CATALOG, RESTRICTED_MODULES, roleHasModule } from "@/lib/modules";
-import { cn } from "@/lib/utils";
 import { useTaskSettings } from "@/services/apis/settings/use-task-settings";
+import { PageTabs } from "@/components/ui/page-tabs";
 
 const ROLES = Object.keys(ROLE_LABELS) as UserRole[];
 type Tab = "permissions" | "pages";
@@ -88,25 +88,15 @@ export default function RolesPermissions() {
           description="What each of the six roles can do, and which pages they see"
         />
 
-        <div role="tablist" aria-label="Roles and permissions" className="flex gap-1 border-b border-gray-200">
-          {(
-            [
-              ["permissions", "Permission matrix"],
-              ["pages", "Default pages"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={tab === value}
-              onClick={() => setTab(value)}
-              className={cn("-mb-px border-b-2 px-4 py-2 text-sm font-medium", tab === value ? "border-[#464EB8] text-[#464EB8]" : "border-transparent text-gray-600 hover:text-gray-900")}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <PageTabs
+          label="Roles and permissions"
+          tabs={[
+            { id: "permissions", label: "Permission matrix" },
+            { id: "pages", label: "Default pages" },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
 
         {tab === "permissions" ? <PermissionsSettingsSection /> : <DefaultPagesTable />}
       </div>

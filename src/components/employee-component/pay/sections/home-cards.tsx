@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BookOpen, ChevronLeft, ChevronRight, FileCheck2, Lightbulb, Receipt } from 'lucide-react';
+import { Accordion } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { primaryButtonClass } from '@/components/ui/form-dialog';
 import { cn } from '@/lib/utils';
@@ -152,21 +153,20 @@ export function GuidesCard() {
   return (
     <PayCard title="How-to guides" icon={BookOpen} tone="sky">
       <p className="text-sm text-gray-600">Short step-by-step guides for common payroll tasks.</p>
-      <div className="space-y-2">
-        {HELP_TOPICS.map((topic) => (
-          <details key={topic.title} className="group rounded-md">
-            <summary className="flex cursor-pointer list-none items-center gap-1.5 text-sm font-medium text-[#464EB8] hover:underline [&::-webkit-details-marker]:hidden">
-              <ChevronRight className="h-3.5 w-3.5 transition-transform group-open:rotate-90" aria-hidden="true" />
-              {topic.title}
-            </summary>
-            <ol className="ml-6 mt-2 list-decimal space-y-1 text-sm text-gray-600">
+      {/* One guide open at a time; the first starts open */}
+      <Accordion
+        items={HELP_TOPICS.map((topic) => ({
+          id: topic.title,
+          title: topic.title,
+          content: (
+            <ol className="ml-5 list-decimal space-y-1 text-sm text-gray-600">
               {topic.steps.map((step) => (
                 <li key={step}>{step}</li>
               ))}
             </ol>
-          </details>
-        ))}
-      </div>
+          ),
+        }))}
+      />
     </PayCard>
   );
 }

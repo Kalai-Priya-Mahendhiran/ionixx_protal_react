@@ -1,9 +1,7 @@
 ﻿import { Control, UseFormWatch } from "react-hook-form";
 import type { ProfileFormData } from "@/lib/schemas";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { 
   DisplayField, 
@@ -13,12 +11,9 @@ import {
 } from "../profile-display";
 import { 
   User, 
-  Camera, 
   Mail, 
   Phone, 
   MapPin, 
-  Heart, 
-  Shield, 
   Globe,
   Linkedin,
   Github,
@@ -29,11 +24,9 @@ interface PersonalSectionProps {
   isEditing: boolean;
   control: Control<ProfileFormData>;
   watch: UseFormWatch<ProfileFormData>;
-  user: any;
-  onPhotoUpload: (file: File) => void;
 }
 
-export function PersonalSection({ isEditing, control, watch, user, onPhotoUpload }: PersonalSectionProps) {
+export function PersonalSection({ isEditing, control, watch }: PersonalSectionProps) {
   const formData = watch();
 
   if (!isEditing) {
@@ -47,43 +40,6 @@ export function PersonalSection({ isEditing, control, watch, user, onPhotoUpload
             subtitle="Basic details and contact information"
           />
           
-          {/* Profile Header */}
-          <div className="flex items-start gap-8 mb-8 pb-8 border-b border-slate-100">
-            <Avatar className="w-28 h-28 ring-4 ring-indigo-100 shadow-lg">
-              <AvatarImage src={formData.profilePhoto || user?.avatar} alt={user?.name} />
-              <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
-                {user?.name?.charAt(0) || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h2 className="text-2xl font-bold text-slate-900">
-                  {formData.firstName} {formData.middleName} {formData.lastName}
-                </h2>
-                {formData.preferredName && (
-                  <span className="text-slate-500 text-lg">({formData.preferredName})</span>
-                )}
-              </div>
-              <p className="text-slate-600 font-medium">{user?.designation}</p>
-              <p className="text-slate-500">{user?.department}</p>
-              <div className="flex items-center gap-4 mt-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                  {formData.employeeId}
-                </span>
-                {formData.bloodGroup && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
-                    <Heart className="w-3 h-3" /> {formData.bloodGroup}
-                  </span>
-                )}
-                {formData.workAuthorization && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
-                    <Shield className="w-3 h-3" /> {formData.workAuthorization}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* Basic Information */}
           <SubSection title="Basic Information">
             <DisplayGrid columns={4}>
@@ -199,41 +155,6 @@ export function PersonalSection({ isEditing, control, watch, user, onPhotoUpload
           subtitle="Edit your basic details and contact information"
         />
         
-        {/* Profile Photo Upload */}
-        <div className="flex items-center gap-6 mb-8 pb-8 border-b border-slate-100">
-          <div className="relative group">
-            <Avatar className="w-28 h-28 ring-4 ring-indigo-100 shadow-lg transition-all group-hover:ring-indigo-300">
-              <AvatarImage src={watch('profilePhoto') || user?.avatar} alt={user?.name} />
-              <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
-                {user?.name?.charAt(0) || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <Button
-              type="button"
-              size="sm"
-              className="absolute -bottom-2 -right-2 rounded-full w-10 h-10 p-0 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg"
-              onClick={() => document.getElementById('profile-photo-upload')?.click()}
-            >
-              <Camera className="w-4 h-4" />
-            </Button>
-            <input
-              id="profile-photo-upload"
-              type="file"
-              accept="image/jpeg,image/png"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) onPhotoUpload(file);
-              }}
-            />
-          </div>
-          <div className="text-sm text-slate-500">
-            <p className="font-medium text-slate-700">Profile Photo</p>
-            <p>Click the camera icon to upload a new photo</p>
-            <p className="text-xs mt-1">Accepted: JPEG, PNG (max 5MB)</p>
-          </div>
-        </div>
-
         {/* Basic Information - Edit */}
         <SubSection title="Basic Information">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

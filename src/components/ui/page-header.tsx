@@ -11,6 +11,11 @@ import { cn } from '@/lib/utils';
  * a small status pill (e.g. "Read only") goes in `badge`.
  */
 
+// The gradient surface itself, for headers with their own layout (e.g. the Profile card); add an inner `relative` wrapper
+export const pageHeaderSurfaceClass = 'relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white';
+const PageHeaderShade = () => <div className="absolute inset-0 bg-black/10" />;
+export { PageHeaderShade };
+
 // Main action on the gradient (white button)
 export const headerPrimaryButtonClass = 'bg-white text-[#464EB8] hover:bg-white/90 shadow-sm';
 // Secondary action on the gradient (glass button)
@@ -29,8 +34,8 @@ interface PageHeaderProps {
 
 export function PageHeader({ icon: Icon, title, description, actions, badge, className }: PageHeaderProps) {
   return (
-    <div className={cn('relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-4 text-white', className)}>
-      <div className="absolute inset-0 bg-black/10" />
+    <div className={cn(pageHeaderSurfaceClass, 'px-6 py-4', className)}>
+      <PageHeaderShade />
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-4">
           <div className="shrink-0 rounded-xl bg-white/20 p-2.5 backdrop-blur-sm">

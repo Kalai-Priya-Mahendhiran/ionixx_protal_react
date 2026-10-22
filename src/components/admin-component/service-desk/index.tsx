@@ -15,6 +15,7 @@ import { MyRequestsSection } from './my-requests-section';
 import { QueueSection } from './queue-section';
 import { RaiseRequestDialog } from './raise-request-dialog';
 import { SlaSettingsDialog } from './sla-settings-dialog';
+import { PageTabs } from '@/components/ui/page-tabs';
 
 /*
  * Admin service desk. Everyone raises requests and follows them in My Requests;
@@ -69,25 +70,15 @@ function ServiceDeskPage({ user }: { user: PermissionUser }) {
         />
 
         {isDesk && (
-          <div role="tablist" aria-label="Service desk" className="flex gap-1 border-b border-gray-200">
-            {(
-              [
-                ['queue', 'Request queue'],
-                ['mine', 'My requests'],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                role="tab"
-                aria-selected={tab === value}
-                onClick={() => setParams(value === 'mine' ? { tab: 'mine' } : {})}
-                className={cn('-mb-px border-b-2 px-4 py-2 text-sm font-medium', tab === value ? 'border-[#464EB8] text-[#464EB8]' : 'border-transparent text-gray-600 hover:text-gray-900')}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <PageTabs
+            label="Service desk"
+            tabs={[
+              { id: 'queue', label: 'Request queue' },
+              { id: 'mine', label: 'My requests' },
+            ]}
+            value={tab}
+            onChange={(value) => setParams(value === 'mine' ? { tab: 'mine' } : {})}
+          />
         )}
 
         {tab === 'queue' ? (

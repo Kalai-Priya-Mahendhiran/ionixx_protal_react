@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { chainTo, directReports, getDepartments, type OrgPerson } from '@/lib/org-chart';
 import { useOrgPeople } from '@/services/apis/users/use-org-chart';
 import { DepartmentsTab, DirectoryTab, OrgChartTab, PersonSheet } from './sections';
+import { PageTabs } from '@/components/ui/page-tabs';
 
 type OrgTab = 'chart' | 'departments' | 'directory';
 
@@ -63,24 +64,7 @@ export default function Organization() {
           <StatCard icon={UserPlus} label={`Joined in ${thisYear}`} value={newJoiners} tone="teal" />
         </StatGrid>
 
-        <div role="tablist" aria-label="Organization" className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-gray-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              onClick={() => openTab(id)}
-              className={cn(
-                '-mb-px flex shrink-0 items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
-                tab === id ? 'border-[#464EB8] text-[#464EB8]' : 'border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900',
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </button>
-          ))}
-        </div>
+        <PageTabs label="Organization" tabs={TABS} value={tab} onChange={openTab} />
 
         {tab === 'chart' && <OrgChartTab people={people} viewerId={viewerId} path={path} onPathChange={setPath} onOpenPerson={setProfile} />}
         {tab === 'departments' && <DepartmentsTab departments={departments} people={people} viewerId={viewerId} selected={department} onSelect={setDepartment} onOpenPerson={setProfile} />}

@@ -12,6 +12,7 @@ import type { AdminRequest, DeskSettings } from '@/types';
 import { RequestStatusBadge, SlaChip } from './desk-badges';
 import { CATEGORY_ICONS } from './desk-icons';
 import { requestPath } from './desk-links';
+import { PageTabs } from '@/components/ui/page-tabs';
 
 const isDone = (request: AdminRequest) => request.status === 'resolved' || request.status === 'closed';
 
@@ -72,25 +73,15 @@ export function MyRequestsSection({
   return (
     <div className={cn('grid gap-6', showAssets && 'lg:grid-cols-[minmax(0,1fr)_320px]')}>
       <div className="min-w-0 space-y-4">
-        <div role="tablist" aria-label="My requests" className="flex gap-1 border-b border-gray-200">
-          {(
-            [
-              ['open', 'Open', open.length],
-              ['done', 'Resolved & closed', done.length],
-            ] as const
-          ).map(([value, label, count]) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={tab === value}
-              onClick={() => setTab(value)}
-              className={cn('-mb-px border-b-2 px-3 py-2 text-sm font-medium', tab === value ? 'border-[#464EB8] text-[#464EB8]' : 'border-transparent text-gray-600 hover:text-gray-900')}
-            >
-              {label} <span className="ml-1 rounded-full bg-gray-100 px-1.5 text-xs text-gray-600">{count}</span>
-            </button>
-          ))}
-        </div>
+        <PageTabs
+          label="My requests"
+          tabs={[
+            { id: 'open', label: 'Open', count: open.length },
+            { id: 'done', label: 'Resolved & closed', count: done.length },
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
 
         {isLoading ? (
           <div className="space-y-3" aria-busy="true" aria-label="Loading requests">

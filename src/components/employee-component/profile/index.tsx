@@ -5,8 +5,13 @@ import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Form } from '@/components/ui/form';
+import { PageTabs } from '@/components/ui/page-tabs';
+import { PageHeaderShade, headerPrimaryButtonClass, headerSecondaryButtonClass, pageHeaderSurfaceClass } from '@/components/ui/page-header';
 import { 
   Edit,
+  Camera,
+  Heart,
+  Shield,
   Save,
   X,
   Loader2,
@@ -29,8 +34,13 @@ import {
   ConsentSection
 } from './sections';
 
+type SectionId = 'personal' | 'education' | 'employment' | 'bank' | 'consent';
+
+// Height of the app bar plus the sticky tabs, so a section scrolled to isn't hidden under them
+const STICKY_OFFSET = 140;
+
 // Navigation items for quick scroll
-const navigationItems = [
+const navigationItems: { id: SectionId; label: string; icon: typeof User }[] = [
   { id: 'personal', label: 'Personal', icon: User },
   { id: 'education', label: 'Education', icon: GraduationCap },
   { id: 'employment', label: 'Employment', icon: Briefcase },
@@ -47,7 +57,17 @@ export default function Profile() {
   const isSubmitting = saveProfile.isPending;
   const [pendingCertificateUploads, setPendingCertificateUploads] = useState(0);
   const [submitError, setSubmitError] = useState('');
-  const [activeSection, setActiveSection] = useState('personal');
+  const [activeSection, setActiveSection] = useState<SectionId>('personal');
+
+  // Highlight the tab of the section being read while scrolling
+  useEffect(() => {
+    const onScroll = () => {
+      const current = [...navigationItems].reverse().find((item) => (document.getElementById(item.id)?.getBoundingClientRect().top ?? Infinity) <= STICKY_OFFSET + 1);
+      setActiveSection(current?.id ?? 'personal');
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -120,45 +140,83 @@ export default function Profile() {
     }
   };
 
-  const scrollToSection = (sectionId: string) => {
+  const scrollToSection = (sectionId: SectionId) => {
     setActiveSection(sectionId);
     const element = document.getElementById(sectionId);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.scrollTo({ top: element.getBoundingClientRect().top + window.scrollY - STICKY_OFFSET, behavior: 'smooth' });
     }
   };
+
+  const preferredName = form.watch('preferredName');
+  const bloodGroup = form.watch('bloodGroup');
+  const workAuthorization = form.watch('workAuthorization');
 
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto">
-        {/* Sticky Header */}
-        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 mb-8">
-          <div className="py-6">
+        {/* Profile header: the only place the photo, name, role and ID are shown (same gradient as every page header) */}
+        <div className={`${pageHeaderSurfaceClass} px-6 py-4`}>
+          <PageHeaderShade />
+          <div className="relative z-10">
             {/* Profile Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-              <div className="flex items-center gap-5">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div className="flex items-center gap-4">
                 <div className="relative">
-                  <Avatar className="w-20 h-20 ring-4 ring-indigo-100 shadow-xl">
+                  <Avatar className="w-14 h-14 ring-2 ring-white/30 shadow-lg">
                     <AvatarImage src={form.watch('profilePhoto') || user?.avatar} alt={user?.name} />
-                    <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
+                    <AvatarFallback className="text-xl font-bold bg-white text-[#464EB8]">
                       {user?.name?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   {isEditing && (
-                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center">
-                      <Edit className="w-3 h-3 text-white" />
-                    </div>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('profile-photo-upload')?.click()}
+                        className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[#464EB8] shadow-lg hover:bg-white/90"
+                        aria-label="Change profile photo (JPEG or PNG, up to 5 MB)"
+                        title="Change photo (JPEG or PNG, up to 5 MB)"
+                      >
+                        <Camera className="h-3 w-3" />
+                      </button>
+                      <input
+                        id="profile-photo-upload"
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        className="hidden"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) handleFileUpload(file);
+                        }}
+                      />
+                    </>
                   )}
                 </div>
                 <div>
-                  <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">
-                    {form.watch('firstName')} {form.watch('lastName')}
+                  <h1 className="text-2xl font-bold leading-tight text-white">
+                    {form.watch('firstName')} {form.watch('middleName')} {form.watch('lastName')}
+                    {preferredName && <span className="ml-2 text-lg font-normal text-white/80">({preferredName})</span>}
                   </h1>
-                  <p className="text-slate-600 font-medium">{user?.designation}</p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-sm text-slate-500">{user?.department}</span>
-                    <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                    <span className="text-sm font-medium text-indigo-600">{form.watch('employeeId')}</span>
+                  <p className="text-sm text-white/90">
+                    <span className="font-medium">{user?.designation}</span>
+                    {user?.department && <span className="text-white/80"> · {user.department}</span>}
+                  </p>
+                  {/* ID, blood group and work authorization keep their own colours (indigo, red, green) */}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-800">
+                      {form.watch('employeeId')}
+                    </span>
+                    {bloodGroup && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700">
+                        <Heart className="h-3 w-3" /> {bloodGroup}
+                      </span>
+                    )}
+                    {workAuthorization && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                        <Shield className="h-3 w-3" /> {workAuthorization}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -168,7 +226,7 @@ export default function Profile() {
                 {!isEditing ? (
                   <Button 
                     onClick={() => setIsEditing(true)} 
-                    className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-lg shadow-indigo-500/25 px-6"
+                    className={`${headerPrimaryButtonClass} px-6`}
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Profile
@@ -178,7 +236,7 @@ export default function Profile() {
                     <Button
                       variant="outline"
                       onClick={handleCancel}
-                      className="border-slate-300 text-slate-700 hover:bg-slate-100"
+                      className={headerSecondaryButtonClass}
                     >
                       <X className="h-4 w-4 mr-2" />
                       Cancel
@@ -186,7 +244,7 @@ export default function Profile() {
                     <Button
                       onClick={form.handleSubmit(onSubmit, onInvalidSubmit)}
                       disabled={isSubmitting || pendingCertificateUploads > 0}
-                      className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-lg shadow-indigo-500/25 px-6"
+                      className={`${headerPrimaryButtonClass} px-6`}
                     >
                       {isSubmitting ? (
                         <>
@@ -205,28 +263,12 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Section Navigation */}
-            <div className="mt-6 flex items-center gap-1 overflow-x-auto pb-2 -mb-2 scrollbar-hide">
-              {navigationItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeSection === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => scrollToSection(item.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                      isActive 
-                        ? 'bg-indigo-100 text-indigo-700' 
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
           </div>
+        </div>
+
+        {/* Section tabs stay just under the app bar while scrolling */}
+        <div className="sticky top-16 z-20 -mx-4 mb-6 bg-gray-50 px-4 pt-4 lg:-mx-6 lg:px-6">
+          <PageTabs label="Profile sections" tabs={navigationItems} value={activeSection} onChange={scrollToSection} />
         </div>
 
         {/* Form Content */}
@@ -243,8 +285,6 @@ export default function Profile() {
                 isEditing={isEditing}
                 control={form.control}
                 watch={form.watch}
-                user={user}
-                onPhotoUpload={handleFileUpload}
               />
             </section>
 

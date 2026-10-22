@@ -34,6 +34,7 @@ import {
   usePayTheme,
   type PayslipView,
 } from './sections';
+import { PageTabs } from '@/components/ui/page-tabs';
 
 type PayTab = 'home' | 'reports' | 'tax-submission' | 'tax-simulator' | 'claims';
 
@@ -103,24 +104,7 @@ export default function Pay() {
           description="Your salary, income tax, tax-saving declarations and reimbursements"
         />
 
-        <div role="tablist" aria-label="Pay and tax" className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-gray-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {TABS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              onClick={() => openTab(id)}
-              className={cn(
-                '-mb-px flex shrink-0 items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
-                tab === id ? 'border-[#464EB8] text-[#464EB8]' : 'border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900',
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </button>
-          ))}
-        </div>
+        <PageTabs label="Pay and tax" tabs={TABS} value={tab} onChange={openTab} />
 
         {tab === 'home' && (
           <div className="space-y-6">

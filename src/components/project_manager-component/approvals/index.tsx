@@ -12,6 +12,7 @@ import { initials } from "@/lib/org-chart";
 import { formatINR } from "@/lib/payroll";
 import type { ApprovalItem, ApprovalStatus } from "@/services/apis/approvals/approval-queue";
 import { useApprovalQueue, useDecideApproval } from "@/services/apis/approvals/use-approvals";
+import { PageTabs } from "@/components/ui/page-tabs";
 
 /*
  * Requests waiting on the signed-in person: leave, work from home, time off, claims, tax proofs… from every registered source.
@@ -63,24 +64,7 @@ export default function Approvals() {
             <CardDescription>Requests waiting on you: your team's leave and work requests, and claims or proofs if you review payroll. Your decision is sent to them straight away.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div role="tablist" aria-label="Request status" className="mb-4 flex border-b border-gray-200">
-              {STATUSES.map((status) => {
-                const active = status.id === activeTab;
-                return (
-                  <button
-                    key={status.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => setActiveTab(status.id)}
-                    className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors ${active ? "border-[#464EB8] text-[#464EB8]" : "border-transparent text-gray-500 hover:text-gray-700"}`}
-                  >
-                    <span>{status.label}</span>
-                    <span className={`rounded-full px-1.5 py-0.5 text-xs ${active ? "bg-[#464EB8] text-white" : "bg-gray-100 text-gray-600"}`}>{counts[status.id]}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <PageTabs className="mb-4" label="Request status" tabs={STATUSES.map((status) => ({ ...status, count: counts[status.id] }))} value={activeTab} onChange={setActiveTab} />
 
             <div className="space-y-3">
               {list.map((item) => (
