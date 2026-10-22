@@ -20,7 +20,6 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^diff$': '<rootDir>/node_modules/diff/dist/diff.js',
   },
   testMatch: ['<rootDir>/src/**/*.test.(ts|tsx)'],
 };

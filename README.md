@@ -1,137 +1,115 @@
-# IONIXX Diff & Validate
+# EPM – Employee Portal Management
 
-A powerful, privacy-focused tool for comparing and validating JSON, XML, and text content. All processing happens locally in your browser, ensuring your data never leaves your device.
+EPM is Ionixx's internal employee portal. Employees use it for day-to-day self-service (attendance, time tracking, leave, pay, tasks and documents). Managers, HR, executives, office admins and system admins each get extra screens for their role.
+
+The app is a React single-page application built with Vite. Most screens run on sample data stored in the browser (`localStorage`), so you can try every role without a backend.
 
 ## Features
 
-- **JSON Validation & Comparison**: Validate JSON syntax and compare JSON structures
-- **XML Validation & Comparison**: Validate XML syntax and compare XML documents
-- **Text Comparison**: Compare text files with diff highlighting
-- **Configurable Options**: Ignore whitespace, case sensitivity, and key order
-- **File Upload Support**: Upload files up to 2MB each
-- **Copy & Download**: Copy content to clipboard or download as files
-- **Persistent Storage**: Your work is automatically saved locally
-- **Privacy First**: All processing happens in your browser
+| Area | What it covers |
+| --- | --- |
+| **Dashboard** | Quick stats, quick actions, notifications, recent activity, upcoming events and celebrations |
+| **Profile** | Personal, job and contact details, plus profile photo upload |
+| **Attendance** | Check-in/check-out, attendance calendar and recent attendance |
+| **Time Tracker** | Timer, time entries, today's tasks and a weekly time-per-project chart |
+| **Leave Tracker** | Leave balances, apply leave, leave calendar and history, restricted holidays; leave types include Compensatory Off, Bereavement and Sabbatical leave |
+| **Pay & Tax** | Payslips, tax summary, declarations, tax planner and reimbursements |
+| **Tasks** | Projects, sprints, board/list views, templates, automation rules, bulk actions, reports and Excel export |
+| **Files** | Personal, department and company documents: upload, view, download and delete |
+| **Organization** | Org chart, departments and employee directory |
+| **Service Desk** | Raise and track requests; admins work the queue, asset log, expenses and desk reports |
+| **Manager (MSS)** | Team overview, approvals, attendance monitoring and performance reviews |
+| **HR** | Employee management, recruitment, training and compliance |
+| **Executive** | Analytics and KPI monitoring |
+| **System Admin** | User management, roles and permissions, system configuration, integrations and logs |
 
-## Getting Started
+## Roles and demo logins
+
+The login screen checks credentials against the mock users in [`src/lib/mock-users.ts`](src/lib/mock-users.ts). Each role sees its own sidebar menu and can open only the routes allowed for it there (`ROLE_SIDEBAR_ITEMS` and `ROLE_ROUTE_ACCESS`).
+
+| Role | Login ID | Password |
+| --- | --- | --- |
+| Employee | `employee` | `employee123` |
+| Project Manager | `pm` | `pm123` |
+| HR | `hr` | `hr123` |
+| Admin (office operations) | `admin` | `admin123` |
+| System Admin | `sysadmin` | `sysadmin123` |
+| Executive | `executive` | `executive123` |
+
+You can also log in with the user's email address (for example `employee@ionixx.com`). These accounts are for development only.
+
+## Getting started
 
 ### Prerequisites
 
-- Node.js 18+ 
-- pnpm 12+ (`npm install -g pnpm` or `corepack enable`)
+- Node.js 20+
+- pnpm 12 (`corepack enable` picks up the version pinned in `package.json`)
 
-### Installation
+### Install and run
 
-1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd ionixx-diff-validate
-```
-
-2. Install dependencies:
-```bash
+cd ionixx_protal_react
 pnpm install
-```
-
-3. Run the development server:
-```bash
 pnpm dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+The dev server opens at [http://localhost:3000](http://localhost:3000).
 
-## Usage
+## Scripts
 
-### JSON Validation
-1. Select "JSON Validate" mode
-2. Paste or upload your JSON content in the left pane
-3. Click "Validate" to check for syntax errors
-4. View detailed error messages with line and column numbers
+| Command | Description |
+| --- | --- |
+| `pnpm dev` | Start the Vite dev server on port 3000 |
+| `pnpm build` | Build for production into `dist/` |
+| `pnpm preview` | Serve the production build locally |
+| `pnpm typecheck` | Run the TypeScript compiler (`tsc -b`) |
+| `pnpm lint` | Run ESLint |
+| `pnpm test` | Run the Jest test suite |
+| `pnpm test:watch` | Run Jest in watch mode |
 
-### JSON Comparison
-1. Select "JSON Compare" mode
-2. Paste or upload JSON content in both left and right panes
-3. Configure comparison options (ignore key order, case sensitivity, etc.)
-4. Click "Compare" to see structural differences
-5. View side-by-side diff with color-coded changes
+## Tech stack
 
-### XML Validation
-1. Select "XML Validate" mode
-2. Paste or upload your XML content in the left pane
-3. Click "Validate" to check for syntax and structural errors
-4. View detailed error messages for mismatched or unclosed tags
+- **Framework:** React 19, TypeScript, Vite 6
+- **Routing:** React Router 7
+- **Styling:** Tailwind CSS 3, Radix UI primitives (shadcn/ui style components in `src/components/ui`), lucide-react icons
+- **Forms and validation:** React Hook Form + Zod
+- **Data:** TanStack Query, Axios
+- **Other:** dnd-kit (drag and drop), sonner (toasts), write-excel-file (Excel export)
+- **Testing:** Jest, ts-jest, React Testing Library
 
-### XML Comparison
-1. Select "XML Compare" mode
-2. Paste or upload XML content in both left and right panes
-3. Configure comparison options
-4. Click "Compare" to see structural differences
+## Project structure
 
-### Text Comparison
-1. Select "Text Compare" mode
-2. Paste or upload text content in both left and right panes
-3. Configure comparison options (ignore whitespace, case sensitivity)
-4. Click "Compare" to see line-by-line differences
-
-## Configuration Options
-
-- **Ignore Whitespace**: Remove extra whitespace before comparison
-- **Case Sensitive**: Toggle case sensitivity for text comparison
-- **Ignore Key Order**: Ignore the order of object keys in JSON comparison
-
-## File Support
-
-- **JSON**: `.json` files
-- **XML**: `.xml` files  
-- **Text**: `.txt`, `.md`, and other text files
-- **Size Limit**: 2MB per file
-
-## Privacy
-
-This tool processes all content locally in your browser. No data is transmitted to external servers or stored in the cloud. Your work is automatically saved locally using browser storage for convenience.
-
-## Technology Stack
-
-- **Framework**: Next.js 16+
-- **Language**: TypeScript
-- **Styling**: TailwindCSS
-- **Diff Library**: react-diff-viewer-continued
-- **Testing**: Jest + React Testing Library
-
-## Development
-
-### Running Tests
-
-```bash
-pnpm test
+```
+src/
+├── App.tsx                 # Route table; every page is wrapped in ProtectedRoute
+├── main.tsx                # App entry point and providers
+├── components/
+│   ├── auth/               # ProtectedRoute / PublicRoute guards
+│   ├── auth-component/     # Login and forgot-password screens
+│   ├── common-component/   # Dashboard and reports (shared by roles)
+│   ├── employee-component/ # Self-service modules (attendance, leave, pay, tasks, files…)
+│   ├── project_manager-component/
+│   ├── hr-component/
+│   ├── executive-component/
+│   ├── admin-component/    # Service desk
+│   ├── system_admin-component/
+│   ├── layout/             # Header, sidebar and page layout
+│   └── ui/                 # Reusable UI components
+├── context/                # Auth, attendance and global React contexts
+├── hooks/                  # Shared hooks
+├── lib/                    # Business logic, routes, mock users, permissions, sample data
+├── services/
+│   ├── apis/               # Per-module services and React Query hooks
+│   ├── axios/              # Axios instance (backend base URL and auth token)
+│   └── storage/            # localStorage wrapper
+└── types/                  # Shared TypeScript types
 ```
 
-### Building for Production
+## Backend and environments
 
-```bash
-pnpm build
-```
+The Axios client in [`src/services/axios/axios.ts`](src/services/axios/axios.ts) holds the backend base URL. Dev is active by default, and the QA and UAT URLs are commented out below it. To point the app at another environment, change `baseURL` there.
 
-### Linting
+## Deployment
 
-```bash
-pnpm lint
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License.
-
-## Support
-
-For questions, feedback, or support:
-- Email: support@ionixx.com
-- GitHub: github.com/ionixx
+`pnpm build` writes a static site to `dist/`. [`public/_redirects`](public/_redirects) sends every path to `index.html` so client-side routes work on Netlify-style hosts.
