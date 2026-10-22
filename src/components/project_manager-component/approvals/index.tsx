@@ -1,87 +1,57 @@
-﻿import { useMemo, useState } from "react";
-import {
-  CheckCheck,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Calendar,
-  Home,
-  Receipt,
-  Send,
-  AlertCircle,
-} from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { AlertCircle, Calendar, CheckCheck, CheckCircle2, Clock, FileCheck2, Home, Inbox, Receipt, XCircle } from "lucide-react";
 import MainLayout from "@/components/layout/main-layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatCard, StatGrid } from "@/components/ui/stat-card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { approvalRequests as seedRequests, type ApprovalRequest } from "@/lib/team-data";
-import { APPROVAL_TYPE_LABELS, APPROVAL_TYPE_COLORS } from "@/lib/constants";
+import { StatCard, StatGrid } from "@/components/ui/stat-card";
+import { APPROVAL_TYPE_COLORS } from "@/lib/constants";
+import { initials } from "@/lib/org-chart";
+import { formatINR } from "@/lib/payroll";
+import type { ApprovalItem, ApprovalStatus } from "@/services/apis/approvals/approval-queue";
+import { useApprovalQueue, useDecideApproval } from "@/services/apis/approvals/use-approvals";
 
-type Tab = "pending" | "approved" | "rejected";
+/*
+ * Requests waiting on the signed-in person: leave, work from home, time off, claims, tax proofs… from every registered source.
+ * The queue is live, so a request an employee submits shows up here, and a decision reaches their Leave Tracker.
+ */
 
-const typeIcon: Record<ApprovalRequest["type"], React.ReactNode> = {
+const STATUSES: { id: ApprovalStatus; label: string }[] = [
+  { id: "pending", label: "Pending" },
+  { id: "approved", label: "Approved" },
+  { id: "rejected", label: "Rejected" },
+];
+
+const KIND_ICON: Record<string, ReactNode> = {
   leave: <Calendar className="h-4 w-4" />,
   "time-off": <Clock className="h-4 w-4" />,
   wfh: <Home className="h-4 w-4" />,
-  expense: <Receipt className="h-4 w-4" />,
+  declaration: <FileCheck2 className="h-4 w-4" />,
 };
 
+const kindColor = (kind: string) => APPROVAL_TYPE_COLORS[kind as keyof typeof APPROVAL_TYPE_COLORS] ?? "bg-gray-100 text-gray-800";
+
 export default function Approvals() {
-  const [requests, setRequests] = useState<ApprovalRequest[]>(seedRequests);
-  const [activeTab, setActiveTab] = useState<Tab>("pending");
-  const [toast, setToast] = useState<string | null>(null);
+  const { data: items = [], isLoading } = useApprovalQueue();
+  const decide = useDecideApproval();
+  const [activeTab, setActiveTab] = useState<ApprovalStatus>("pending");
 
-  const grouped = useMemo(() => {
-    return {
-      pending: requests.filter((r) => r.status === "pending"),
-      approved: requests.filter((r) => r.status === "approved"),
-      rejected: requests.filter((r) => r.status === "rejected"),
-    };
-  }, [requests]);
-
-  const decide = (id: string, decision: "approved" | "rejected") => {
-    const target = requests.find((r) => r.id === id);
-    setRequests((prev) =>
-      prev.map((r) =>
-        r.id === id
-          ? {
-              ...r,
-              status: decision,
-              decidedDate: new Date().toISOString().slice(0, 10),
-              decidedBy: "Priya Kumar",
-            }
-          : r
-      )
-    );
-    if (target) {
-      setToast(
-        decision === "approved"
-          ? `Approved ${target.employeeName}'s request — notification sent.`
-          : `Rejected ${target.employeeName}'s request — notification sent.`
-      );
-      window.setTimeout(() => setToast(null), 3500);
-    }
-  };
-
-  const list = grouped[activeTab];
+  const byStatus = (status: ApprovalStatus) => items.filter((item) => item.status === status);
+  const counts = Object.fromEntries(STATUSES.map((status) => [status.id, byStatus(status.id).length])) as Record<ApprovalStatus, number>;
+  const list = byStatus(activeTab);
 
   return (
     <MainLayout>
       <div className="max-w-6xl mx-auto space-y-6">
-        <PageHeader
-          icon={CheckCheck}
-          title="Approvals"
-          description={`${grouped.pending.length} pending · ${grouped.approved.length} approved · ${grouped.rejected.length} rejected`}
-        />
+        <PageHeader icon={CheckCheck} title="Approvals" description={`${counts.pending} pending · ${counts.approved} approved · ${counts.rejected} rejected`} />
 
         <StatGrid>
           {/* The cards are the same filter as the tabs below (the queue has no "All" view) */}
-          <StatCard icon={AlertCircle} label="Pending" value={grouped.pending.length} tone="amber" active={activeTab === "pending"} onClick={() => setActiveTab("pending")} />
-          <StatCard icon={CheckCircle2} label="Approved" value={grouped.approved.length} tone="green" active={activeTab === "approved"} onClick={() => setActiveTab("approved")} />
-          <StatCard icon={XCircle} label="Rejected" value={grouped.rejected.length} tone="red" active={activeTab === "rejected"} onClick={() => setActiveTab("rejected")} />
+          <StatCard icon={AlertCircle} label="Pending" value={counts.pending} tone="amber" loading={isLoading} active={activeTab === "pending"} onClick={() => setActiveTab("pending")} />
+          <StatCard icon={CheckCircle2} label="Approved" value={counts.approved} tone="green" loading={isLoading} active={activeTab === "approved"} onClick={() => setActiveTab("approved")} />
+          <StatCard icon={XCircle} label="Rejected" value={counts.rejected} tone="red" loading={isLoading} active={activeTab === "rejected"} onClick={() => setActiveTab("rejected")} />
         </StatGrid>
 
         <Card className="border-0 shadow-lg">
@@ -90,160 +60,112 @@ export default function Approvals() {
               <CheckCheck className="h-5 w-5 text-[#464EB8]" />
               <span>Request Queue</span>
             </CardTitle>
-            <CardDescription>Review pending requests and act on them.</CardDescription>
+            <CardDescription>Requests waiting on you: your team's leave and work requests, and claims or proofs if you review payroll. Your decision is sent to them straight away.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex border-b border-gray-200 mb-4">
-              <TabButton tab="pending" activeTab={activeTab} onClick={setActiveTab} count={grouped.pending.length} />
-              <TabButton tab="approved" activeTab={activeTab} onClick={setActiveTab} count={grouped.approved.length} />
-              <TabButton tab="rejected" activeTab={activeTab} onClick={setActiveTab} count={grouped.rejected.length} />
+            <div role="tablist" aria-label="Request status" className="mb-4 flex border-b border-gray-200">
+              {STATUSES.map((status) => {
+                const active = status.id === activeTab;
+                return (
+                  <button
+                    key={status.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => setActiveTab(status.id)}
+                    className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors ${active ? "border-[#464EB8] text-[#464EB8]" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                  >
+                    <span>{status.label}</span>
+                    <span className={`rounded-full px-1.5 py-0.5 text-xs ${active ? "bg-[#464EB8] text-white" : "bg-gray-100 text-gray-600"}`}>{counts[status.id]}</span>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="space-y-3">
-              {list.map((req) => (
+              {list.map((item) => (
                 <RequestRow
-                  key={req.id}
-                  request={req}
-                  onApprove={() => decide(req.id, "approved")}
-                  onReject={() => decide(req.id, "rejected")}
+                  key={item.key}
+                  item={item}
+                  busy={decide.isPending && decide.variables?.item.key === item.key}
+                  onApprove={() => decide.mutate({ item, decision: "approved" })}
+                  onReject={() => decide.mutate({ item, decision: "rejected" })}
                 />
               ))}
-              {list.length === 0 && (
-                <div className="text-center text-sm text-gray-500 py-12">
-                  No {activeTab} requests right now.
+              {!isLoading && list.length === 0 && (
+                <div className="flex flex-col items-center gap-2 py-12 text-center text-sm text-gray-500">
+                  <Inbox className="h-8 w-8 text-gray-300" aria-hidden="true" />
+                  {activeTab === "pending" ? "Nothing waiting for you. New requests from your team will appear here." : `No ${activeTab} requests yet.`}
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-2 text-sm">
-          <Send className="h-4 w-4" />
-          <span>{toast}</span>
-        </div>
-      )}
     </MainLayout>
   );
 }
 
-function TabButton({
-  tab,
-  activeTab,
-  onClick,
-  count,
-}: {
-  tab: Tab;
-  activeTab: Tab;
-  onClick: (t: Tab) => void;
-  count: number;
-}) {
-  const isActive = tab === activeTab;
-  const labels: Record<Tab, string> = {
-    pending: "Pending",
-    approved: "Approved",
-    rejected: "Rejected",
-  };
+function RequestRow({ item, busy, onApprove, onReject }: { item: ApprovalItem; busy: boolean; onApprove: () => void; onReject: () => void }) {
   return (
-    <button
-      onClick={() => onClick(tab)}
-      className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px flex items-center gap-2 ${
-        isActive
-          ? "border-[#464EB8] text-[#464EB8]"
-          : "border-transparent text-gray-500 hover:text-gray-700"
-      }`}
-    >
-      <span>{labels[tab]}</span>
-      <span
-        className={`text-xs px-1.5 py-0.5 rounded-full ${
-          isActive ? "bg-[#464EB8] text-white" : "bg-gray-100 text-gray-600"
-        }`}
-      >
-        {count}
-      </span>
-    </button>
-  );
-}
-
-function RequestRow({
-  request,
-  onApprove,
-  onReject,
-}: {
-  request: ApprovalRequest;
-  onApprove: () => void;
-  onReject: () => void;
-}) {
-  return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:border-[#464EB8]/40 hover:shadow-sm transition-all">
+    <div className="rounded-lg border border-gray-200 p-4 transition-all hover:border-[#464EB8]/40 hover:shadow-sm">
       <div className="flex items-start gap-4">
-        <Avatar className="w-11 h-11">
-          <AvatarFallback className="bg-gradient-to-br from-indigo-600 to-violet-600 text-white font-semibold">
-            {initials(request.employeeName)}
-          </AvatarFallback>
+        <Avatar className="h-11 w-11">
+          <AvatarFallback className="bg-gradient-to-br from-indigo-600 to-violet-600 font-semibold text-white">{initials(item.requesterName)}</AvatarFallback>
         </Avatar>
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            <p className="font-semibold text-gray-900">{request.employeeName}</p>
-            <span className="text-xs text-gray-500">·</span>
-            <span className="text-xs text-gray-500">{request.id}</span>
-            <Badge className={APPROVAL_TYPE_COLORS[request.type]}>
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex flex-wrap items-center gap-2">
+            <p className="font-semibold text-gray-900">{item.requesterName}</p>
+            {item.requesterDesignation && <span className="text-xs text-gray-500">· {item.requesterDesignation}</span>}
+            <Badge className={kindColor(item.kind)}>
               <span className="flex items-center gap-1">
-                {typeIcon[request.type]}
-                <span>{request.subType ?? APPROVAL_TYPE_LABELS[request.type]}</span>
+                {KIND_ICON[item.kind] ?? <Receipt className="h-4 w-4" />}
+                <span>{item.typeLabel}</span>
               </span>
             </Badge>
           </div>
           <p className="text-sm text-gray-700">
-            {formatDate(request.startDate)}
-            {request.startDate !== request.endDate && <> → {formatDate(request.endDate)}</>}
-            <span className="text-gray-400"> · </span>
-            <span className="font-medium">
-              {request.days} day{request.days > 1 ? "s" : ""}
-            </span>
+            {formatDate(item.startDate)}
+            {item.startDate !== item.endDate && <> → {formatDate(item.endDate)}</>}
+            {item.amount !== undefined && (
+              <>
+                <span className="text-gray-400"> · </span>
+                <span className="font-medium">{formatINR(item.amount)}</span>
+              </>
+            )}
+            {item.days !== undefined && (
+              <>
+                <span className="text-gray-400"> · </span>
+                <span className="font-medium">
+                  {item.days} day{item.days === 1 ? "" : "s"}
+                </span>
+              </>
+            )}
           </p>
-          <p className="text-sm text-gray-600 mt-1">{request.reason}</p>
-          <p className="text-xs text-gray-400 mt-2">
-            Applied {formatDate(request.appliedDate)}
-            {request.decidedDate && request.decidedBy && (
+          <p className="mt-1 text-sm text-gray-600">{item.reason}</p>
+          <p className="mt-2 text-xs text-gray-400">
+            Applied {formatDate(item.appliedDate)}
+            {item.decidedBy && item.decidedDate && (
               <>
                 {" "}
-                · {request.status === "approved" ? "Approved" : "Rejected"} by {request.decidedBy} on {formatDate(request.decidedDate)}
+                · {item.status === "approved" ? "Approved" : "Rejected"} by {item.decidedBy} on {formatDate(item.decidedDate)}
               </>
             )}
           </p>
         </div>
-        {request.status === "pending" ? (
-          <div className="flex flex-col sm:flex-row gap-2 shrink-0">
-            <Button
-              size="sm"
-              onClick={onApprove}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <CheckCircle2 className="h-4 w-4 mr-1" />
+        {item.status === "pending" ? (
+          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+            <Button size="sm" onClick={onApprove} disabled={busy} className="bg-green-600 text-white hover:bg-green-700">
+              <CheckCircle2 className="mr-1 h-4 w-4" />
               Approve
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onReject}
-              className="border-red-300 text-red-600 hover:bg-red-50"
-            >
-              <XCircle className="h-4 w-4 mr-1" />
+            <Button size="sm" variant="outline" onClick={onReject} disabled={busy} className="border-red-300 text-red-600 hover:bg-red-50">
+              <XCircle className="mr-1 h-4 w-4" />
               Reject
             </Button>
           </div>
         ) : (
-          <Badge
-            className={
-              request.status === "approved"
-                ? "bg-green-100 text-green-800"
-                : "bg-red-100 text-red-800"
-            }
-          >
-            {request.status === "approved" ? "Approved" : "Rejected"}
-          </Badge>
+          <Badge className={item.status === "approved" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>{item.status === "approved" ? "Approved" : "Rejected"}</Badge>
         )}
       </div>
     </div>
@@ -251,18 +173,5 @@ function RequestRow({
 }
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }

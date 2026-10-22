@@ -66,7 +66,7 @@ export function LeaveCalendarSection({ requests, holidays, country, onCountryCha
             </SelectContent>
           </Select>
         </CardHeader>
-        <CardContent className="flex-1 min-h-0 overflow-y-auto ionixx-scrollbar">
+        <CardContent className="flex-1 min-h-0 overflow-y-auto app-scrollbar">
           <div className="flex items-center justify-between mb-4">
             <Button variant="outline" size="icon" onClick={() => changeMonth(-1)} aria-label="Previous month">
               <ChevronLeft className="h-4 w-4" />

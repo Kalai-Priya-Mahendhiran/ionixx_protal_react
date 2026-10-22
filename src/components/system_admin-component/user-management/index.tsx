@@ -133,7 +133,7 @@ export default function UserManagement() {
                 </button>
               </div>
             ) : (
-              <div className="ionixx-scrollbar relative overflow-x-auto">
+              <div className="app-scrollbar relative overflow-x-auto">
                 <table className="w-full min-w-[820px] text-sm">
                   <thead>
                     <tr className="text-left border-b border-gray-200 text-xs uppercase text-gray-500">
@@ -479,7 +479,8 @@ function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (op
   useEffect(() => {
     if (open) form.reset(EMPTY_INVITE);
   }, [open, form]);
-  const managers = getActiveUsers().filter((person) => person.role === "project_manager" || person.role === "hr" || person.role === "admin" || person.role === "executive");
+  // Anyone active can lead a team (e.g. a senior developer with a few juniors), so the org chart grows under them
+  const managers = [...getActiveUsers()].sort((a, b) => a.name.localeCompare(b.name));
   const managerOptions = [{ value: "", label: "None" }, ...managers.map((person) => ({ value: person.id, label: person.name }))];
 
   return (
@@ -497,7 +498,7 @@ function InviteDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (op
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <TextField control={form.control} name="name" label="Full name" className="sm:col-span-2" required />
-        <TextField control={form.control} name="email" label="Work email" type="email" placeholder="name@ionixx.com" className="sm:col-span-2" required />
+        <TextField control={form.control} name="email" label="Work email" type="email" placeholder="name@company.com" className="sm:col-span-2" required />
         <SelectField control={form.control} name="role" label="Role" options={ROLE_OPTIONS} />
         <SelectField control={form.control} name="managerId" label="Reporting manager" options={managerOptions} placeholder="None" required={false} />
         <TextField control={form.control} name="department" label="Department" placeholder="e.g. Engineering" />

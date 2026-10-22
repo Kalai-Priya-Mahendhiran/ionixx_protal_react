@@ -48,7 +48,7 @@ export const personalInfoSchema = z.object({
   personalEmail: z.string()
     .email("Invalid email address")
     .refine((email) => {
-      const companyDomains = ["@company.com", "@ionixx.com", "@work.com", "@corp.com"];
+      const companyDomains = ["@company.com", "@company.com", "@work.com", "@corp.com"];
       return !companyDomains.some(domain => email.includes(domain));
     }, "Personal email cannot be a company email"),
   workEmail: z.string()

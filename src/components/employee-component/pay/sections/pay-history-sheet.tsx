@@ -115,7 +115,7 @@ function PayHistoryTable({ payslips, onView }: { payslips: Payslip[]; onView: Pa
       <div className="flex justify-end">
         <ShowToggle visible={visible} onToggle={() => setVisible((current) => !current)} label="pay" />
       </div>
-      <div className="ionixx-scrollbar overflow-x-auto rounded-lg border border-gray-200">
+      <div className="app-scrollbar overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full min-w-[720px] text-sm">
           <thead className="bg-gray-50 text-left text-gray-700">
             <tr>

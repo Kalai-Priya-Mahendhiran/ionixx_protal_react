@@ -18,23 +18,47 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AppSheet } from "@/components/ui/sheet";
-import { teamMembers, type TeamMember } from "@/lib/team-data";
+import { useAuth } from "@/context/auth-context";
+import { teamBelow, type OrgPerson } from "@/lib/org-chart";
+import { teamMembers as roster, type TeamMember } from "@/lib/team-data";
+import { getUserById } from "@/lib/user-directory";
+import { useOrgPeople } from "@/services/apis/users/use-org-chart";
+
+// The org chart person in the shape this page shows; skills come from the roster when known
+const ORG_STATUS: Record<OrgPerson["status"], TeamMember["status"]> = { "in-office": "active", remote: "remote", "on-leave": "on-leave", invited: "active" };
+const toMember = (person: OrgPerson): TeamMember => ({
+  id: person.id,
+  name: person.name,
+  email: person.email,
+  designation: person.designation,
+  department: person.department,
+  employeeId: person.employeeId,
+  reportingManager: person.managerId ? (getUserById(person.managerId)?.name ?? "—") : "—",
+  joiningDate: person.joiningDate ?? "",
+  status: ORG_STATUS[person.status],
+  skills: roster.find((member) => member.id === person.id)?.skills ?? [],
+  phone: person.phone ?? "",
+  location: person.location ?? "",
+});
 import { TEAM_MEMBER_STATUS_COLORS, TEAM_MEMBER_STATUS_LABELS } from "@/lib/constants";
 
 export default function TeamOverview() {
+  const { user } = useAuth();
+  // Everyone below the signed-in manager, live: new reports, leavers and approved leave show straight away
+  const { data: people } = useOrgPeople();
+  const teamMembers = useMemo(() => (user ? teamBelow(people, user.id).map(toMember) : []), [people, user]);
   const [search, setSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
-  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   // Set by the stat cards; clicking the active card again goes back to all members
   const [statusFilter, setStatusFilter] = useState<TeamMember["status"] | "all">("all");
+
+  const selectedMember = teamMembers.find((member) => member.id === selectedId) ?? null;
 
   const toggleStatus = (status: TeamMember["status"]) =>
     setStatusFilter((prev) => (prev === status ? "all" : status));
 
-  const departments = useMemo(
-    () => Array.from(new Set(teamMembers.map((m) => m.department))),
-    []
-  );
+  const departments = useMemo(() => Array.from(new Set(teamMembers.map((m) => m.department))), [teamMembers]);
 
   const filteredMembers = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -48,7 +72,7 @@ export default function TeamOverview() {
       const matchesStatus = statusFilter === "all" || m.status === statusFilter;
       return matchesSearch && matchesDept && matchesStatus;
     });
-  }, [search, departmentFilter, statusFilter]);
+  }, [teamMembers, search, departmentFilter, statusFilter]);
 
   const stats = useMemo(() => {
     const total = teamMembers.length;
@@ -56,7 +80,7 @@ export default function TeamOverview() {
     const remote = teamMembers.filter((m) => m.status === "remote").length;
     const onLeave = teamMembers.filter((m) => m.status === "on-leave").length;
     return { total, active, remote, onLeave };
-  }, []);
+  }, [teamMembers]);
 
   return (
     <MainLayout>
@@ -111,7 +135,7 @@ export default function TeamOverview() {
               {filteredMembers.map((m) => (
                 <button
                   key={m.id}
-                  onClick={() => setSelectedMember(m)}
+                  onClick={() => setSelectedId(m.id)}
                   className="text-left border border-gray-200 rounded-xl p-4 hover:shadow-md hover:border-[#464EB8]/40 transition-all bg-white"
                 >
                   <div className="flex items-start gap-3">
@@ -151,7 +175,7 @@ export default function TeamOverview() {
       </div>
 
       {selectedMember && (
-        <ProfileDrawer member={selectedMember} onClose={() => setSelectedMember(null)} />
+        <ProfileDrawer member={selectedMember} onClose={() => setSelectedId(null)} />
       )}
     </MainLayout>
   );

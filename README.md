@@ -36,7 +36,7 @@ The login screen checks credentials against the mock users in [`src/lib/mock-use
 | System Admin | `sysadmin` | `sysadmin123` |
 | Executive | `executive` | `executive123` |
 
-You can also log in with the user's email address (for example `employee@ionixx.com`). These accounts are for development only.
+You can also log in with the user's email address (for example `employee@company.com`). These accounts are for development only.
 
 ## Getting started
 
@@ -49,7 +49,7 @@ You can also log in with the user's email address (for example `employee@ionixx.
 
 ```bash
 git clone <repository-url>
-cd ionixx_protal_react
+cd <project-folder>
 pnpm install
 pnpm dev
 ```

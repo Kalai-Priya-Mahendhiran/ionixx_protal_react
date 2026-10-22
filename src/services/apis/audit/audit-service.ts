@@ -43,6 +43,12 @@ export const auditService = {
   },
 
   // GET /api/audit — newest first
+  // GET /api/audit/me — the caller's own actions, for their dashboard (no admin permission needed)
+  async listMine(actor: PermissionUser, limit = 20): Promise<AuditEntry[]> {
+    await delay();
+    return entries.filter((entry) => entry.actorId === actor.id).sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
+  },
+
   async list(actor: PermissionUser, filters: AuditFilters = {}): Promise<AuditEntry[]> {
     await delay();
     if (!can(actor, 'workflow.configure')) throw new Error("You don't have permission to view the audit log");

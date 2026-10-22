@@ -99,10 +99,10 @@ describe('userAccessService', () => {
   });
 
   it('invites new people as Invited, with a unique email', async () => {
-    const account = await userAccessService.invite(sysAdmin, { name: 'Asha Pillai', email: 'Asha.Pillai@ionixx.com', role: 'employee', department: 'Engineering', designation: 'QA Engineer', managerId: 'PM001' });
-    expect(account).toMatchObject({ status: 'invited', email: 'asha.pillai@ionixx.com', hasLogin: false });
+    const account = await userAccessService.invite(sysAdmin, { name: 'Asha Pillai', email: 'Asha.Pillai@company.com', role: 'employee', department: 'Engineering', designation: 'QA Engineer', managerId: 'PM001' });
+    expect(account).toMatchObject({ status: 'invited', email: 'asha.pillai@company.com', hasLogin: false });
     expect(isUserActive(account.id)).toBe(false);
-    await expect(userAccessService.invite(sysAdmin, { name: 'Again', email: 'asha.pillai@ionixx.com', role: 'employee', department: '', designation: '' })).rejects.toThrow('already has an account');
+    await expect(userAccessService.invite(sysAdmin, { name: 'Again', email: 'asha.pillai@company.com', role: 'employee', department: '', designation: '' })).rejects.toThrow('already has an account');
   });
 
   it('adds people to projects but never removes the lead', async () => {

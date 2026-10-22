@@ -2,6 +2,8 @@ import { MOCK_USERS } from '@/lib/mock-users';
 import { teamMembers } from '@/lib/team-data';
 import { deskStaff } from '@/lib/sample-data/service-desk-sample-data';
 import { formerStaff } from '@/lib/sample-data/user-access-sample-data';
+import { PERSON_DETAILS } from '@/lib/sample-data/organization-sample-data';
+import { SAMPLE_BIRTH_DATES } from '@/lib/sample-data/people-sample-data';
 import { isUserActive } from '@/lib/user-access-store';
 import type { TaskUser } from '@/types';
 
@@ -33,12 +35,13 @@ const rosterUsers: TaskUser[] = teamMembers.map((member) => ({
 // Roster entries win for people in both lists, since they carry the reporting manager
 // Admin (office operations) team members without a demo login and former staff come last.
 // Everyone stays listed so history still shows names; pickers use getActiveUsers().
+// Joining and birth dates are filled in from the people sample data where the source lists lack them
 export const USER_DIRECTORY: TaskUser[] = [
   ...rosterUsers,
   ...loginUsers.filter((user) => !rosterUsers.some((member) => member.id === user.id)),
   ...deskStaff,
   ...formerStaff,
-];
+].map((user) => ({ ...user, joiningDate: user.joiningDate ?? PERSON_DETAILS[user.id]?.joiningDate, birthDate: user.birthDate ?? SAMPLE_BIRTH_DATES[user.id] }));
 
 const usersById = new Map(USER_DIRECTORY.map((user) => [user.id, user]));
 

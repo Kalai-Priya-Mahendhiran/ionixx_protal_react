@@ -176,8 +176,8 @@ const initialWorkflows: WorkflowRule[] = [
 
 const initialDefaults: DefaultsState = {
   organizationName: "Knowledge & People Self-Service",
-  primaryDomain: "ionixx.com",
-  supportEmail: "support@ionixx.com",
+  primaryDomain: "company.com",
+  supportEmail: "support@company.com",
   defaultTimezone: "Asia/Kolkata",
   workWeekStart: "Monday",
   fiscalYearStart: "April",

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DEFAULT_WORKLOAD_THRESHOLD } from './task-utils';
 
-const STORAGE_KEY = 'ionixx.tasks.workloadThreshold';
+const STORAGE_KEY = 'employee-portal.tasks.workloadThreshold';
 
 const read = (): number => {
   try {

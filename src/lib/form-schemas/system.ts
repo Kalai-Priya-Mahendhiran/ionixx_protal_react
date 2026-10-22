@@ -35,7 +35,7 @@ const ROLES = Object.keys(ROLE_LABELS) as [UserRole, ...UserRole[]];
 
 export const inviteUserSchema = z.object({
   name: z.string().trim().min(1, "Enter their full name"),
-  email: z.string().trim().min(1, "Enter their work email").email("Enter a valid email, e.g. name@ionixx.com"),
+  email: z.string().trim().min(1, "Enter their work email").email("Enter a valid email, e.g. name@company.com"),
   role: z.enum(ROLES, { errorMap: () => ({ message: "Choose a role" }) }),
   managerId: z.string(),
   department: z.string().trim(),

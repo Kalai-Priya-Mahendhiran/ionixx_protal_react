@@ -1,3 +1,5 @@
+import { userAccessService } from '@/services/apis/users/user-access-service';
+import { resetAccessRecords } from './user-access-store';
 import { chainTo, directReports, getDepartments, getOrgPeople, teamSize, topLevel } from './org-chart';
 
 describe('org chart', () => {
@@ -33,5 +35,26 @@ describe('org chart', () => {
 
   it('only shows departments that have people', () => {
     expect(getDepartments(people).every((department) => department.people.length > 0)).toBe(true);
+  });
+});
+
+describe('org chart updates as people are added and removed', () => {
+  const sysAdmin = { id: 'SYS001', role: 'system_admin' as const };
+  afterEach(() => resetAccessRecords());
+
+  it('shows a newly invited team member under their manager', async () => {
+    expect(directReports(getOrgPeople(), 'EMP001')).toHaveLength(0);
+    const account = await userAccessService.invite(sysAdmin, { name: 'Anu Joseph', email: 'anu.joseph@example.com', role: 'employee', department: 'Engineering', designation: 'Intern', managerId: 'EMP001' });
+
+    const after = getOrgPeople();
+    expect(directReports(after, 'EMP001').map((person) => person.id)).toEqual([account.id]);
+    expect(after.find((person) => person.id === account.id)?.status).toBe('invited');
+    // Her manager's chain now has a level below her
+    expect(chainTo(after, account.id).map((person) => person.id)).toEqual(['EXE001', 'PM001', 'EMP001', account.id]);
+  });
+
+  it('drops people who are deactivated', async () => {
+    await userAccessService.deactivate(sysAdmin, 'EMP007');
+    expect(getOrgPeople().some((person) => person.id === 'EMP007')).toBe(false);
   });
 });

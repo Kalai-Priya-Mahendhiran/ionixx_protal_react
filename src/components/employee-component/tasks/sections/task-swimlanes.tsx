@@ -130,7 +130,7 @@ export function TaskSwimlanes({ tasks, laneUserIds, workloadTasks, focusUserId, 
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveTask(null)}
     >
-      <div className="ionixx-scrollbar overflow-x-auto pb-2">
+      <div className="app-scrollbar overflow-x-auto pb-2">
         <div className="min-w-[1000px] space-y-3">
           {/* Column headings */}
           <div className="grid grid-cols-4 gap-3 px-1">

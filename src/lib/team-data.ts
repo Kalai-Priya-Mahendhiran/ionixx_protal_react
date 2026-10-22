@@ -24,7 +24,7 @@ export const teamMembers: TeamMember[] = [
   {
     id: "EMP001",
     name: "Kalai Priya",
-    email: "kalai.priya@ionixx.com",
+    email: "kalai.priya@company.com",
     designation: "Software Developer",
     department: "Engineering",
     employeeId: "EMP00101",
@@ -38,7 +38,7 @@ export const teamMembers: TeamMember[] = [
   {
     id: "EMP002",
     name: "Arjun Rao",
-    email: "arjun.rao@ionixx.com",
+    email: "arjun.rao@company.com",
     designation: "Senior Software Developer",
     department: "Engineering",
     employeeId: "EMP00102",
@@ -52,7 +52,7 @@ export const teamMembers: TeamMember[] = [
   {
     id: "EMP003",
     name: "Meera Sundar",
-    email: "meera.sundar@ionixx.com",
+    email: "meera.sundar@company.com",
     designation: "QA Engineer",
     department: "Quality",
     employeeId: "EMP00103",
@@ -66,7 +66,7 @@ export const teamMembers: TeamMember[] = [
   {
     id: "EMP004",
     name: "Rohit Deshmukh",
-    email: "rohit.deshmukh@ionixx.com",
+    email: "rohit.deshmukh@company.com",
     designation: "UI/UX Designer",
     department: "Design",
     employeeId: "EMP00104",
@@ -80,7 +80,7 @@ export const teamMembers: TeamMember[] = [
   {
     id: "EMP005",
     name: "Divya Menon",
-    email: "divya.menon@ionixx.com",
+    email: "divya.menon@company.com",
     designation: "DevOps Engineer",
     department: "Infrastructure",
     employeeId: "EMP00105",
@@ -94,7 +94,7 @@ export const teamMembers: TeamMember[] = [
   {
     id: "EMP006",
     name: "Karthik Subramanian",
-    email: "karthik.s@ionixx.com",
+    email: "karthik.s@company.com",
     designation: "Junior Developer",
     department: "Engineering",
     employeeId: "EMP00106",
@@ -108,7 +108,7 @@ export const teamMembers: TeamMember[] = [
   {
     id: "EMP007",
     name: "Sneha Reddy",
-    email: "sneha.reddy@ionixx.com",
+    email: "sneha.reddy@company.com",
     designation: "Associate Software Developer",
     department: "Engineering",
     employeeId: "EMP00107",
@@ -223,84 +223,7 @@ export const approvalRequests: ApprovalRequest[] = [
   },
 ];
 
-export interface AttendanceEntry {
-  employeeId: string;
-  employeeName: string;
-  designation: string;
-  date: string;
-  checkIn: string | null;
-  checkOut: string | null;
-  hoursWorked: number;
-  status: "present" | "late" | "absent" | "half-day" | "leave" | "wfh";
-  exception?: string;
-}
-
-export const teamAttendanceToday: AttendanceEntry[] = [
-  {
-    employeeId: "EMP001",
-    employeeName: "Kalai Priya",
-    designation: "Software Developer",
-    date: "2026-05-07",
-    checkIn: "09:02",
-    checkOut: null,
-    hoursWorked: 0,
-    status: "present",
-  },
-  {
-    employeeId: "EMP002",
-    employeeName: "Arjun Rao",
-    designation: "Senior Software Developer",
-    date: "2026-05-07",
-    checkIn: "09:48",
-    checkOut: null,
-    hoursWorked: 0,
-    status: "late",
-    exception: "Late by 48 minutes",
-  },
-  {
-    employeeId: "EMP003",
-    employeeName: "Meera Sundar",
-    designation: "QA Engineer",
-    date: "2026-05-07",
-    checkIn: null,
-    checkOut: null,
-    hoursWorked: 0,
-    status: "leave",
-    exception: "Sick leave",
-  },
-  {
-    employeeId: "EMP004",
-    employeeName: "Rohit Deshmukh",
-    designation: "UI/UX Designer",
-    date: "2026-05-07",
-    checkIn: null,
-    checkOut: null,
-    hoursWorked: 0,
-    status: "leave",
-    exception: "Approved CL",
-  },
-  {
-    employeeId: "EMP005",
-    employeeName: "Divya Menon",
-    designation: "DevOps Engineer",
-    date: "2026-05-07",
-    checkIn: "08:55",
-    checkOut: null,
-    hoursWorked: 0,
-    status: "present",
-  },
-  {
-    employeeId: "EMP006",
-    employeeName: "Karthik Subramanian",
-    designation: "Junior Developer",
-    date: "2026-05-07",
-    checkIn: null,
-    checkOut: null,
-    hoursWorked: 0,
-    status: "absent",
-    exception: "No check-in recorded",
-  },
-];
+// Team attendance now comes from the attendance service (src/services/apis/attendance)
 
 export interface EmployeeGoal {
   id: string;

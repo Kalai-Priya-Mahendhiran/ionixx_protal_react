@@ -47,7 +47,7 @@ function downloadAuditCsv(entries: AuditEntry[]) {
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url;
-  link.download = `ionixx-audit-${todayAsDateInput()}.csv`;
+  link.download = `employee-portal-audit-${todayAsDateInput()}.csv`;
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -154,7 +154,7 @@ export function AuditLogSection() {
           </div>
         ) : (
           <>
-            <div className="ionixx-scrollbar relative overflow-x-auto rounded-lg border border-gray-200">
+            <div className="app-scrollbar relative overflow-x-auto rounded-lg border border-gray-200">
               <table className="w-full min-w-[820px] text-sm">
                 <thead className="bg-gray-50 text-left text-xs font-semibold text-gray-600">
                   <tr>

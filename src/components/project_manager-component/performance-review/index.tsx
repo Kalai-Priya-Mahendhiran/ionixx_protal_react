@@ -2,7 +2,6 @@
 import {
   Star,
   Target,
-  CheckCircle2,
   AlertTriangle,
   TrendingUp,
   Send,
@@ -14,7 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { performanceProfiles, type PerformanceProfile, type EmployeeGoal } from "@/lib/team-data";
+import type { PerformanceProfile, EmployeeGoal } from "@/lib/team-data";
+import { initials } from "@/lib/org-chart";
+import { useReviewees, useShareFeedback, useSubmitRating } from "@/services/apis/performance/use-performance";
 
 const goalStatusMeta: Record<
   EmployeeGoal["status"],
@@ -36,16 +37,21 @@ const reviewStatusMeta: Record<
 };
 
 export default function PerformanceReview() {
-  const [profiles, setProfiles] = useState<PerformanceProfile[]>(performanceProfiles);
-  const [selectedId, setSelectedId] = useState<string>(performanceProfiles[0]?.employeeId ?? "");
+  // Your direct reports from the live org chart (HR sees everyone); ratings are kept by the service
+  const { data: profiles = [], isLoading } = useReviewees();
+  const submitRatingMutation = useSubmitRating();
+  const shareFeedbackMutation = useShareFeedback();
+  const [chosenId, setChosenId] = useState<string | null>(null);
   const [draftRating, setDraftRating] = useState<number | null>(null);
   const [draftFeedback, setDraftFeedback] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
 
+  // Falls back to the first person when nothing is chosen or the chosen person has left the team
   const selected = useMemo(
-    () => profiles.find((p) => p.employeeId === selectedId) ?? null,
-    [profiles, selectedId]
+    () => profiles.find((p) => p.employeeId === chosenId) ?? profiles[0] ?? null,
+    [profiles, chosenId]
   );
+  const selectedId = selected?.employeeId ?? "";
+  const busy = submitRatingMutation.isPending || shareFeedbackMutation.isPending;
 
   const summary = useMemo(() => {
     const total = profiles.length;
@@ -56,7 +62,7 @@ export default function PerformanceReview() {
   }, [profiles]);
 
   const selectProfile = (id: string) => {
-    setSelectedId(id);
+    setChosenId(id);
     const next = profiles.find((p) => p.employeeId === id);
     setDraftRating(next?.overallRating ?? null);
     setDraftFeedback("");
@@ -64,16 +70,12 @@ export default function PerformanceReview() {
 
   const submitRating = () => {
     if (!selected || draftRating === null) return;
-    setProfiles((prev) =>
-      prev.map((p) =>
-        p.employeeId === selected.employeeId
-          ? { ...p, overallRating: draftRating, status: "submitted" }
-          : p
-      )
-    );
-    setToast(`Rating submitted for ${selected.employeeName} (FR-21).`);
-    setDraftFeedback("");
-    window.setTimeout(() => setToast(null), 3500);
+    submitRatingMutation.mutate({ employeeId: selected.employeeId, rating: draftRating, feedback: draftFeedback }, { onSuccess: () => setDraftFeedback("") });
+  };
+
+  const shareFeedback = () => {
+    if (!selected || !draftFeedback.trim()) return;
+    shareFeedbackMutation.mutate({ employeeId: selected.employeeId, text: draftFeedback }, { onSuccess: () => setDraftFeedback("") });
   };
 
   return (
@@ -96,6 +98,9 @@ export default function PerformanceReview() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
+                {!isLoading && profiles.length === 0 && (
+                  <p className="py-8 text-center text-sm text-gray-500">Nobody reports to you yet. People appear here as they join your team.</p>
+                )}
                 {profiles.map((p) => {
                   const isActive = p.employeeId === selectedId;
                   return (
@@ -180,11 +185,11 @@ export default function PerformanceReview() {
                       />
                       <MiniStat
                         label="Last review"
-                        value={new Date(selected.lastReview).toLocaleDateString("en-US", {
+                        value={selected.lastReview ? new Date(selected.lastReview).toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
-                        })}
+                        }) : "—"}
                       />
                     </div>
                   </CardContent>
@@ -200,6 +205,7 @@ export default function PerformanceReview() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
+                      {selected.goals.length === 0 && <p className="text-sm text-gray-500">No goals set for this cycle yet.</p>}
                       {selected.goals.map((g) => {
                         const meta = goalStatusMeta[g.status];
                         return (
@@ -237,7 +243,7 @@ export default function PerformanceReview() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <TrendingUp className="h-5 w-5 text-[#464EB8]" />
-                      <span>Submit Rating (FR-21)</span>
+                      <span>Submit Rating</span>
                     </CardTitle>
                     <CardDescription>Evaluate overall performance and share feedback.</CardDescription>
                   </CardHeader>
@@ -259,17 +265,28 @@ export default function PerformanceReview() {
                     <div className="flex items-center gap-3 pt-2">
                       <Button
                         onClick={submitRating}
-                        disabled={draftRating === null}
+                        disabled={draftRating === null || busy}
                         className="bg-[#464EB8] hover:bg-[#3a3f9a] text-white"
                       >
                         <Send className="h-4 w-4 mr-1" />
                         Submit rating
                       </Button>
-                      <Button variant="outline" disabled={!draftFeedback.trim()}>
+                      <Button variant="outline" onClick={shareFeedback} disabled={!draftFeedback.trim() || busy}>
                         <MessageSquare className="h-4 w-4 mr-1" />
                         Share feedback
                       </Button>
                     </div>
+                    {selected.feedback.length > 0 && (
+                      <div className="space-y-2 border-t border-gray-100 pt-4">
+                        <p className="text-sm font-medium text-gray-700">Feedback shared</p>
+                        {selected.feedback.map((entry) => (
+                          <div key={entry.id} className="rounded-lg bg-gray-50 p-3 text-sm">
+                            <p className="text-gray-800">{entry.text}</p>
+                            <p className="mt-1 text-xs text-gray-500">{entry.authorName} · {new Date(entry.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </>
@@ -284,12 +301,6 @@ export default function PerformanceReview() {
         </div>
       </div>
 
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-2 text-sm">
-          <CheckCircle2 className="h-4 w-4 text-green-400" />
-          <span>{toast}</span>
-        </div>
-      )}
     </MainLayout>
   );
 }
@@ -351,11 +362,3 @@ function RatingPicker({
   );
 }
 
-function initials(name: string) {
-  return name
-    .split(" ")
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}

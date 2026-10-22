@@ -179,7 +179,7 @@ export function ClaimsTab({ claims, currentYear, period, windowOpen, onSubmit }:
           </div>
         </div>
 
-        <div className="ionixx-scrollbar overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <div className="app-scrollbar overflow-x-auto rounded-lg border border-gray-200 bg-white">
           <table className="w-full min-w-[860px] text-sm">
             <thead className="bg-gray-100 text-left text-gray-800">
               <tr>

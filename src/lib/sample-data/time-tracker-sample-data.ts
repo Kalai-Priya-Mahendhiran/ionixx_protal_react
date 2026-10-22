@@ -9,36 +9,25 @@ const daysAgo = (days: number) => {
   return toDateInput(date);
 };
 
+// Kalai's time this week and last; dates are relative to today so the weekly views always have data
+const entry = (id: string, back: number, project: string, module: string, task: string, startTime: string, endTime: string, totalHours: number, description: string, status: TimeEntry['status'] = 'approved'): TimeEntry => ({
+  id, userId: 'EMP001', project, module, task, date: daysAgo(back), startTime, endTime, description, totalHours, status,
+});
+
 export const sampleTimeEntries: TimeEntry[] = [
-  {
-    id: '1',
-    userId: 'EMP001',
-    project: 'Employee Portal',
-    module: 'Dashboard',
-    task: 'Coding',
-    date: '2024-01-15',
-    startTime: '09:00',
-    endTime: '17:00',
-    description: 'Working on dashboard components',
-    totalHours: 8,
-    status: 'approved',
-  },
-  {
-    id: '2',
-    userId: 'EMP001',
-    project: 'Employee Portal',
-    module: 'Authentication',
-    task: 'Coding',
-    date: '2024-01-16',
-    startTime: '09:15',
-    endTime: '17:30',
-    description: 'Integrating authentication APIs',
-    totalHours: 8.25,
-    status: 'submitted',
-  },
+  entry('te-1', 1, 'Employee Portal', 'Dashboard', 'Coding', '09:30', '13:00', 3.5, 'Dashboard quick stats from live data', 'submitted'),
+  entry('te-2', 1, 'Employee Portal', 'Authentication', 'Code Review', '14:00', '16:00', 2, 'Reviewed the session refresh changes', 'submitted'),
+  entry('te-3', 2, 'People Operations', 'Reporting', 'Analysis', '10:00', '12:30', 2.5, 'Leave report requirements with HR'),
+  entry('te-4', 2, 'Employee Portal', 'Time Tracking', 'Bug Fix', '13:30', '17:30', 4, 'Fixed timer rounding on long sessions'),
+  entry('te-5', 3, 'Internal (meetings, admin)', 'General', 'Daily Meeting', '09:30', '10:00', 0.5, 'Stand-up'),
+  entry('te-6', 3, 'Employee Portal', 'Dashboard', 'Coding', '10:00', '17:00', 7, 'Celebrations and upcoming events cards'),
+  entry('te-7', 6, 'Employee Portal', 'Authentication', 'Coding', '09:15', '17:30', 8.25, 'Integrating authentication APIs'),
 ];
 
-export const PROJECTS = ['Employee Portal', 'Mobile App', 'API Development'];
+// Time that isn't for a project; always offered next to the Tasks module's projects
+export const NON_PROJECT_TIME = 'Internal (meetings, admin)';
+// Used only until the Tasks projects have loaded
+export const PROJECTS = ['Employee Portal', 'People Operations', NON_PROJECT_TIME];
 export const MODULES = ['Dashboard', 'Employee Management', 'Authentication', 'Time Tracking', 'Reporting', 'General'];
 export const TASK_TYPES = [
   'Analysis',
@@ -65,13 +54,6 @@ export const TASK_STATUS_OPTIONS: { value: TaskRecord['status']; label: string }
   { value: 'hold', label: 'Hold' },
 ];
 
-export const sampleProductivity = 85;
-
-export const sampleWeeklyTimeDistribution = [
-  { project: 'Employee Portal', hours: 24.5, percentage: 65, bgColor: 'bg-blue-50', dotColor: 'bg-blue-500' },
-  { project: 'Mobile App', hours: 8.5, percentage: 23, bgColor: 'bg-green-50', dotColor: 'bg-green-500' },
-  { project: 'API Development', hours: 4.0, percentage: 12, bgColor: 'bg-purple-50', dotColor: 'bg-purple-500' },
-];
 
 // 10 Oct is over the 8h daily limit, so its tasks show as overrunning
 export const sampleTodaysTasks: TaskRecord[] = [
@@ -103,7 +85,7 @@ export const sampleTodaysTasks: TaskRecord[] = [
     id: 'task-3',
     date: daysAgo(3),
     status: 'started',
-    project: 'Mobile App',
+    project: 'People Operations',
     module: 'Time Tracking',
     task: 'Coding',
     description: 'Timer screen for the mobile app',
@@ -115,7 +97,7 @@ export const sampleTodaysTasks: TaskRecord[] = [
     id: 'task-4',
     date: daysAgo(3),
     status: 'not-started',
-    project: 'Mobile App',
+    project: 'People Operations',
     module: 'Reporting',
     task: 'API Testing',
     description: 'Test the weekly report endpoints',
@@ -127,7 +109,7 @@ export const sampleTodaysTasks: TaskRecord[] = [
     id: 'task-5',
     date: daysAgo(2),
     status: 'hold',
-    project: 'API Development',
+    project: 'Employee Portal',
     module: 'Employee Management',
     task: 'API Documentation',
     description: 'Document the employee profile APIs (waiting on schema sign-off)',
@@ -139,7 +121,7 @@ export const sampleTodaysTasks: TaskRecord[] = [
     id: 'task-6',
     date: daysAgo(2),
     status: 'completed',
-    project: 'API Development',
+    project: 'Employee Portal',
     module: 'General',
     task: 'Bug Fix',
     description: 'Fixed timezone handling in the leave balance API',

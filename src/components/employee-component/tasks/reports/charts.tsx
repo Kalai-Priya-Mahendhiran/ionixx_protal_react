@@ -97,7 +97,7 @@ export function ChartCard({
 
 function DataTable({ table }: { table: ChartTable }) {
   return (
-    <div className="ionixx-scrollbar relative max-h-72 overflow-auto rounded-lg border border-gray-200">
+    <div className="app-scrollbar relative max-h-72 overflow-auto rounded-lg border border-gray-200">
       <table className="w-full text-sm">
         <thead className="sticky top-0 bg-gray-50 text-left text-xs font-semibold text-gray-600">
           <tr>

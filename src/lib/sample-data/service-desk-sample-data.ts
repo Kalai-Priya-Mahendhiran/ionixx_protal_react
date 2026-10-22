@@ -12,8 +12,8 @@ const daysAgoDate = (days: number) => toDateInput(new Date(Date.now() - days * 2
 
 // The Admin (office operations) team besides the Admin login user
 export const deskStaff: TaskUser[] = [
-  { id: 'ADM002', name: 'Ravi Teja', email: 'ravi.teja@ionixx.com', role: 'admin', department: 'Operations', designation: 'Facilities Executive', managerId: 'ADM001' },
-  { id: 'ADM003', name: 'Lakshmi Narayan', email: 'lakshmi.narayan@ionixx.com', role: 'admin', department: 'Operations', designation: 'Admin Assistant', managerId: 'ADM001' },
+  { id: 'ADM002', name: 'Ravi Teja', email: 'ravi.teja@company.com', role: 'admin', department: 'Operations', designation: 'Facilities Executive', managerId: 'ADM001' },
+  { id: 'ADM003', name: 'Lakshmi Narayan', email: 'lakshmi.narayan@company.com', role: 'admin', department: 'Operations', designation: 'Admin Assistant', managerId: 'ADM001' },
 ];
 
 interface SampleRequest extends Omit<AdminRequest, 'id' | 'createdAt' | 'updatedAt' | 'firstResponseAt' | 'resolvedAt' | 'closedAt' | 'waitingSince' | 'pausedMs' | 'attachments' | 'source'> {

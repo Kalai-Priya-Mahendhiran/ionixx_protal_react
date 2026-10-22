@@ -4,7 +4,7 @@ import type { ProfileFormData } from '@/lib/schemas';
 export const sampleProfileUser: User = {
   id: '1',
   name: 'John Doe',
-  email: 'john.doe@ionixx.com',
+  email: 'john.doe@company.com',
   phone: '+1-555-0123',
   address: '123 Main St, City, State',
   department: 'Engineering',

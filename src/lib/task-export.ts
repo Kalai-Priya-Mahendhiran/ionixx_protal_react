@@ -69,7 +69,7 @@ export function toCsv(tasks: Task[], lookups: ExportLookups): string {
   return BYTE_ORDER_MARK + lines.join('\r\n');
 }
 
-export const exportFileName = (extension: 'csv' | 'xlsx') => `ionixx-tasks-${todayAsDateInput()}.${extension}`;
+export const exportFileName = (extension: 'csv' | 'xlsx') => `employee-portal-tasks-${todayAsDateInput()}.${extension}`;
 
 function downloadBlob(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);

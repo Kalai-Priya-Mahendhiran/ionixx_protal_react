@@ -1,57 +1,43 @@
-import {
-  TrendingUp,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  CalendarCheck,
-  type LucideIcon
-} from 'lucide-react';
-import { StatCard, StatGrid, type StatTone } from '@/components/ui/stat-card';
+import { AlertCircle, CalendarCheck, CheckCircle, TrendingUp, XCircle } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
-import { sampleAttendance } from '@/lib/sample-data/attendance-sample-data';
-import { CheckInOutSection, CalendarViewSection, RecentAttendanceSection } from './sections';
+import { StatCard, StatGrid } from '@/components/ui/stat-card';
+import { todayAsDateInput } from '@/lib/utils';
+import { useMyAttendanceMonth } from '@/services/apis/attendance/use-attendance';
+import { CalendarViewSection, CheckInOutSection, RecentAttendanceSection } from './sections';
+
+// Days that count as attended for the percentage
+const ATTENDED = new Set(['present', 'late', 'half-day', 'wfh']);
 
 export default function Attendance() {
-  const currentMonthAttendance = sampleAttendance.filter(record =>
-    new Date(record.date).getMonth() === new Date().getMonth()
-  );
+  const month = todayAsDateInput().slice(0, 7);
+  // The signed-in person's month from the attendance service; check-ins and approved leave show up straight away
+  const { data: records = [], isLoading } = useMyAttendanceMonth(month);
 
-  const totalDays = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-  const presentDays = currentMonthAttendance.filter(record => record.status === 'present').length;
-  const absentDays = currentMonthAttendance.filter(record => record.status === 'absent').length;
-  const lateDays = currentMonthAttendance.filter(record => record.status === 'late').length;
-
-  const stats: { label: string; value: number | string; icon: LucideIcon; tone: StatTone }[] = [
-    { label: 'Present Days', value: presentDays, icon: CheckCircle, tone: 'green' },
-    { label: 'Absent Days', value: absentDays, icon: XCircle, tone: 'red' },
-    { label: 'Late Days', value: lateDays, icon: AlertCircle, tone: 'amber' },
-    { label: 'Attendance %', value: `${Math.round((presentDays / totalDays) * 100)}%`, icon: TrendingUp, tone: 'purple' },
-  ];
+  const working = records.filter((record) => record.status !== 'holiday' && record.status !== 'leave' && record.status !== 'not-in-yet');
+  const count = (status: string) => records.filter((record) => record.status === status).length;
+  const attended = working.filter((record) => ATTENDED.has(record.status)).length;
+  const percent = working.length ? Math.round((attended / working.length) * 100) : 100;
+  const recent = records.filter((record) => record.status !== 'holiday').slice(-7).reverse();
 
   return (
     <MainLayout>
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
+      <div className="mx-auto max-w-7xl space-y-8">
         <PageHeader icon={CalendarCheck} title="Attendance" description="Track your daily attendance and working hours" />
 
-        {/* Quick Stats */}
         <StatGrid>
-          {stats.map(({ label, value, icon, tone }) => (
-            <StatCard key={label} icon={icon} label={label} value={value} tone={tone} />
-          ))}
+          <StatCard icon={CheckCircle} label="Present Days" value={count('present') + count('wfh')} tone="green" hint={count('wfh') ? `${count('wfh')} WFH` : undefined} loading={isLoading} />
+          <StatCard icon={XCircle} label="Absent Days" value={count('absent')} tone="red" loading={isLoading} />
+          <StatCard icon={AlertCircle} label="Late Days" value={count('late')} tone="amber" hint={count('half-day') ? `${count('half-day')} half` : undefined} loading={isLoading} />
+          <StatCard icon={TrendingUp} label="Attendance %" value={`${percent}%`} tone="purple" hint={`${attended} of ${working.length} days`} loading={isLoading} />
         </StatGrid>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Today's Attendance */}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
           <CheckInOutSection />
-
-          {/* Calendar View */}
-          <CalendarViewSection records={sampleAttendance} />
+          <CalendarViewSection month={month} records={records} />
         </div>
 
-        {/* Recent Attendance */}
-        <RecentAttendanceSection records={sampleAttendance} />
+        <RecentAttendanceSection records={recent} />
       </div>
     </MainLayout>
   );

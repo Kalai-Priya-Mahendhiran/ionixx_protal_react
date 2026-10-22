@@ -13,7 +13,7 @@ const daysAgo = (days: number, hour = 9) => {
 
 // A former employee kept for history (their old tasks and audit entries still name them)
 export const formerStaff: TaskUser[] = [
-  { id: 'EMP008', name: 'Naveen Kumar', email: 'naveen.kumar@ionixx.com', role: 'employee', department: 'Engineering', designation: 'Software Developer', managerId: 'PM001' },
+  { id: 'EMP008', name: 'Naveen Kumar', email: 'naveen.kumar@company.com', role: 'employee', department: 'Engineering', designation: 'Software Developer', managerId: 'PM001' },
 ];
 
 export const sampleAccessRecords: Record<string, AccessRecord> = {

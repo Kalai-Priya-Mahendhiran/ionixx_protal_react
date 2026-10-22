@@ -14,7 +14,7 @@ export const sampleProjects: Project[] = [
   {
     id: 'PRJ-IXP',
     key: 'IXP',
-    name: 'Ionixx Portal',
+    name: 'Employee Portal',
     description: 'Employee portal product work',
     leadId: 'PM001',
     memberIds: ['PM001', 'EMP001', 'EMP002', 'EMP003', 'EMP004', 'EMP005', 'EMP006'],

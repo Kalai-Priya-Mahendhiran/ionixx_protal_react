@@ -143,7 +143,7 @@ export function TaskListSection({ tasks, subtaskProgress, onEdit, onDelete, sele
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
       {/* relative: keeps the visually hidden header label inside the scroll area */}
-      <div className="ionixx-scrollbar relative overflow-x-auto">
+      <div className="app-scrollbar relative overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="border-b border-gray-200 bg-gray-50 text-left text-xs font-semibold text-gray-600">
             <tr>

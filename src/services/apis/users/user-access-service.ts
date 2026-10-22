@@ -73,18 +73,13 @@ const toAccount = (personId: string): UserAccount => ({
   hasLogin: MOCK_USERS.some((user) => user.id === personId),
 });
 
-export const userAccessService = {
-  // GET /api/users
-  async list(actor: PermissionUser): Promise<UserAccount[]> {
-    await delay();
-    assertCanManage(actor);
-    return USER_DIRECTORY.map((person) => toAccount(person.id)).sort((a, b) => a.name.localeCompare(b.name));
-  },
-
-  // POST /api/users/invite — the account stays "invited" until the person first signs in
-  async invite(actor: PermissionUser, input: InviteInput): Promise<UserAccount> {
-    await delay();
-    assertCanManage(actor);
+/*
+ * The people changes themselves, shared by User Management (System Admin) and HR Employee Management.
+ * Callers check permission first; these only validate and apply, so both screens behave the same.
+ */
+export const peopleAdmin = {
+  // Adds the person to the directory with an invited account; returns their id
+  create(actorId: string, input: InviteInput): string {
     const name = input.name.trim();
     const email = input.email.trim().toLowerCase();
     if (!name) throw new UserAccessError('Enter their full name');
@@ -97,8 +92,47 @@ export const userAccessService = {
     const id = `USR${highest + 1}`;
     addDirectoryUser({ id, name, email, role: input.role, department: input.department.trim() || 'Unassigned', designation: input.designation.trim() || ROLE_LABELS[input.role], managerId: input.managerId || undefined });
     setAccessRecord(id, { status: 'invited', grantedModules: [], revokedModules: [], invitedAt: now() });
-    record(actor.id, id, 'created', `Invited ${email} as ${ROLE_LABELS[input.role]}`);
-    return toAccount(id);
+    record(actorId, id, 'created', `Invited ${email} as ${ROLE_LABELS[input.role]}`);
+    return id;
+  },
+
+  assertCanDeactivate(actorId: string, userId: string) {
+    findPerson(userId);
+    if (userId === actorId) throw new UserAccessError("You can't deactivate your own account");
+    if (getAccessRecord(userId).status === 'deactivated') throw new UserAccessError(`${nameOf(userId)} is already deactivated`);
+    assertKeepsASystemAdmin(userId);
+  },
+
+  // Blocks sign-in and returns their service-desk requests to the queue; returns the released request keys
+  deactivate(actorId: string, userId: string): string[] {
+    updateAccess(userId, { status: 'deactivated', deactivatedAt: now() });
+    return releaseRequestsAssignedTo(userId, actorId);
+  },
+
+  activate(actorId: string, userId: string) {
+    findPerson(userId);
+    const previous = getAccessRecord(userId).status;
+    if (previous === 'active') return;
+    updateAccess(userId, { status: 'active', deactivatedAt: undefined });
+    record(actorId, userId, 'activated', previous === 'invited' ? 'Activated the invited account' : 'Reactivated');
+  },
+
+  record: (actorId: string, userId: string, action: string, summary: string) => record(actorId, userId, action, summary),
+};
+
+export const userAccessService = {
+  // GET /api/users
+  async list(actor: PermissionUser): Promise<UserAccount[]> {
+    await delay();
+    assertCanManage(actor);
+    return USER_DIRECTORY.map((person) => toAccount(person.id)).sort((a, b) => a.name.localeCompare(b.name));
+  },
+
+  // POST /api/users/invite — the account stays "invited" until the person first signs in
+  async invite(actor: PermissionUser, input: InviteInput): Promise<UserAccount> {
+    await delay();
+    assertCanManage(actor);
+    return toAccount(peopleAdmin.create(actor.id, input));
   },
 
   // What a person still has open, shown before deactivating them
@@ -112,10 +146,7 @@ export const userAccessService = {
   async deactivate(actor: PermissionUser, userId: string, reassignToId?: string): Promise<{ reassigned: string[]; skipped: number; releasedRequests: string[] }> {
     await delay();
     assertCanManage(actor);
-    findPerson(userId);
-    if (userId === actor.id) throw new UserAccessError("You can't deactivate your own account");
-    if (getAccessRecord(userId).status === 'deactivated') throw new UserAccessError(`${nameOf(userId)} is already deactivated`);
-    assertKeepsASystemAdmin(userId);
+    peopleAdmin.assertCanDeactivate(actor.id, userId);
     if (reassignToId && (reassignToId === userId || !isUserActive(reassignToId))) throw new UserAccessError('Choose an active person to take over their work');
 
     // Hand work over first, while the bulk update can still see the current assignee
@@ -129,8 +160,7 @@ export const userAccessService = {
         skipped = result.skipped.length;
       }
     }
-    updateAccess(userId, { status: 'deactivated', deactivatedAt: now() });
-    const releasedRequests = releaseRequestsAssignedTo(userId, actor.id);
+    const releasedRequests = peopleAdmin.deactivate(actor.id, userId);
     record(
       actor.id,
       userId,
@@ -144,11 +174,7 @@ export const userAccessService = {
   async activate(actor: PermissionUser, userId: string): Promise<UserAccount> {
     await delay();
     assertCanManage(actor);
-    findPerson(userId);
-    const previous = getAccessRecord(userId).status;
-    if (previous === 'active') return toAccount(userId);
-    updateAccess(userId, { status: 'active', deactivatedAt: undefined });
-    record(actor.id, userId, 'activated', previous === 'invited' ? 'Activated the invited account' : 'Reactivated');
+    peopleAdmin.activate(actor.id, userId);
     return toAccount(userId);
   },
 

@@ -44,7 +44,7 @@ export const sampleLeaveRequests: LeaveRequest[] = [
     reason: 'Doctor appointment',
     status: 'approved',
     appliedDate: '2026-10-08',
-    approvedBy: 'Jane Smith',
+    approvedBy: 'Priya Kumar',
     approvedDate: '2026-10-08',
   },
   {
@@ -59,7 +59,7 @@ export const sampleLeaveRequests: LeaveRequest[] = [
     reason: 'Personal work',
     status: 'approved',
     appliedDate: '2026-09-28',
-    approvedBy: 'Jane Smith',
+    approvedBy: 'Priya Kumar',
     approvedDate: '2026-09-29',
   },
   {
@@ -74,7 +74,7 @@ export const sampleLeaveRequests: LeaveRequest[] = [
     reason: 'Vacation',
     status: 'approved',
     appliedDate: '2026-09-01',
-    approvedBy: 'Jane Smith',
+    approvedBy: 'Priya Kumar',
     approvedDate: '2026-09-02',
   },
   {
@@ -89,7 +89,7 @@ export const sampleLeaveRequests: LeaveRequest[] = [
     reason: 'Travel plans',
     status: 'rejected',
     appliedDate: '2026-08-05',
-    approvedBy: 'Jane Smith',
+    approvedBy: 'Priya Kumar',
     approvedDate: '2026-08-06',
   },
 ];
@@ -117,11 +117,32 @@ const approvedTeamLeave = (id: string, userId: string, from: number, to: number,
   approvedDate: inDays(-13),
 });
 
-// Other people's approved leave (Kalai's own requests are above)
+// A team request still waiting for (or already given) a decision; dates are relative to today
+const teamRequest = (id: string, userId: string, leaveType: LeaveRequest['leaveType'], from: number, to: number, reason: string, status: LeaveRequest['status'], approvedBy?: string): LeaveRequest => ({
+  id,
+  userId,
+  leaveType,
+  startDate: inDays(from),
+  startDayPart: 'full-day',
+  endDate: inDays(to),
+  endDayPart: 'full-day',
+  days: to - from + 1,
+  reason,
+  status,
+  appliedDate: inDays(Math.min(from, 0) - 3),
+  ...(approvedBy ? { approvedBy, approvedDate: inDays(Math.min(from, 0) - 2) } : {}),
+});
+
+// Other people's leave (Kalai's own requests are above). Each request goes to the person's reporting manager.
 export const sampleTeamLeaveRequests: LeaveRequest[] = [
   approvedTeamLeave('T1', 'EMP001', 9, 10, 'Family event'),
   approvedTeamLeave('T2', 'EMP002', 4, 6, 'Travel'),
   approvedTeamLeave('T3', 'EMP004', -2, 5, 'Medical leave'),
+  teamRequest('T4', 'EMP003', 'sick', 1, 1, 'Fever and headache', 'pending'),
+  teamRequest('T5', 'EMP005', 'earned', 14, 17, 'Pre-planned vacation', 'pending'),
+  teamRequest('T6', 'EMP006', 'casual', -6, -6, 'Bank work', 'rejected', 'Priya Kumar'),
+  // Leadership requests go to the Executive
+  teamRequest('T7', 'HR001', 'casual', 7, 8, 'Family wedding', 'pending'),
 ];
 
 export const HOLIDAYS_BY_COUNTRY: Record<LeaveCountry, Holiday[]> = {

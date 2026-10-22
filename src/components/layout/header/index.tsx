@@ -188,7 +188,7 @@ interface HeaderProps {
           >
             <Bell className="h-8 w-8 text-slate-700" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 -right-1 h-6 min-w-6 px-1 ionixx_icon-gradient rounded-full text-xs text-white flex items-center justify-center font-bold border border-blue-600">
+              <span className="absolute top-1 -right-1 h-6 min-w-6 px-1 app-icon-gradient rounded-full text-xs text-white flex items-center justify-center font-bold border border-blue-600">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -204,7 +204,7 @@ interface HeaderProps {
             onClick={handleProfileClick}
             className="flex items-center space-x-2 px-2"
           >
-            <div className="w-8 h-8 ionixx_icon-gradient rounded-full flex items-center justify-center text-white text-sm font-medium">
+            <div className="w-8 h-8 app-icon-gradient rounded-full flex items-center justify-center text-white text-sm font-medium">
               {user?.name?.charAt(0) || 'U'}
             </div>
             <span className="hidden md:block text-sm font-medium">{user?.name || 'User'}</span>

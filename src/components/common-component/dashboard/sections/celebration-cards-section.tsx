@@ -1,49 +1,56 @@
+import { Cake, HeartHandshake, UserPlus, type LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Cake } from 'lucide-react';
-import { celebrationCards } from '@/lib/sample-data/dashboard-sample-data';
-import { getIcon, CELEBRATION_STATUS_COLORS, DEFAULT_BADGE_COLOR } from '@/lib/constants';
+import { buildCelebrations, type CelebrationItem, type Celebrations } from '@/lib/dashboard-feeds';
+import { initials } from '@/lib/org-chart';
+import { getActiveUsers } from '@/lib/user-directory';
+import { cn, todayAsDateInput } from '@/lib/utils';
+import { useOrgPeople } from '@/services/apis/users/use-org-chart';
+
+// One card per kind of celebration; a new kind is one entry here plus its list in buildCelebrations
+const CARDS: { key: keyof Celebrations; title: string; description: string; empty: string; icon: LucideIcon; tone: string }[] = [
+  { key: 'birthdays', title: 'Birthdays', description: 'In the next 30 days', empty: 'No birthdays coming up.', icon: Cake, tone: 'bg-pink-100 text-pink-600' },
+  { key: 'anniversaries', title: 'Work Anniversaries', description: 'Milestones in the next 30 days', empty: 'No anniversaries coming up.', icon: HeartHandshake, tone: 'bg-purple-100 text-purple-600' },
+  { key: 'newJoiners', title: 'New Joiners', description: 'Welcome them to the team', empty: 'No one has joined recently.', icon: UserPlus, tone: 'bg-teal-100 text-teal-600' },
+];
 
 export function CelebrationCardsSection() {
+  // Subscribed so people added or removed in User Management / HR update the cards
+  useOrgPeople();
+  const celebrations = buildCelebrations(getActiveUsers(), todayAsDateInput());
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      {celebrationCards.map((card, index) => {
-        const Icon = getIcon(card.icon, Cake);
-        return (
-          <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-            <CardHeader className="rounded-t-lg">
-              <CardTitle className="flex items-center space-x-2 text-black">
-                <Icon className={`h-5 w-5 ${card.color}`} />
-                <span>{card.title}</span>
-              </CardTitle>
-              <CardDescription className="text-black">{card.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {card.items.map((item, itemIndex) => (
-                  <div key={itemIndex} className="flex items-center space-x-4 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center">
-                      <Icon className={`h-5 w-5 ${card.color}`} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{item.name}</p>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span className="text-xs text-gray-500">{item.date}</span>
-                        {item.years && (
-                          <span className="text-xs text-gray-500">• {item.years}</span>
-                        )}
-                      </div>
-                    </div>
-                    <Badge className={CELEBRATION_STATUS_COLORS[item.status] ?? DEFAULT_BADGE_COLOR}>
-                      {item.status}
-                    </Badge>
-                  </div>
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      {CARDS.map(({ key, title, description, empty, icon: Icon, tone }) => (
+        <Card key={key} className="border-0 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className={cn('rounded-lg p-1.5', tone)}>
+                <Icon className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <span>{title}</span>
+            </CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {celebrations[key].length === 0 ? (
+              <p className="py-4 text-center text-sm text-gray-500">{empty}</p>
+            ) : (
+              <ul className="space-y-3">
+                {celebrations[key].slice(0, 4).map((item: CelebrationItem) => (
+                  <li key={item.person.id} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
+                    <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold', tone)}>{initials(item.person.name)}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-gray-900">{item.person.name}</span>
+                      <span className="block truncate text-xs text-gray-500">{item.note}</span>
+                    </span>
+                    <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-xs font-medium', item.when === 'Today' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600')}>{item.when}</span>
+                  </li>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }

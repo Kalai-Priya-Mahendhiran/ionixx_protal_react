@@ -185,7 +185,7 @@ export function RiskTable({ risks, projects, today = new Date(), limit }: { risk
           Nothing high-priority is overdue or blocked.
         </p>
       ) : (
-        <div className="ionixx-scrollbar relative overflow-x-auto rounded-lg border border-gray-200">
+        <div className="app-scrollbar relative overflow-x-auto rounded-lg border border-gray-200">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="bg-gray-50 text-left text-xs font-semibold text-gray-600">
               <tr>

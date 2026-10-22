@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { FormDialog } from '@/components/ui/form-dialog';
-import { PROJECTS, MODULES, TASK_TYPES, TASK_STATUS_OPTIONS } from '@/lib/sample-data/time-tracker-sample-data';
+import { MODULES, TASK_TYPES, TASK_STATUS_OPTIONS } from '@/lib/sample-data/time-tracker-sample-data';
+import { useProjectNames } from '@/services/apis/time-tracker/use-task-log';
 import { todayAsDateInput } from '@/lib/utils';
 import { timeTrackerTaskFormSchema, timeTrackerTaskSchema, type TimeTrackerTaskFormValues } from '@/lib/schemas';
 import { emptyTask, type TaskRecord } from './task-form';
@@ -14,7 +15,6 @@ import { RequiredLabel, SelectField, fieldClass, toOptions } from '@/components/
 
 type TaskFieldName = FieldPath<TimeTrackerTaskFormValues>;
 
-const PROJECT_OPTIONS = toOptions(PROJECTS);
 const MODULE_OPTIONS = toOptions(MODULES);
 const TASK_TYPE_OPTIONS = toOptions(TASK_TYPES);
 
@@ -44,6 +44,8 @@ function HoursField({ name, label }: { name: TaskFieldName; label: string }) {
 
 function TaskDetailsFields({ index, title, onClose }: { index: number; title: string; onClose: () => void }) {
   const { control, setValue } = useFormContext<TimeTrackerTaskFormValues>();
+  // Live: projects added in Tasks show up here
+  const projectOptions = toOptions(useProjectNames());
   const status = useWatch({ control, name: `tasks.${index}.status` });
   const isCompleted = status === 'completed';
 
@@ -77,7 +79,7 @@ function TaskDetailsFields({ index, title, onClose }: { index: number; title: st
           options={TASK_STATUS_OPTIONS}
           onValueChange={handleStatusChange}
         />
-        <SelectField control={control} name={`tasks.${index}.project`} label="Project" placeholder="Select project" options={PROJECT_OPTIONS} />
+        <SelectField control={control} name={`tasks.${index}.project`} label="Project" placeholder="Select project" options={projectOptions} />
         <SelectField control={control} name={`tasks.${index}.module`} label="Epic / Module" placeholder="Select epic or module" options={MODULE_OPTIONS} />
         <SelectField control={control} name={`tasks.${index}.task`} label="User story / task" placeholder="Select task type" options={TASK_TYPE_OPTIONS} />
 

@@ -76,7 +76,7 @@ export function BulkActionsBar({ selected, projects, onDone, onClear }: BulkActi
       {can(user, 'task.assign') && (
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>{trigger(<UserRoundPlus className="h-4 w-4" />, 'Assign to')}</DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="ionixx-scrollbar max-h-72 w-60 overflow-y-auto bg-white">
+          <DropdownMenuContent align="start" className="app-scrollbar max-h-72 w-60 overflow-y-auto bg-white">
             <DropdownMenuLabel className="text-xs text-gray-500">Assign {selected.length} to</DropdownMenuLabel>
             {getAssignableUsers(user).map((member) => (
               <DropdownMenuItem key={member.id} onSelect={() => run({ kind: 'assign', assigneeId: member.id }, `assigned to ${member.name}`)}>

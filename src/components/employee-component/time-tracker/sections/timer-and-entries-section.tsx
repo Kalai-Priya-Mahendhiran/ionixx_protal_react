@@ -3,7 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Timer, Play, Pause, Square, Calendar, Plus, Pencil, Trash2 } from 'lucide-react';
-import { PROJECTS, MODULES, TASK_TYPES } from '@/lib/sample-data/time-tracker-sample-data';
+import { MODULES, TASK_TYPES } from '@/lib/sample-data/time-tracker-sample-data';
+import { useProjectNames } from '@/services/apis/time-tracker/use-task-log';
 import type { TimeEntry } from '@/types';
 import { todayAsDateInput } from '@/lib/utils';
 import { currentTimeOfDay } from './time-entry-form';
@@ -28,6 +29,8 @@ const formatTime = (seconds: number) => {
 };
 
 export function TimerAndEntriesSection({ entries, onRecordEntry, onAddEntry, onEditEntry, onDeleteEntry }: TimerAndEntriesSectionProps) {
+  // Live: projects added in Tasks show up here
+  const projects = useProjectNames();
   const [isRunning, setIsRunning] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [startedAt, setStartedAt] = useState<string | null>(null);
@@ -110,7 +113,7 @@ export function TimerAndEntriesSection({ entries, onRecordEntry, onAddEntry, onE
                 Project <span className="text-red-500">*</span>
                 <select value={details.project} onChange={updateDetail('project')} disabled={isTimerActive} className={fieldClass}>
                   <option value="">Select project</option>
-                  {PROJECTS.map((project) => <option key={project} value={project}>{project}</option>)}
+                  {projects.map((project) => <option key={project} value={project}>{project}</option>)}
                 </select>
                 {errorText(missing.project, 'Select a project')}
               </label>

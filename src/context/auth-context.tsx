@@ -20,6 +20,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (userData: User, token: string) => void;
   logout: () => void;
+  // Refreshes the signed-in person's details (e.g. after they rename themselves in Profile)
+  updateUser: (changes: Partial<Pick<User, "name" | "designation" | "department" | "avatar">>) => void;
   loading: boolean;
 }
 
@@ -60,6 +62,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     storage.setItem("user", userData);
   };
 
+  const updateUser = (changes: Partial<Pick<User, "name" | "designation" | "department" | "avatar">>) => {
+    setUser((current) => {
+      if (!current) return current;
+      const next = { ...current, ...changes };
+      storage.setItem("user", next);
+      return next;
+    });
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -74,6 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     isAuthenticated: !!token && !!user,
     login,
     logout,
+    updateUser,
     loading,
   };
 

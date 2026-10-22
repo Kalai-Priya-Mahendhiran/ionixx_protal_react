@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
-import { getSidebarItems } from "@/lib/modules";
+import { useSidebarItems } from "@/services/apis/users/use-sidebar-items";
 import { getIcon } from "@/lib/constants";
 
 interface SidebarProps {
@@ -15,8 +15,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   const { pathname } = useLocation();
   const { user } = useAuth();
 
-  // Role defaults plus any pages System Admin added or removed for this person
-  const items = getSidebarItems(user);
+  // Role defaults, pages System Admin added or removed, and pages that follow from the data (e.g. Approvals for team leads); live
+  const items = useSidebarItems(user);
 
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -27,7 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   return (
     <div className={cn(
       // A column: the nav scrolls on its own so long menus never run under the footer
-      "fixed inset-y-0 left-0 z-50 flex w-64 flex-col ionixx-gradient-vertical transition-transform duration-300 ease-in-out",
+      "fixed inset-y-0 left-0 z-50 flex w-64 flex-col app-gradient-vertical transition-transform duration-300 ease-in-out",
       isOpen ? "translate-x-0" : "-translate-x-full",
       "lg:translate-x-0"
     )}>

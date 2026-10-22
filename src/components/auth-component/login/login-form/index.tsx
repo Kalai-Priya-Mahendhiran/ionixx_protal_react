@@ -135,7 +135,7 @@ const LoginForm = () => {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-ionixx-primary focus:ring-ionixx-primary border-gray-300 rounded"
+                className="h-4 w-4 text-brand-primary focus:ring-brand-primary border-gray-300 rounded"
               />
               <label htmlFor="remember-me" className="ml-2 block text-[#464EB8] text-sm font-bold">
                 Remember me
@@ -144,7 +144,7 @@ const LoginForm = () => {
             <button
               type="button"
               onClick={() => navigate(ROUTES.ForgotPassword)}
-              className="text-sm text-[#464EB8] hover:text-ionixx-primary font-bold transition-colors"
+              className="text-sm text-[#464EB8] hover:text-brand-primary font-bold transition-colors"
             >
               Forgot password?
             </button>
@@ -152,7 +152,7 @@ const LoginForm = () => {
 
            <Button
              data-testid="login-button"
-             variant="ionixx"
+             variant="brand"
              className="w-full h-12 font-medium rounded-lg transition-all duration-300 transform hover:scale-[1.02] focus:ring-4 focus:ring-indigo-600/20 shadow-lg hover:shadow-xl"
              type="submit"
              disabled={loading}

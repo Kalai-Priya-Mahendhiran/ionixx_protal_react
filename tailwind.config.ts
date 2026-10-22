@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import animate from "tailwindcss-animate"
 
 const config: Config = {
   darkMode: "class",
@@ -51,15 +52,15 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Ionixx Portal Theme Colors
-        ionixx: {
+        // Brand theme colours
+        brand: {
           primary: "#6A71D4",
           secondary: "#3FCCE8", 
           tertiary: "#505AC9",
           gradient: "linear-gradient(135deg, #464EB8 0%, #3FCCE8 50%, #505AC9 100%)",
         },
-        // Ionixx Portal Theme Colors
-        ionixx_icon: {
+        // Brand theme colours
+        brand_icon: {
           primary: "#6A71D4",
           secondary: "#505AC9", 
           tertiary: "#3FCCE8",
@@ -91,13 +92,13 @@ const config: Config = {
         "accordion-up": "accordion-up 0.2s ease-out",
       },
       backgroundImage: {
-        'ionixx-gradient': 'linear-gradient(135deg, #464EB8 0%, #3FCCE8 50%, #505AC9 100%)',
-        'ionixx-gradient-horizontal': 'linear-gradient(90deg, #464EB8 0%, #3FCCE8 50%, #505AC9 100%)',
-        'ionixx-gradient-vertical': 'linear-gradient(180deg, #464EB8 0%, #3FCCE8 50%, #505AC9 100%)',
+        'app-gradient': 'linear-gradient(135deg, #464EB8 0%, #3FCCE8 50%, #505AC9 100%)',
+        'app-gradient-horizontal': 'linear-gradient(90deg, #464EB8 0%, #3FCCE8 50%, #505AC9 100%)',
+        'app-gradient-vertical': 'linear-gradient(180deg, #464EB8 0%, #3FCCE8 50%, #505AC9 100%)',
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [animate],
 }
 
 export default config

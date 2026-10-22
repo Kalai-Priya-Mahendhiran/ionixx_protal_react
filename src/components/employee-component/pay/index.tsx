@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Calculator, FileCheck2, FileText, Home, Receipt, Wallet, type LucideIcon } from 'lucide-react';
-import { toast } from 'sonner';
 import MainLayout from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
 import { useAuth } from '@/context/auth-context';
@@ -13,11 +12,11 @@ import {
   TAX_SUBMISSION_WINDOW,
   deductionsFromDeclarations,
   getPayrollData,
-  type Claim,
   type ClaimTypeId,
   type DeclarationTypeId,
   type TaxDeclaration,
 } from '@/lib/sample-data/payroll-sample-data';
+import { useMyClaims, useMyDeclarations, useSubmitClaim, useSubmitDeclaration } from '@/services/apis/payroll/use-payroll';
 import {
   ReimbursementsCard,
   ClaimsTab,
@@ -56,10 +55,12 @@ export default function Pay() {
   const tab: PayTab = isPayTab(tabParam) ? tabParam : 'home';
   const openTab = (next: PayTab) => setParams(next === 'home' ? {} : { tab: next });
 
-  // Each login has its own salary, tax regime, proofs and claims
+  // Each login has its own salary and tax regime; claims and proofs are live (HR reviews them in Approvals)
   const payroll = getPayrollData(user?.id);
-  const [declarations, setDeclarations] = useState<TaxDeclaration[]>(payroll.declarations);
-  const [claims, setClaims] = useState<Claim[]>(payroll.claims);
+  const { data: declarations = [] } = useMyDeclarations();
+  const { data: claims = [] } = useMyClaims();
+  const submitDeclarationMutation = useSubmitDeclaration();
+  const submitClaimMutation = useSubmitClaim();
   const [payslipView, setPayslipView] = useState<{ payslip: Payslip; view: PayslipView } | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   // Pay & Tax colours (see pay-theme.ts)
@@ -84,39 +85,11 @@ export default function Pay() {
     ...payroll.profile,
   };
 
-  const submitDeclaration = (values: DeclarationFormValues, replaces?: TaxDeclaration) => {
-    const declaration: TaxDeclaration = {
-      id: replaces?.id ?? `INV-${currentYear.slice(2, 4)}${String(declarations.length + 1).padStart(2, '0')}`,
-      financialYear: currentYear,
-      type: values.type as DeclarationTypeId,
-      declaredAmount: Number(values.amount),
-      approvedAmount: 0,
-      status: 'Pending',
-      submittedOn: today,
-      remarks: `Proof: ${values.proofName}`,
-    };
-    setDeclarations((current) => (replaces ? current.map((row) => (row.id === replaces.id ? declaration : row)) : [declaration, ...current]));
-    toast.success(replaces ? `${declaration.id} resubmitted for review` : 'Investment submitted for review');
-  };
+  const submitDeclaration = (values: DeclarationFormValues, replaces?: TaxDeclaration) =>
+    submitDeclarationMutation.mutate({ input: { type: values.type as DeclarationTypeId, amount: Number(values.amount), proofName: values.proofName }, replacesId: replaces?.id });
 
-  const submitClaim = (values: ClaimFormValues) => {
-    const claimNo = `CLM-${today.slice(2, 4)}${String(Date.now()).slice(-4)}`;
-    setClaims((current) => [
-      {
-        claimNo,
-        financialYear: currentYear,
-        type: values.type as ClaimTypeId,
-        billDate: values.billDate,
-        updatedOn: today,
-        amount: Number(values.amount),
-        approvedAmount: 0,
-        status: 'Pending',
-        remarks: values.remarks,
-      },
-      ...current,
-    ]);
-    toast.success(`Claim ${claimNo} submitted`);
-  };
+  const submitClaim = (values: ClaimFormValues) =>
+    submitClaimMutation.mutate({ type: values.type as ClaimTypeId, billDate: values.billDate, amount: Number(values.amount), remarks: values.remarks });
 
   const payCard = <PaySummaryCard payslip={latestPayslip} onViewPayslip={(payslip) => setPayslipView({ payslip, view: 'payslip' })} onOpenHistory={() => setHistoryOpen(true)} />;
   const taxCard = <TaxSummaryCard statement={statement} onOpenStatement={() => setStatementOpen(true)} />;

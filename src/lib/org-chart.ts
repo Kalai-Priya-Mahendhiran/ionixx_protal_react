@@ -1,11 +1,13 @@
 import type { UserRole } from '@/lib/mock-users';
 import { DEPARTMENTS, ORG_REPORTING_LINES, PERSON_DETAILS, type DepartmentInfo, type WorkStatus } from '@/lib/sample-data/organization-sample-data';
 import { teamMembers } from '@/lib/team-data';
-import { getActiveUsers } from '@/lib/user-directory';
+import { getAccessRecord } from '@/lib/user-access-store';
+import { USER_DIRECTORY } from '@/lib/user-directory';
 
 /*
  * Organization chart: who reports to whom, departments and the people directory.
- * Built from the active user directory, so it stays in step with Tasks, Team Overview and User Management.
+ * Built from the user directory every time it is read, so people added, moved or deactivated in
+ * User Management show up straight away (see useOrgPeople). Invited people appear as "Yet to join".
  */
 
 export interface OrgPerson {
@@ -26,7 +28,9 @@ export interface OrgPerson {
 const ROSTER_STATUS: Record<string, WorkStatus> = { active: 'in-office', remote: 'remote', 'on-leave': 'on-leave' };
 
 export function getOrgPeople(): OrgPerson[] {
-  const people = getActiveUsers().map((user): OrgPerson => {
+  // Deactivated people leave the chart; invited people stay, marked as yet to join
+  const current = USER_DIRECTORY.filter((user) => getAccessRecord(user.id).status !== 'deactivated');
+  const people = current.map((user): OrgPerson => {
     const roster = teamMembers.find((member) => member.id === user.id);
     const extra = PERSON_DETAILS[user.id];
     return {
@@ -38,16 +42,33 @@ export function getOrgPeople(): OrgPerson[] {
       department: user.department,
       managerId: user.managerId ?? ORG_REPORTING_LINES[user.id],
       employeeId: roster?.employeeId ?? extra?.employeeId ?? user.id,
-      phone: roster?.phone ?? extra?.phone,
-      location: roster?.location ?? extra?.location,
+      phone: user.phone ?? roster?.phone ?? extra?.phone,
+      location: user.location ?? roster?.location ?? extra?.location,
       joiningDate: roster?.joiningDate ?? extra?.joiningDate ?? user.joiningDate,
-      status: (roster ? ROSTER_STATUS[roster.status] : undefined) ?? extra?.status ?? 'in-office',
+      status: getAccessRecord(user.id).status === 'invited' ? 'invited' : ((roster ? ROSTER_STATUS[roster.status] : undefined) ?? extra?.status ?? 'in-office'),
     };
   });
   // A manager who is no longer active would hide their team, so those people move up to the top level
   const ids = new Set(people.map((person) => person.id));
   return people.map((person) => (person.managerId && !ids.has(person.managerId) ? { ...person, managerId: undefined } : person));
 }
+
+// Everyone below a manager, at any depth (their whole team), top level first
+export function teamBelow(people: OrgPerson[], managerId: string): OrgPerson[] {
+  return directReports(people, managerId).flatMap((person) => [person, ...teamBelow(people, person.id)]);
+}
+
+// Marks people on approved leave today; kept separate so org-chart stays free of service imports
+export function withLeaveToday(people: OrgPerson[], absences: { userId: string; startDate: string; endDate: string }[], today: string): OrgPerson[] {
+  const away = new Set(absences.filter((absence) => absence.startDate <= today && today <= absence.endDate).map((absence) => absence.userId));
+  return people.map((person) => (away.has(person.id) && person.status !== 'invited' ? { ...person, status: 'on-leave' } : person));
+}
+
+// Reporting manager from the live directory (approvals route requests here)
+export const managerOf = (userId: string): string | undefined => getOrgPeople().find((person) => person.id === userId)?.managerId;
+
+// Anyone with at least one direct report, whatever their role (a senior developer leading two juniors counts)
+export const managesAnyone = (userId: string): boolean => getOrgPeople().some((person) => person.managerId === userId);
 
 // People at the top of the chart (no manager)
 export const topLevel = (people: OrgPerson[]) => people.filter((person) => !person.managerId);

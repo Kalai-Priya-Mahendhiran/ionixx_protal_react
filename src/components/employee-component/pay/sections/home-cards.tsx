@@ -111,7 +111,7 @@ export function ReimbursementsCard({ open, period, claims, onOpenClaims }: Reimb
       }
     >
       <p className="text-sm text-gray-600">{open ? `Accepting claims until ${formatDayMonthYear(period.closesOn)}` : 'Not accepting claims right now'}</p>
-      <div className="ionixx-scrollbar overflow-x-auto">
+      <div className="app-scrollbar overflow-x-auto">
         <table className="w-full min-w-[420px] text-sm">
           <thead>
             <tr className="border-b border-gray-200 text-left">

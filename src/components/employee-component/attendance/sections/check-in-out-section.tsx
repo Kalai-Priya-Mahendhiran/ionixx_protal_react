@@ -39,9 +39,9 @@ export function CheckInOutSection() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="text-center">
-          <div className="w-32 h-32 mx-auto mb-4 rounded-full ionixx_icon-gradient ionixx-shadow-lg flex items-center justify-center">
+          <div className="w-32 h-32 mx-auto mb-4 rounded-full app-icon-gradient app-shadow-lg flex items-center justify-center">
             <div className="w-28 h-28 rounded-full bg-white flex flex-col items-center justify-center">
-              <span className="text-lg font-bold ionixx-text-gradient">{elapsed}</span>
+              <span className="text-lg font-bold app-text-gradient">{elapsed}</span>
               <span className="text-xs text-gray-500 mt-1">Worked</span>
             </div>
           </div>

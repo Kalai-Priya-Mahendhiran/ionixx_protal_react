@@ -175,7 +175,7 @@ export function QueueSection({ requests, settings, userId, isLoading }: { reques
           {filtered ? 'No requests match these filters.' : view === 'breached' ? 'No SLA breaches. Nice work.' : view === 'at-risk' ? 'Nothing is close to breaching.' : view === 'done' ? 'Nothing resolved yet.' : 'The queue is clear.'}
         </div>
       ) : (
-        <div className="ionixx-scrollbar relative overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="app-scrollbar relative overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full min-w-[980px] text-sm">
             <thead className="bg-gray-50 text-left text-xs font-semibold text-gray-600">
               <tr>

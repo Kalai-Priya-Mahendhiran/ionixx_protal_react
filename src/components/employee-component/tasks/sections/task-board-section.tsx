@@ -312,7 +312,7 @@ export function TaskBoardSection({ tasks, subtaskProgress, onCreate, onOpen, onE
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveTask(null)}
     >
-      <div className="ionixx-scrollbar -mx-1 flex gap-4 overflow-x-auto px-1 pb-2">
+      <div className="app-scrollbar -mx-1 flex gap-4 overflow-x-auto px-1 pb-2">
         {getBoardColumns().map((column) => {
           const columnTasks = tasks.filter((task) => getBoardColumn(task.status) === column.status);
           return (

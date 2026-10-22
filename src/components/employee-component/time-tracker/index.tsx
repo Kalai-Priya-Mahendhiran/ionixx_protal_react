@@ -1,8 +1,9 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Timer } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
 import { PageHeader } from '@/components/ui/page-header';
-import { sampleTodaysTasks, sampleProductivity, sampleWeeklyTimeDistribution } from '@/lib/sample-data/time-tracker-sample-data';
+import { productivity, weeklyDistribution } from '@/lib/time-tracker-stats';
+import { useAddTaskLog, useDeleteTaskLog, useTaskLog, useUpdateTaskLog } from '@/services/apis/time-tracker/use-task-log';
 import { useCreateTimeEntry, useDeleteTimeEntry, useTimeEntries, useUpdateTimeEntry } from '@/services/apis/time-tracker/use-time-entries';
 import {
   TimeTrackingStatsSection,
@@ -22,7 +23,11 @@ import type { NewTimeEntry } from './sections/timer-and-entries-section';
 import type { TimeEntry } from '@/types';
 
 export default function TimeTracker() {
-  const [tasks, setTasks] = useState<TaskRecord[]>(sampleTodaysTasks);
+  // The daily task log is kept by the service, so it survives navigation
+  const { data: tasks = [] } = useTaskLog();
+  const addTasks = useAddTaskLog();
+  const updateTask = useUpdateTaskLog();
+  const deleteTask = useDeleteTaskLog();
   const [taskDialog, setTaskDialog] = useState<{ task?: TaskRecord } | null>(null);
   // Set by the task-status stat cards; narrows the task list
   const [taskFilter, setTaskFilter] = useState<TaskCardFilter>('all');
@@ -59,16 +64,9 @@ export default function TimeTracker() {
   const saveTasks = (values: TimeTrackerTaskFormValues) => {
     if (taskDialog?.task) {
       const updatedTask = values.tasks[0];
-      setTasks((current) => current.map((task) => task.id === taskDialog.task?.id
-        ? { ...task, ...updatedTask, date: getTaskDate(updatedTask, task.date) }
-        : task));
+      updateTask.mutate({ id: taskDialog.task.id, changes: { ...updatedTask, date: getTaskDate(updatedTask, taskDialog.task.date) } });
     } else {
-      const newTasks = values.tasks.map((task) => ({
-        ...task,
-        id: crypto.randomUUID(),
-        date: getTaskDate(task, todayAsDateInput()),
-      }));
-      setTasks((current) => [...newTasks, ...current]);
+      addTasks.mutate(values.tasks.map((task) => ({ ...task, date: getTaskDate(task, todayAsDateInput()) })));
     }
     setTaskDialog(null);
   };
@@ -83,7 +81,7 @@ export default function TimeTracker() {
         <TimeTrackingStatsSection
           entries={entries}
           tasks={tasksInRange}
-          productivity={sampleProductivity}
+          productivity={productivity(tasksInRange)}
           taskFilter={taskFilter}
           onTaskFilterChange={setTaskFilter}
         />
@@ -105,11 +103,12 @@ export default function TimeTracker() {
           onDateRangeChange={setTaskRange}
           onAddTask={() => setTaskDialog({})}
           onEditTask={(task) => setTaskDialog({ task })}
-          onDeleteTask={(taskId) => setTasks((current) => current.filter((entry) => entry.id !== taskId))}
+          onDeleteTask={(taskId) => deleteTask.mutate(taskId)}
         />
 
         {/* Weekly Time Chart */}
-        <WeeklyTimeChartSection distribution={sampleWeeklyTimeDistribution} />
+        {/* Worked out from this week's time entries */}
+        <WeeklyTimeChartSection distribution={weeklyDistribution(entries, todayAsDateInput())} />
       </div>
       {taskDialog && (
         <TaskDialog

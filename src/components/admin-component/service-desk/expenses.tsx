@@ -238,7 +238,7 @@ export default function Expenses() {
             {inMonth.length === 0 ? (
               <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center text-sm text-gray-600">Nothing recorded for {monthName(month)}.</div>
             ) : (
-              <div className="ionixx-scrollbar relative overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+              <div className="app-scrollbar relative overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
                 <table className="w-full min-w-[820px] text-sm">
                   <thead className="bg-gray-50 text-left text-xs font-semibold text-gray-600">
                     <tr>

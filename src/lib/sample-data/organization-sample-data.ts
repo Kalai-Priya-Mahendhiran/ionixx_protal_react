@@ -22,17 +22,18 @@ export interface DepartmentInfo {
 }
 
 export const DEPARTMENTS: DepartmentInfo[] = [
-  { name: 'Executive Office', email: 'leadership@ionixx.com', tone: 'purple', about: 'Company leadership and strategy' },
-  { name: 'Engineering', email: 'engineering@ionixx.com', tone: 'indigo', about: 'Product development and delivery' },
-  { name: 'Quality', email: 'quality@ionixx.com', tone: 'teal', about: 'Testing and release quality' },
-  { name: 'Design', email: 'design@ionixx.com', tone: 'pink', about: 'Product and UX design' },
-  { name: 'Infrastructure', email: 'infra@ionixx.com', tone: 'sky', about: 'Cloud, CI/CD and environments' },
-  { name: 'Human Resources', email: 'hr@ionixx.com', tone: 'amber', about: 'People, hiring and policies' },
-  { name: 'Operations', email: 'operations@ionixx.com', tone: 'orange', about: 'Office, assets and facilities' },
-  { name: 'IT', email: 'it@ionixx.com', tone: 'blue', about: 'Systems, access and security' },
+  { name: 'Executive Office', email: 'leadership@company.com', tone: 'purple', about: 'Company leadership and strategy' },
+  { name: 'Engineering', email: 'engineering@company.com', tone: 'indigo', about: 'Product development and delivery' },
+  { name: 'Quality', email: 'quality@company.com', tone: 'teal', about: 'Testing and release quality' },
+  { name: 'Design', email: 'design@company.com', tone: 'pink', about: 'Product and UX design' },
+  { name: 'Infrastructure', email: 'infra@company.com', tone: 'sky', about: 'Cloud, CI/CD and environments' },
+  { name: 'Human Resources', email: 'hr@company.com', tone: 'amber', about: 'People, hiring and policies' },
+  { name: 'Operations', email: 'operations@company.com', tone: 'orange', about: 'Office, assets and facilities' },
+  { name: 'IT', email: 'it@company.com', tone: 'blue', about: 'Systems, access and security' },
 ];
 
-export type WorkStatus = 'in-office' | 'remote' | 'on-leave';
+// 'invited': added in User Management but hasn't signed in yet
+export type WorkStatus = 'in-office' | 'remote' | 'on-leave' | 'invited';
 
 // Contact details for people the team roster doesn't cover (leadership logins, office staff)
 export const PERSON_DETAILS: Record<string, { employeeId: string; phone: string; location: string; joiningDate: string; status: WorkStatus }> = {

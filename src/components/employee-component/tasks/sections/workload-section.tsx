@@ -73,7 +73,7 @@ export function WorkloadSection({ tasks, userIds, onSelectPerson }: WorkloadSect
           ) : visibleRows.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-gray-500">No one is overloaded right now.</p>
           ) : (
-            <div className="ionixx-scrollbar relative overflow-x-auto">
+            <div className="app-scrollbar relative overflow-x-auto">
               <table className="w-full min-w-[820px] text-sm">
                 <thead className="bg-gray-50 text-left text-xs font-semibold text-gray-600">
                   <tr>

@@ -41,7 +41,7 @@ export function LeaveHistorySection({ requests }: LeaveHistorySectionProps) {
         <LeaveStatusFilter selected={statusFilter} counts={statusCounts} onApply={setStatusFilter} />
       </CardHeader>
       <CardContent>
-        <div className={`overflow-auto ionixx-scrollbar rounded-lg border border-indigo-100 ${LEAVE_HISTORY_MAX_HEIGHT_CLASS}`}>
+        <div className={`overflow-auto app-scrollbar rounded-lg border border-indigo-100 ${LEAVE_HISTORY_MAX_HEIGHT_CLASS}`}>
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-indigo-50 text-left text-xs font-semibold uppercase tracking-wide text-indigo-700">
               <tr>

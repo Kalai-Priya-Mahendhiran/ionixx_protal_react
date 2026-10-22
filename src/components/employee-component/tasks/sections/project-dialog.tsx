@@ -161,7 +161,7 @@ export function ProjectDialog({ open, project, tasks, existingKeys, onOpenChange
             <Input value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Find people" aria-label="Find people" className="h-8 pl-8 text-sm" />
           </div>
         </div>
-        <ul className="ionixx-scrollbar grid max-h-56 grid-cols-1 gap-1 overflow-y-auto rounded-lg border border-gray-200 p-1.5 sm:grid-cols-2">
+        <ul className="app-scrollbar grid max-h-56 grid-cols-1 gap-1 overflow-y-auto rounded-lg border border-gray-200 p-1.5 sm:grid-cols-2">
           {visibleMembers.map((member) => {
             const isLead = member.id === leadId;
             const checked = isLead || memberIds.includes(member.id);

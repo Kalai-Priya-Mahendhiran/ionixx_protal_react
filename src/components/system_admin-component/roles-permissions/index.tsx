@@ -24,7 +24,7 @@ function DefaultPagesTable() {
             Which pages appear in each role's menu. Add or remove pages for one person in User Management. System pages stay with the System Admin role.
           </p>
         </div>
-        <div className="ionixx-scrollbar relative overflow-x-auto rounded-lg border border-gray-200">
+        <div className="app-scrollbar relative overflow-x-auto rounded-lg border border-gray-200">
           <table className="w-full min-w-[820px] text-sm">
             <thead className="bg-gray-50 text-xs font-semibold text-gray-600">
               <tr>

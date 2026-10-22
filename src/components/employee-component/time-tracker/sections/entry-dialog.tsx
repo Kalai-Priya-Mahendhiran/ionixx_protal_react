@@ -1,14 +1,14 @@
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormDialog } from '@/components/ui/form-dialog';
-import { PROJECTS, MODULES, TASK_TYPES } from '@/lib/sample-data/time-tracker-sample-data';
+import { MODULES, TASK_TYPES } from '@/lib/sample-data/time-tracker-sample-data';
+import { useProjectNames } from '@/services/apis/time-tracker/use-task-log';
 import type { TimeEntry } from '@/types';
 import { todayAsDateInput } from '@/lib/utils';
 import { timeEntrySchema, type TimeEntryFormValues } from '@/lib/schemas';
 import { emptyTimeEntry, hoursBetween } from './time-entry-form';
 import { SelectField, TextField, TextareaField, toOptions } from '@/components/ui/form-fields';
 
-const PROJECT_OPTIONS = toOptions(PROJECTS);
 const MODULE_OPTIONS = toOptions(MODULES);
 const TASK_TYPE_OPTIONS = toOptions(TASK_TYPES);
 
@@ -19,6 +19,8 @@ interface EntryDialogProps {
 }
 
 export function EntryDialog({ entry, onClose, onSave }: EntryDialogProps) {
+  // Live: projects added in Tasks show up here
+  const projectOptions = toOptions(useProjectNames());
   const form = useForm<TimeEntryFormValues>({
     resolver: zodResolver(timeEntrySchema),
     defaultValues: entry
@@ -49,7 +51,7 @@ export function EntryDialog({ entry, onClose, onSave }: EntryDialogProps) {
       submitLabel={entry ? 'Save changes' : 'Save entry'}
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <SelectField control={control} name="project" label="Project" placeholder="Select project" options={PROJECT_OPTIONS} />
+        <SelectField control={control} name="project" label="Project" placeholder="Select project" options={projectOptions} />
         <SelectField control={control} name="module" label="Epic / Module" placeholder="Select epic or module" options={MODULE_OPTIONS} />
         <SelectField
           control={control}

@@ -386,3 +386,6 @@ export const HELP_TOPICS = [
     steps: ['Open Reimbursements while claims are being accepted.', 'Choose New claim, pick the category, and enter the bill date and amount.', 'Follow the approval status in the list; approved amounts come with your salary.'],
   },
 ];
+
+// The people with seeded pay data (others start with no claims or declarations)
+export const PAYROLL_SEEDED_IDS = Object.keys(PEOPLE);

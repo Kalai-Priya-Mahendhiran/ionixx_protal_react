@@ -1,7 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 import {
   UserCog,
   Search,
@@ -35,175 +34,25 @@ import { SelectField, TextField, toOptions } from "@/components/ui/form-fields";
 import { AppSheet } from "@/components/ui/sheet";
 import { EMPLOYMENT_STATUS_COLORS, EMPLOYMENT_STATUS_LABELS } from "@/lib/constants";
 import { addEmployeeSchema, EMPLOYMENT_TYPES, type AddEmployeeFormValues } from "@/lib/form-schemas/hr";
+import { getActiveUsers } from "@/lib/user-directory";
+import type { AddEmployeeInput, EmployeeRecord } from "@/services/apis/employees/employee-service";
+import { useAddEmployee, useEmployees, useSetEmployeeActive } from "@/services/apis/employees/use-employees";
 
-type EmploymentStatus = "active" | "on-leave" | "inactive";
-
-interface EmployeeDocument {
-  name: string;
-  type: string;
-  uploadedDate: string;
-}
-
-interface Employee {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  designation: string;
-  department: string;
-  employeeId: string;
-  reportingManager: string;
-  joiningDate: string;
-  location: string;
-  status: EmploymentStatus;
-  employmentType: "Full-time" | "Contract" | "Intern";
-  documents: EmployeeDocument[];
-}
-
-const seedEmployees: Employee[] = [
-  {
-    id: "EMP00101",
-    name: "Kalai Priya",
-    email: "kalai.priya@ionixx.com",
-    phone: "+91 98765 11001",
-    designation: "Software Developer",
-    department: "Engineering",
-    employeeId: "EMP00101",
-    reportingManager: "Priya Kumar",
-    joiningDate: "2023-04-12",
-    location: "Chennai, IN",
-    status: "active",
-    employmentType: "Full-time",
-    documents: [
-      { name: "Offer Letter.pdf", type: "Offer", uploadedDate: "2023-03-20" },
-      { name: "PAN Card.pdf", type: "ID", uploadedDate: "2023-04-12" },
-    ],
-  },
-  {
-    id: "EMP00102",
-    name: "Arjun Rao",
-    email: "arjun.rao@ionixx.com",
-    phone: "+91 98765 11002",
-    designation: "Senior Software Developer",
-    department: "Engineering",
-    employeeId: "EMP00102",
-    reportingManager: "Priya Kumar",
-    joiningDate: "2021-07-05",
-    location: "Bengaluru, IN",
-    status: "active",
-    employmentType: "Full-time",
-    documents: [
-      { name: "Offer Letter.pdf", type: "Offer", uploadedDate: "2021-06-10" },
-      { name: "Aadhaar.pdf", type: "ID", uploadedDate: "2021-07-05" },
-    ],
-  },
-  {
-    id: "EMP00103",
-    name: "Meera Sundar",
-    email: "meera.sundar@ionixx.com",
-    phone: "+91 98765 11003",
-    designation: "QA Engineer",
-    department: "Quality",
-    employeeId: "EMP00103",
-    reportingManager: "Priya Kumar",
-    joiningDate: "2022-11-21",
-    location: "Chennai, IN",
-    status: "active",
-    employmentType: "Full-time",
-    documents: [
-      { name: "Offer Letter.pdf", type: "Offer", uploadedDate: "2022-10-18" },
-    ],
-  },
-  {
-    id: "EMP00104",
-    name: "Rohit Deshmukh",
-    email: "rohit.deshmukh@ionixx.com",
-    phone: "+91 98765 11004",
-    designation: "UI/UX Designer",
-    department: "Design",
-    employeeId: "EMP00104",
-    reportingManager: "Priya Kumar",
-    joiningDate: "2023-01-09",
-    location: "Pune, IN",
-    status: "on-leave",
-    employmentType: "Full-time",
-    documents: [
-      { name: "Offer Letter.pdf", type: "Offer", uploadedDate: "2022-12-15" },
-    ],
-  },
-  {
-    id: "EMP00105",
-    name: "Divya Menon",
-    email: "divya.menon@ionixx.com",
-    phone: "+91 98765 11005",
-    designation: "DevOps Engineer",
-    department: "Infrastructure",
-    employeeId: "EMP00105",
-    reportingManager: "Priya Kumar",
-    joiningDate: "2020-09-14",
-    location: "Hyderabad, IN",
-    status: "active",
-    employmentType: "Full-time",
-    documents: [
-      { name: "Offer Letter.pdf", type: "Offer", uploadedDate: "2020-08-25" },
-      { name: "Background Verification.pdf", type: "BGV", uploadedDate: "2020-09-30" },
-    ],
-  },
-  {
-    id: "EMP00106",
-    name: "Karthik Subramanian",
-    email: "karthik.s@ionixx.com",
-    phone: "+91 98765 11006",
-    designation: "Junior Developer",
-    department: "Engineering",
-    employeeId: "EMP00106",
-    reportingManager: "Priya Kumar",
-    joiningDate: "2024-06-03",
-    location: "Chennai, IN",
-    status: "active",
-    employmentType: "Full-time",
-    documents: [],
-  },
-  {
-    id: "EMP00107",
-    name: "Sneha Iyer",
-    email: "sneha.iyer@ionixx.com",
-    phone: "+91 98765 11007",
-    designation: "HR Associate",
-    department: "Human Resources",
-    employeeId: "EMP00107",
-    reportingManager: "Anita Rajan",
-    joiningDate: "2024-02-19",
-    location: "Chennai, IN",
-    status: "active",
-    employmentType: "Full-time",
-    documents: [
-      { name: "Offer Letter.pdf", type: "Offer", uploadedDate: "2024-01-30" },
-    ],
-  },
-  {
-    id: "EMP00108",
-    name: "Vikram Shetty",
-    email: "vikram.shetty@ionixx.com",
-    phone: "+91 98765 11008",
-    designation: "Backend Intern",
-    department: "Engineering",
-    employeeId: "EMP00108",
-    reportingManager: "Arjun Rao",
-    joiningDate: "2025-12-02",
-    location: "Remote, IN",
-    status: "inactive",
-    employmentType: "Intern",
-    documents: [],
-  },
-];
+type Employee = EmployeeRecord;
+type EmploymentStatus = Employee["status"];
 
 export default function EmployeeManagement() {
-  const [employees, setEmployees] = useState<Employee[]>(seedEmployees);
+  // The shared directory: people added in User Management show up here, and people added here show up there
+  const { data: employees = [], isLoading } = useEmployees();
+  const addEmployee = useAddEmployee();
+  const setActive = useSetEmployeeActive();
   const [search, setSearch] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selected, setSelected] = useState<Employee | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Looked up by id so the open drawer shows the latest record
+  const selected = employees.find((employee) => employee.id === selectedId) ?? null;
+  const setSelected = (employee: Employee | null) => setSelectedId(employee?.id ?? null);
   const [showAddModal, setShowAddModal] = useState(false);
 
   const departments = useMemo(
@@ -240,46 +89,11 @@ export default function EmployeeManagement() {
   const toggleCard = (status: EmploymentStatus) =>
     setStatusFilter((prev) => (prev === status ? "all" : status));
 
-  const handleAdd = (data: Omit<Employee, "id" | "documents" | "status">) => {
-    const newEmp: Employee = {
-      ...data,
-      id: data.employeeId,
-      documents: [],
-      status: "active",
-    };
-    setEmployees((prev) => [newEmp, ...prev]);
-    setShowAddModal(false);
-    toast.success(`${newEmp.name} added to the directory.`);
-  };
+  const handleAdd = (data: AddEmployeeInput) =>
+    addEmployee.mutate(data, { onSuccess: () => setShowAddModal(false) });
 
-  const toggleStatus = (id: string) => {
-    setEmployees((prev) =>
-      prev.map((e) =>
-        e.id === id
-          ? {
-              ...e,
-              status: e.status === "active" ? "inactive" : "active",
-            }
-          : e
-      )
-    );
-    setSelected((s) =>
-      s && s.id === id
-        ? {
-            ...s,
-            status: s.status === "active" ? "inactive" : "active",
-          }
-        : s
-    );
-    const target = employees.find((e) => e.id === id);
-    if (target) {
-      toast.success(
-        target.status === "active"
-          ? `${target.name} marked inactive.`
-          : `${target.name} reactivated.`
-      );
-    }
-  };
+  const toggleStatus = (employee: Employee) =>
+    setActive.mutate({ userId: employee.id, active: employee.status === "inactive", name: employee.name });
 
   return (
     <MainLayout>
@@ -299,7 +113,7 @@ export default function EmployeeManagement() {
         />
 
         <StatGrid>
-          <StatCard icon={Users} label="Total" value={stats.total} tone="indigo" active={statusFilter === "all"} onClick={() => setStatusFilter("all")} />
+          <StatCard icon={Users} label="Total" value={stats.total} tone="indigo" loading={isLoading} active={statusFilter === "all"} onClick={() => setStatusFilter("all")} />
           <StatCard icon={UserCheck} label="Active" value={stats.active} tone="green" active={statusFilter === "active"} onClick={() => toggleCard("active")} />
           <StatCard icon={Calendar} label="On Leave" value={stats.onLeave} tone="orange" active={statusFilter === "on-leave"} onClick={() => toggleCard("on-leave")} />
           <StatCard icon={UserX} label="Inactive" value={stats.inactive} tone="gray" active={statusFilter === "inactive"} onClick={() => toggleCard("inactive")} />
@@ -384,7 +198,7 @@ export default function EmployeeManagement() {
                       <td className="py-3 px-2 text-gray-700">{e.department}</td>
                       <td className="py-3 px-2 text-gray-700">{e.designation}</td>
                       <td className="py-3 px-2 text-gray-600">
-                        {formatDate(e.joiningDate)}
+                        {e.joiningDate ? formatDate(e.joiningDate) : "—"}
                       </td>
                       <td className="py-3 px-2">
                         <Badge className={EMPLOYMENT_STATUS_COLORS[e.status]}>
@@ -423,7 +237,8 @@ export default function EmployeeManagement() {
         <EmployeeDrawer
           employee={selected}
           onClose={() => setSelected(null)}
-          onToggleStatus={() => toggleStatus(selected.id)}
+          onToggleStatus={() => toggleStatus(selected)}
+          busy={setActive.isPending}
         />
       )}
 
@@ -431,6 +246,7 @@ export default function EmployeeManagement() {
         open={showAddModal}
         onOpenChange={setShowAddModal}
         onSubmit={handleAdd}
+        pending={addEmployee.isPending}
         existingDepartments={departments}
       />
     </MainLayout>
@@ -441,10 +257,12 @@ function EmployeeDrawer({
   employee,
   onClose,
   onToggleStatus,
+  busy,
 }: {
   employee: Employee;
   onClose: () => void;
   onToggleStatus: () => void;
+  busy: boolean;
 }) {
   return (
     <AppSheet
@@ -465,6 +283,7 @@ function EmployeeDrawer({
               <p className="text-sm text-white/90">{employee.designation}</p>
               <Badge className="mt-2 bg-white/20 text-white border-white/30">
                 {EMPLOYMENT_STATUS_LABELS[employee.status]}
+                {employee.accountStatus === "invited" && " · invite sent"}
               </Badge>
             </div>
           </div>
@@ -479,13 +298,14 @@ function EmployeeDrawer({
           <Button
             variant="outline"
             onClick={onToggleStatus}
+            disabled={busy}
             className={
-              employee.status === "active"
+              employee.status !== "inactive"
                 ? "flex-1 border-red-300 text-red-600 hover:bg-red-50"
                 : "flex-1 border-green-300 text-green-600 hover:bg-green-50"
             }
           >
-            {employee.status === "active" ? "Deactivate" : "Reactivate"}
+            {employee.status !== "inactive" ? "Mark inactive" : "Reactivate"}
           </Button>
         </>
       }
@@ -502,7 +322,7 @@ function EmployeeDrawer({
           <DetailRow
             icon={<Calendar className="h-4 w-4" />}
             label="Joined"
-            value={formatDate(employee.joiningDate)}
+            value={employee.joiningDate ? formatDate(employee.joiningDate) : "—"}
           />
           <DetailRow icon={<UserCog className="h-4 w-4" />} label="Type" value={employee.employmentType} />
           <DetailRow icon={<Users className="h-4 w-4" />} label="Employee ID" value={employee.employeeId} />
@@ -547,7 +367,7 @@ const emptyEmployee = (department: string): AddEmployeeFormValues => ({
   designation: "",
   department,
   employmentType: "Full-time",
-  reportingManager: "",
+  managerId: "",
   location: "",
 });
 
@@ -555,21 +375,19 @@ function AddEmployeeModal({
   open,
   onOpenChange,
   onSubmit,
+  pending,
   existingDepartments,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: Omit<Employee, "id" | "documents" | "status">) => void;
+  onSubmit: (data: AddEmployeeInput) => void;
+  pending: boolean;
   existingDepartments: string[];
 }) {
   const defaultDepartment = existingDepartments[0] ?? "Engineering";
-  const departmentOptions = useMemo(
-    () =>
-      toOptions(
-        Array.from(new Set([...existingDepartments, "Human Resources", "Sales"]))
-      ),
-    [existingDepartments]
-  );
+  const departmentOptions = useMemo(() => toOptions(existingDepartments), [existingDepartments]);
+  // Anyone active can be a reporting manager
+  const managerOptions = [{ value: "", label: "None" }, ...[...getActiveUsers()].sort((a, b) => a.name.localeCompare(b.name)).map((person) => ({ value: person.id, label: `${person.name} · ${person.designation}` }))];
 
   const form = useForm<AddEmployeeFormValues>({
     resolver: zodResolver(addEmployeeSchema),
@@ -588,7 +406,7 @@ function AddEmployeeModal({
       designation: values.designation.trim(),
       department: values.department,
       employeeId: values.employeeId.trim(),
-      reportingManager: values.reportingManager?.trim() ?? "",
+      managerId: values.managerId || undefined,
       // The directory shows a joining date, so a blank one falls back to today
       joiningDate: values.joiningDate || new Date().toISOString().slice(0, 10),
       location: values.location?.trim() ?? "",
@@ -602,9 +420,10 @@ function AddEmployeeModal({
       form={form}
       onSubmit={save}
       title="Add New Employee"
-      description="Create a new employee record."
+      description="They're added to the directory and org chart, and get an invitation to sign in."
       size="lg"
       submitLabel="Add employee"
+      pending={pending}
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField
@@ -650,7 +469,7 @@ function AddEmployeeModal({
           label="Type"
           options={EMPLOYMENT_TYPE_OPTIONS}
         />
-        <TextField control={form.control} name="reportingManager" label="Reporting to" />
+        <SelectField control={form.control} name="managerId" label="Reporting to" options={managerOptions} placeholder="None" required={false} />
         <TextField control={form.control} name="location" label="Location" />
       </div>
     </FormDialog>

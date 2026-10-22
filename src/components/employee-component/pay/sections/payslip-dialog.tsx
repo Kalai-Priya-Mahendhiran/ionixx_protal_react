@@ -200,7 +200,7 @@ function BreakdownBody({ payslip, payslips }: { payslip: Payslip; payslips: Pays
     .reduce((total, slip) => total + takeHomePay(slip), 0);
 
   return (
-    <div className="ionixx-scrollbar overflow-x-auto">
+    <div className="app-scrollbar overflow-x-auto">
       <table className="w-full min-w-[520px] text-sm">
         <thead>
           <tr className="border-b border-gray-200 text-left text-xs text-gray-500">

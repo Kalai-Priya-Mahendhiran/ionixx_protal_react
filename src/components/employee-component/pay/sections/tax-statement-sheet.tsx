@@ -126,7 +126,7 @@ export function TaxStatementSheet({ open, onOpenChange, payslips, regime, declar
           {statement.paidMonths.length === 0 ? (
             <p className="py-10 text-center text-sm text-gray-500">No pay has been processed for FY {formatFinancialYear(year)} yet.</p>
           ) : (
-            <div className="ionixx-scrollbar overflow-x-auto">
+            <div className="app-scrollbar overflow-x-auto">
               <table className="w-full min-w-[760px] text-sm">
                 <thead className="text-xs text-gray-500">
                   <tr>

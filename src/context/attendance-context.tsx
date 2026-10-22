@@ -1,33 +1,23 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext } from "react";
+import type { AttendanceStatus } from "@/services/apis/attendance/attendance-service";
+import { useCheckIn, useCheckOut, useMyAttendanceToday } from "@/services/apis/attendance/use-attendance";
+
+/*
+ * Today's check-in state for the signed-in person, used by the dashboard and attendance widgets.
+ * Backed by the attendance service, so checking in here shows on the manager's Attendance Monitoring,
+ * the Attendance history and the dashboard at once (no per-browser copy).
+ */
 
 interface AttendanceContextType {
   isCheckedIn: boolean;
   checkInTime: Date | null;
   checkOutTime: Date | null;
+  // Today's status from the attendance rules (late after office start, WFH, on leave…)
+  status: AttendanceStatus | null;
   checkIn: () => void;
   checkOut: () => void;
+  busy: boolean;
 }
-
-const STORAGE_KEY = "attendance-today";
-
-interface StoredAttendance {
-  date: string;
-  checkInTime: string | null;
-  checkOutTime: string | null;
-}
-
-const todayKey = () => new Date().toISOString().split("T")[0];
-
-const loadToday = (): StoredAttendance | null => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed: StoredAttendance = JSON.parse(raw);
-    return parsed.date === todayKey() ? parsed : null;
-  } catch {
-    return null;
-  }
-};
 
 const AttendanceContext = createContext<AttendanceContextType | undefined>(undefined);
 
@@ -39,48 +29,32 @@ export const useAttendance = () => {
   return context;
 };
 
-export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const stored = loadToday();
-  const [checkInTime, setCheckInTime] = useState<Date | null>(
-    stored?.checkInTime ? new Date(stored.checkInTime) : null
-  );
-  const [checkOutTime, setCheckOutTime] = useState<Date | null>(
-    stored?.checkOutTime ? new Date(stored.checkOutTime) : null
-  );
+// 'HH:mm' today → Date
+const atToday = (time: string | null) => {
+  if (!time) return null;
+  const [hours, minutes] = time.split(":").map(Number);
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+};
 
-  useEffect(() => {
-    try {
-      const data: StoredAttendance = {
-        date: todayKey(),
-        checkInTime: checkInTime ? checkInTime.toISOString() : null,
-        checkOutTime: checkOutTime ? checkOutTime.toISOString() : null,
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch {
-      // ignore storage errors
-    }
-  }, [checkInTime, checkOutTime]);
+export const AttendanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { data: today } = useMyAttendanceToday();
+  const checkIn = useCheckIn();
+  const checkOut = useCheckOut();
 
-  const checkIn = () => {
-    setCheckInTime(new Date());
-    setCheckOutTime(null);
-  };
-
-  const checkOut = () => {
-    setCheckOutTime(new Date());
-  };
+  const checkInTime = atToday(today?.checkIn ?? null);
+  const checkOutTime = atToday(today?.checkOut ?? null);
 
   const value: AttendanceContextType = {
     isCheckedIn: !!checkInTime && !checkOutTime,
     checkInTime,
     checkOutTime,
-    checkIn,
-    checkOut,
+    status: today?.status ?? null,
+    checkIn: () => checkIn.mutate(undefined),
+    checkOut: () => checkOut.mutate(undefined),
+    busy: checkIn.isPending || checkOut.isPending,
   };
 
-  return (
-    <AttendanceContext.Provider value={value}>{children}</AttendanceContext.Provider>
-  );
+  return <AttendanceContext.Provider value={value}>{children}</AttendanceContext.Provider>;
 };

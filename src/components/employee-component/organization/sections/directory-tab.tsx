@@ -21,6 +21,7 @@ const STATUS_OPTIONS: { value: WorkStatus; label: string }[] = [
   { value: 'in-office', label: 'In office' },
   { value: 'remote', label: 'Remote' },
   { value: 'on-leave', label: 'On leave' },
+  { value: 'invited', label: 'Yet to join' },
 ];
 
 export function DirectoryTab({ people, departments, viewerId, onOpenPerson, onShowInChart }: DirectoryTabProps) {

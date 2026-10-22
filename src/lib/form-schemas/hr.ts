@@ -21,7 +21,8 @@ export const addEmployeeSchema = z.object({
   designation: z.string().trim().min(1, "Enter the designation").max(100, "Keep the designation under 100 characters"),
   department: z.string().min(1, "Choose a department"),
   employmentType: z.enum(EMPLOYMENT_TYPES, { errorMap: () => ({ message: "Choose an employment type" }) }),
-  reportingManager: z.string().trim().max(100, "Keep the name under 100 characters").optional().or(z.literal("")),
+  // Directory id of the reporting manager ("" = none)
+  managerId: z.string().optional().or(z.literal("")),
   location: z.string().trim().max(100, "Keep the location under 100 characters").optional().or(z.literal("")),
 });
 export type AddEmployeeFormValues = z.infer<typeof addEmployeeSchema>;

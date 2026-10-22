@@ -27,7 +27,7 @@ describe('task export', () => {
     const task = sampleTasks.find((item) => item.key === 'IXP-102')!;
     const [row] = buildExportRows([task], lookups);
     const value = (header: string) => row[EXPORT_COLUMNS.findIndex((column) => column.header === header)];
-    expect(value('Project')).toBe('Ionixx Portal');
+    expect(value('Project')).toBe('Employee Portal');
     expect(value('Assignee')).toBe('Kalai Priya');
     expect(value('Department')).toBe('Engineering');
     expect(value('Sprint')).toBe('IXP Sprint 15');

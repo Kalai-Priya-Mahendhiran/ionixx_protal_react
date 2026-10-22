@@ -96,7 +96,7 @@ export function OrgChartTab({ people, viewerId, path, onPathChange, onOpenPerson
         )}
       </nav>
 
-      <div className="ionixx-scrollbar flex gap-4 overflow-x-auto pb-3">
+      <div className="app-scrollbar flex gap-4 overflow-x-auto pb-3">
         {columns.map((column, columnIndex) => (
           <section key={`${column.title}-${columnIndex}`} aria-label={column.subtitle} className="w-72 shrink-0 rounded-xl bg-white shadow-lg">
             <header className="flex items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">

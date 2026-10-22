@@ -1,50 +1,70 @@
+import { Link } from 'react-router-dom';
+import { Award, Cake, Calendar, CalendarOff, CheckSquare, PartyPopper, type LucideIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Plus } from 'lucide-react';
-import { sampleEvents } from '@/lib/sample-data/dashboard-sample-data';
-import { EVENT_TYPE_COLORS, DEFAULT_BADGE_COLOR } from '@/lib/constants';
+import { useAuth } from '@/context/auth-context';
+import { DEFAULT_LEAVE_COUNTRY } from '@/lib/constants';
+import { buildUpcoming, relativeDay, type UpcomingKind } from '@/lib/dashboard-feeds';
+import { HOLIDAYS_BY_COUNTRY } from '@/lib/sample-data/leave-tracker-sample-data';
+import { getActiveUsers } from '@/lib/user-directory';
+import { cn, todayAsDateInput } from '@/lib/utils';
+import { useLeaveRequests } from '@/services/apis/leave/use-leave';
+import { useTasks } from '@/services/apis/tasks/use-tasks';
+import { useOrgPeople } from '@/services/apis/users/use-org-chart';
 
+const KIND: Record<UpcomingKind, { icon: LucideIcon; tile: string; label: string }> = {
+  task: { icon: CheckSquare, tile: 'bg-blue-100 text-blue-600', label: 'Task' },
+  leave: { icon: CalendarOff, tile: 'bg-amber-100 text-amber-600', label: 'Leave' },
+  holiday: { icon: PartyPopper, tile: 'bg-pink-100 text-pink-600', label: 'Holiday' },
+  anniversary: { icon: Award, tile: 'bg-purple-100 text-purple-600', label: 'Anniversary' },
+  birthday: { icon: Cake, tile: 'bg-rose-100 text-rose-600', label: 'Birthday' },
+};
+
+// The next two weeks: your due tasks and leave, holidays and colleagues' work anniversaries
 export function UpcomingEventsSection() {
+  const { user } = useAuth();
+  const today = todayAsDateInput();
+  const { data: tasks = [] } = useTasks();
+  const { data: leave = [] } = useLeaveRequests();
+  // Subscribed so new joiners and leavers update the anniversaries
+  useOrgPeople();
+  const items = buildUpcoming({ userId: user?.id ?? '', today, tasks, leave, holidays: HOLIDAYS_BY_COUNTRY[DEFAULT_LEAVE_COUNTRY], people: getActiveUsers() }).slice(0, 6);
+
   return (
-    <Card className="lg:col-span-2 border-0 shadow-xl">
-      <CardHeader className="text-black rounded-t-lg">
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Calendar className="h-5 w-5" />
-            <span>Upcoming Events</span>
-          </div>
-          <Button variant="outline" size="sm" className="bg-white/20 border-white/30 text-white hover:bg-white/30">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Event
-          </Button>
+    <Card className="border-0 shadow-xl lg:col-span-2">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-[#464EB8]" />
+          <span>Coming Up</span>
         </CardTitle>
-        <CardDescription className="text-white/90">This week's important dates and meetings</CardDescription>
+        <CardDescription>Your next two weeks: tasks due, leave, holidays and team milestones</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {sampleEvents.map((event, index) => (
-            <div key={index} className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-              <div className="w-12 h-12 ionixx_icon-gradient rounded-lg flex items-center justify-center">
-                <Calendar className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-gray-900">{event.title}</h4>
-                <p className="text-sm text-gray-600">{event.description}</p>
-                <div className="flex items-center space-x-4 mt-2">
-                  <span className="text-xs text-gray-500">{event.date}</span>
-                  <span className="text-xs text-gray-500">{event.time}</span>
-                  {event.location && (
-                    <span className="text-xs text-gray-500">{event.location}</span>
-                  )}
-                </div>
-              </div>
-              <Badge className={EVENT_TYPE_COLORS[event.type] ?? DEFAULT_BADGE_COLOR}>
-                {event.type}
-              </Badge>
-            </div>
-          ))}
-        </div>
+        {items.length === 0 ? (
+          <p className="py-8 text-center text-sm text-gray-500">Nothing scheduled for the next two weeks.</p>
+        ) : (
+          <ul className="space-y-3">
+            {items.map((item) => {
+              const { icon: Icon, tile, label } = KIND[item.kind];
+              const body = (
+                <>
+                  <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-lg', tile)}>
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold text-gray-900">{item.title}</span>
+                    <span className="block truncate text-sm text-gray-600">{item.detail}</span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <span className="block text-sm font-medium text-gray-900">{relativeDay(item.date, today)}</span>
+                    <span className="block text-xs text-gray-500">{label}</span>
+                  </span>
+                </>
+              );
+              const className = 'flex items-center gap-4 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50';
+              return <li key={item.id}>{item.href ? <Link to={item.href} className={className}>{body}</Link> : <div className={className}>{body}</div>}</li>;
+            })}
+          </ul>
+        )}
       </CardContent>
     </Card>
   );

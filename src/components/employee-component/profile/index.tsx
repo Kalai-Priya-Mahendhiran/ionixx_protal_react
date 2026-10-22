@@ -1,4 +1,4 @@
-﻿import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/context/auth-context';
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
 import { sampleProfileFormData } from '@/lib/sample-data/profile-sample-data';
+import { useMyProfile, useSaveProfile } from '@/services/apis/profile/use-profile';
 import { profileSchema, type ProfileFormData } from '@/lib/schemas';
 import {
   PersonalSection,
@@ -40,7 +41,10 @@ const navigationItems = [
 export default function Profile() {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // The signed-in person's saved profile (built from the directory until they first save)
+  const { data: profile } = useMyProfile();
+  const saveProfile = useSaveProfile();
+  const isSubmitting = saveProfile.isPending;
   const [pendingCertificateUploads, setPendingCertificateUploads] = useState(0);
   const [submitError, setSubmitError] = useState('');
   const [activeSection, setActiveSection] = useState('personal');
@@ -49,6 +53,11 @@ export default function Profile() {
     resolver: zodResolver(profileSchema),
     defaultValues: sampleProfileFormData,
   });
+
+  // Load the person's own profile; don't overwrite edits in progress
+  useEffect(() => {
+    if (profile && !isEditing) form.reset(profile);
+  }, [profile, isEditing, form]);
 
   const { fields: qualificationFields, append: appendQualification, remove: removeQualification } = useFieldArray({
     control: form.control,
@@ -71,17 +80,7 @@ export default function Profile() {
       return;
     }
     setSubmitError('');
-    setIsSubmitting(true);
-    try {
-      console.log('Profile data:', data);
-      // Here you would typically send the data to your API
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error saving profile:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    saveProfile.mutate(data, { onSuccess: () => setIsEditing(false) });
   };
 
   const onInvalidSubmit = () => {
@@ -95,8 +94,8 @@ export default function Profile() {
 
   const handleCancel = useCallback(() => {
     setIsEditing(false);
-    form.reset();
-  }, [form]);
+    form.reset(profile ?? sampleProfileFormData);
+  }, [form, profile]);
 
   const handleFileUpload = async (file: File) => {
     try {
@@ -116,7 +115,6 @@ export default function Profile() {
       const mockFileUrl = URL.createObjectURL(file);
       form.setValue('profilePhoto', mockFileUrl);
       
-      console.log('Profile photo uploaded:', file.name);
     } catch (error) {
       console.error('File upload error:', error);
     }

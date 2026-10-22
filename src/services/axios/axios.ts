@@ -2,15 +2,9 @@ import axios from "axios";
 import Storage from "../storage/storage";
 import { toast } from "sonner";
 
+// Backend address per environment (dev, QA, UAT…), set in .env.local as VITE_API_BASE_URL — see .env.example
 export const AxiosInstance = axios.create({
-  //Dev
-  baseURL: "https://accesscashflow.ionixxtech.com/dev-ionixx-portal",
-
-  //QA:
-  // baseURL: "https://accesscashflow.ionixxtech.com/qa-ionixx-portal",
-
-  //UAT:
-  // baseURL: "https://uatservice.ionixxtech.com/ionixx-portal",
+  baseURL: import.meta.env.VITE_API_BASE_URL,
 });
 
 AxiosInstance.defaults.headers.post["Access-Control-Allow-Origin"] = "*";

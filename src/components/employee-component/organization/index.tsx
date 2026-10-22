@@ -6,7 +6,8 @@ import { PageHeader } from '@/components/ui/page-header';
 import { StatCard, StatGrid } from '@/components/ui/stat-card';
 import { useAuth } from '@/context/auth-context';
 import { cn } from '@/lib/utils';
-import { chainTo, directReports, getDepartments, getOrgPeople, type OrgPerson } from '@/lib/org-chart';
+import { chainTo, directReports, getDepartments, type OrgPerson } from '@/lib/org-chart';
+import { useOrgPeople } from '@/services/apis/users/use-org-chart';
 import { DepartmentsTab, DirectoryTab, OrgChartTab, PersonSheet } from './sections';
 
 type OrgTab = 'chart' | 'departments' | 'directory';
@@ -27,7 +28,8 @@ export default function Organization() {
   const tab: OrgTab = isOrgTab(tabParam) ? tabParam : 'chart';
   const openTab = (next: OrgTab) => setParams(next === 'chart' ? {} : { tab: next });
 
-  const people = useMemo(() => getOrgPeople(), []);
+  // Live: people added, moved or removed in User Management show up without a reload
+  const { data: people } = useOrgPeople();
   const departments = useMemo(() => getDepartments(people), [people]);
   const viewerId = user?.id ?? '';
   const viewer = people.find((person) => person.id === viewerId);
@@ -35,7 +37,10 @@ export default function Organization() {
   // The chart opens on the signed-in person's place in the organization
   const [path, setPath] = useState<string[]>(() => chainTo(people, viewerId).map((person) => person.id));
   const [department, setDepartment] = useState(viewer?.department ?? departments[0]?.name ?? '');
-  const [profile, setProfile] = useState<OrgPerson | null>(null);
+  const [profileId, setProfileId] = useState<string | null>(null);
+  // Looked up by id so the open profile reflects the latest data
+  const profile = people.find((person) => person.id === profileId) ?? null;
+  const setProfile = (person: OrgPerson | null) => setProfileId(person?.id ?? null);
 
   const showInChart = (person: OrgPerson) => {
     setPath(chainTo(people, person.id).map((entry) => entry.id));

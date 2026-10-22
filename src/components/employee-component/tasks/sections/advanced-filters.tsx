@@ -82,7 +82,7 @@ export function AdvancedFiltersButton({ filters, options, onChange }: AdvancedFi
             {(Object.keys(SECTION_TITLES) as ListKey[]).map((key) => (
               <section key={key} className="min-w-0">
                 <h3 className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-indigo-600">{SECTION_TITLES[key]}</h3>
-                <div className="ionixx-scrollbar max-h-40 overflow-y-auto">
+                <div className="app-scrollbar max-h-40 overflow-y-auto">
                   {options[key].length === 0 ? (
                     <p className="px-2 py-1 text-xs text-gray-400">Nothing to filter</p>
                   ) : (

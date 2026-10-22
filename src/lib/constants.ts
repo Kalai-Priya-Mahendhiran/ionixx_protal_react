@@ -383,6 +383,7 @@ export const APPROVAL_TYPE_COLORS = {
   "time-off": "bg-purple-100 text-purple-800",
   wfh: "bg-teal-100 text-teal-800",
   expense: "bg-amber-100 text-amber-800",
+  declaration: "bg-indigo-100 text-indigo-800",
 };
 
 // Team Overview

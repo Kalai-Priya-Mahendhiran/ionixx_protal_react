@@ -107,6 +107,10 @@ export interface TaskUser {
   designation: string
   managerId?: string
   joiningDate?: string // YYYY-MM-DD
+  birthDate?: string // YYYY-MM-DD, for birthday wishes on the dashboard
+  // Set from the person's own Profile; win over roster/sample contact details
+  phone?: string
+  location?: string
   avatar?: string
 }
 

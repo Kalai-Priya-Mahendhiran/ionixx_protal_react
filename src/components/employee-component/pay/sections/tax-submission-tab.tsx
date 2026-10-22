@@ -93,7 +93,7 @@ export function TaxSubmissionTab({ declarations, currentYear, period, windowOpen
           {rows.length === 0 ? (
             <p className="px-5 py-10 text-center text-sm text-gray-500">No investments declared for this financial year.</p>
           ) : (
-            <div className="ionixx-scrollbar overflow-x-auto">
+            <div className="app-scrollbar overflow-x-auto">
               <table className="w-full min-w-[900px] text-sm">
                 <thead className="bg-gray-50 text-left text-gray-700">
                   <tr>

@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Play, Square } from 'lucide-react';
 import { formatTime, formatDuration, WORKING_HOURS } from '@/lib/constants';
+import { ATTENDANCE_STATUS_META } from '@/components/employee-component/attendance/sections/attendance-meta';
 
 export function TimeTrackingSection() {
-  const { isCheckedIn, checkInTime, checkIn: handleCheckIn, checkOut: handleCheckOut } = useAttendance();
+  const { isCheckedIn, checkInTime, status, checkIn: handleCheckIn, checkOut: handleCheckOut } = useAttendance();
   const [now, setNow] = useState(new Date());
 
   // Refresh the elapsed time every second while checked in
@@ -33,7 +34,7 @@ export function TimeTrackingSection() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="text-center">
-          <div className="w-24 h-24 mx-auto mb-4 rounded-full ionixx_icon-gradient flex items-center justify-center">
+          <div className="w-24 h-24 mx-auto mb-4 rounded-full app-icon-gradient flex items-center justify-center">
             <div className="text-center">
               <div className="text-lg font-bold text-white">
                 {formatElapsedTime()}
@@ -41,8 +42,8 @@ export function TimeTrackingSection() {
             </div>
           </div>
           <p className="text-sm text-gray-600 mb-2">Today's Status</p>
-          <Badge className={isCheckedIn ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-            {isCheckedIn ? 'Present' : 'Not Checked In'}
+          <Badge className={status ? ATTENDANCE_STATUS_META[status].badge : 'bg-gray-100 text-gray-800'}>
+            {status ? ATTENDANCE_STATUS_META[status].label : 'Not Checked In'}
           </Badge>
         </div>
 

@@ -111,7 +111,7 @@ export function PermissionsSettingsSection() {
       resetDescription="Restores the permission matrix the portal ships with."
     >
       {dirty && <p className="text-sm text-indigo-800">{changedCount} {changedCount === 1 ? 'cell' : 'cells'} changed (highlighted).</p>}
-      <div className="ionixx-scrollbar relative overflow-x-auto rounded-lg border border-gray-200">
+      <div className="app-scrollbar relative overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full min-w-[900px] text-sm">
           <thead className="bg-gray-50 text-xs font-semibold text-gray-600">
             <tr>

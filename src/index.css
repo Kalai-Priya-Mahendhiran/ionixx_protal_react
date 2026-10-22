@@ -80,49 +80,49 @@
 }
 
 /* KPSS Theme Styles */
-.ionixx-gradient {
+.app-gradient {
   background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
 }
 
-.ionixx-gradient-horizontal {
+.app-gradient-horizontal {
   background: linear-gradient(90deg, #4F46E5 0%, #7C3AED 100%);
 }
 
-.ionixx-gradient-vertical {
+.app-gradient-vertical {
   background: linear-gradient(180deg, #4F46E5 0%, #7C3AED 100%);
 }
 
-.ionixx-text-gradient {
+.app-text-gradient {
   background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.ionixx-shadow {
+.app-shadow {
   box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.25);
 }
 
-.ionixx-shadow-lg {
+.app-shadow-lg {
   box-shadow: 0 10px 25px 0 rgba(79, 70, 229, 0.3);
 }
 
-.ionixx-border-gradient {
+.app-border-gradient {
   border: 2px solid transparent;
   background: linear-gradient(white, white) padding-box,
               linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%) border-box;
 }
 
-.ionixx_icon-gradient {
+.app-icon-gradient {
   background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
 }
 
 /*
  * One slim, rounded lavender scrollbar everywhere: the page, the sidebar, tables, boards,
- * dialogs and menus. `.ionixx-scrollbar` is kept as an alias for markup that already uses it.
+ * dialogs and menus. `.app-scrollbar` is kept as an alias for markup that already uses it.
  */
 *,
-.ionixx-scrollbar {
+.app-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #c7caf0 transparent;
 }
