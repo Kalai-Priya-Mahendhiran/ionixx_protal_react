@@ -11,6 +11,7 @@ import type { AuditFilters } from '@/services/apis/audit/audit-service';
 import { useAuditLog } from '@/services/apis/settings/use-task-settings';
 import type { AuditEntity, AuditEntry } from '@/types';
 import { taskPath } from '../sections/task-link';
+import { DatePicker } from '@/components/ui/date-picker';
 
 const PAGE_SIZE = 50;
 
@@ -120,9 +121,9 @@ export function AuditLogSection() {
             ))}
           </select>
           <div className="flex min-w-0 items-center gap-2 sm:col-span-2">
-            <Input type="date" value={filters.from ?? ''} max={filters.to} onChange={(event) => update({ from: event.target.value || undefined })} aria-label="From date" />
+            <DatePicker value={filters.from ?? ''} max={filters.to} onChange={(value) => update({ from: value || undefined })} placeholder="From" aria-label="From date" />
             <span className="text-gray-400">–</span>
-            <Input type="date" value={filters.to ?? ''} min={filters.from} onChange={(event) => update({ to: event.target.value || undefined })} aria-label="To date" />
+            <DatePicker value={filters.to ?? ''} min={filters.from} onChange={(value) => update({ to: value || undefined })} placeholder="To" aria-label="To date" />
           </div>
         </div>
         {hasFilters && (

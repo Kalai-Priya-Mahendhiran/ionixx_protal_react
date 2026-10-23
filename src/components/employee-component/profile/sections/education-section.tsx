@@ -15,6 +15,7 @@ import {
   EmptyState
 } from "../profile-display";
 import { GraduationCap, Award, Plus, X, Calendar, MapPin, Building2 } from "lucide-react";
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface EducationSectionProps {
   isEditing: boolean;
@@ -335,7 +336,7 @@ export function EducationSection({
                         <FormItem>
                           <FormLabel className="text-slate-700">Start Date <span className="text-red-500">*</span></FormLabel>
                           <FormControl>
-                            <Input type="date" {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
+                            <DatePicker {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -348,7 +349,7 @@ export function EducationSection({
                         <FormItem>
                           <FormLabel className="text-slate-700">End Date / Graduation <span className="text-red-500">*</span></FormLabel>
                           <FormControl>
-                            <Input type="date" {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
+                            <DatePicker {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -488,7 +489,7 @@ export function EducationSection({
                         <FormItem>
                           <FormLabel className="text-slate-700">Issue Date</FormLabel>
                           <FormControl>
-                            <Input type="date" {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
+                            <DatePicker {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -501,7 +502,7 @@ export function EducationSection({
                         <FormItem>
                           <FormLabel className="text-slate-700">Expiry Date</FormLabel>
                           <FormControl>
-                            <Input type="date" {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
+                            <DatePicker {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

@@ -7,6 +7,7 @@ import { useMyAttendanceToday } from '@/services/apis/attendance/use-attendance'
 import { useMyActivity } from '@/services/apis/audit/use-my-activity';
 import { useLeaveRequests } from '@/services/apis/leave/use-leave';
 import { useTimeEntries } from '@/services/apis/time-tracker/use-time-entries';
+import { DASHBOARD_LIST_CLASS } from './dashboard-list';
 
 const KIND: Record<ActivityKind, { icon: LucideIcon; color: string }> = {
   attendance: { icon: CheckCircle, color: 'text-green-600' },
@@ -22,7 +23,7 @@ export function RecentActivitiesSection() {
   const { data: leave = [] } = useLeaveRequests();
   const { data: timeEntries = [] } = useTimeEntries();
   const { data: today } = useMyAttendanceToday();
-  const items = buildActivity({ audit, leave, timeEntries, today: todayAsDateInput(), checkIn: today?.checkIn, checkOut: today?.checkOut });
+  const items = buildActivity({ audit, leave, timeEntries, today: todayAsDateInput(), checkIn: today?.checkIn, checkOut: today?.checkOut }, 20);
 
   return (
     <Card>
@@ -37,7 +38,7 @@ export function RecentActivitiesSection() {
         {items.length === 0 ? (
           <p className="py-8 text-center text-sm text-gray-500">Your activity will show up here.</p>
         ) : (
-          <ul className="space-y-3">
+          <ul className={DASHBOARD_LIST_CLASS}>
             {items.map((item) => {
               const { icon: Icon, color } = KIND[item.kind];
               const body = (

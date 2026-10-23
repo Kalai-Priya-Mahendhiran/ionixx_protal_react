@@ -3,6 +3,27 @@ import { getUserById } from '@/lib/user-directory';
 import { toDateInput } from '@/lib/utils';
 import { getBoardColumn, getBoardColumns } from '@/lib/workflow';
 import type { Task, TaskStatus } from '@/types';
+import type { TaskUpdateInput } from '@/services/apis/tasks/task-service';
+
+// Everything the update endpoint takes, from the task as it is now; inline edits change one field of it
+export function toUpdateInput(task: Task): TaskUpdateInput {
+  return {
+    type: task.type,
+    title: task.title,
+    description: task.description,
+    priority: task.priority,
+    assigneeId: task.assigneeId,
+    reporterId: task.reporterId,
+    watcherIds: task.watcherIds,
+    startDate: task.startDate,
+    dueDate: task.dueDate,
+    labels: task.labels,
+    epicId: task.epicId,
+    sprintId: task.sprintId,
+    estimateHours: task.estimateHours,
+    attachments: task.attachments,
+  };
+}
 
 // 'all', 'blocked', or a board column's status: filters follow the configured workflow
 export type TaskStatusFilter = 'all' | 'blocked' | TaskStatus;
@@ -218,6 +239,8 @@ export const DUE_FILTER_OPTIONS: { value: DueFilter; label: string }[] = [
 
 export interface AdvancedFilters {
   projectIds: string[];
+  // Sprint ids, or BACKLOG_FILTER for work not in a sprint
+  sprintIds: string[];
   departments: string[];
   assigneeIds: string[];
   priorities: Task['priority'][];
@@ -227,16 +250,19 @@ export interface AdvancedFilters {
   openOnly: boolean;
 }
 
-export const EMPTY_FILTERS: AdvancedFilters = { projectIds: [], departments: [], assigneeIds: [], priorities: [], types: [], due: 'any', openOnly: false };
+export const BACKLOG_FILTER = 'backlog';
+
+export const EMPTY_FILTERS: AdvancedFilters = { projectIds: [], sprintIds: [], departments: [], assigneeIds: [], priorities: [], types: [], due: 'any', openOnly: false };
 
 // URL parameter for each list filter, e.g. ?priority=high,urgent&project=PRJ-IXP
-const FILTER_PARAMS = { projectIds: 'project', departments: 'dept', assigneeIds: 'assignee', priorities: 'priority', types: 'type' } as const;
+const FILTER_PARAMS = { projectIds: 'project', sprintIds: 'sprint', departments: 'dept', assigneeIds: 'assignee', priorities: 'priority', types: 'type' } as const;
 
 export function parseFilters(params: URLSearchParams): AdvancedFilters {
   const list = (name: string) => (params.get(name) ?? '').split(',').map((value) => value.trim()).filter(Boolean);
   const due = params.get('due') as DueFilter | null;
   return {
     projectIds: list(FILTER_PARAMS.projectIds),
+    sprintIds: list(FILTER_PARAMS.sprintIds),
     departments: list(FILTER_PARAMS.departments),
     assigneeIds: list(FILTER_PARAMS.assigneeIds),
     priorities: list(FILTER_PARAMS.priorities) as Task['priority'][],
@@ -251,6 +277,7 @@ export function filtersToParams(filters: AdvancedFilters): Record<string, string
   const join = (values: string[]) => (values.length > 0 ? values.join(',') : null);
   return {
     [FILTER_PARAMS.projectIds]: join(filters.projectIds),
+    [FILTER_PARAMS.sprintIds]: join(filters.sprintIds),
     [FILTER_PARAMS.departments]: join(filters.departments),
     [FILTER_PARAMS.assigneeIds]: join(filters.assigneeIds),
     [FILTER_PARAMS.priorities]: join(filters.priorities),
@@ -262,7 +289,7 @@ export function filtersToParams(filters: AdvancedFilters): Record<string, string
 
 export function countActiveFilters(filters: AdvancedFilters): number {
   return (
-    filters.projectIds.length + filters.departments.length + filters.assigneeIds.length + filters.priorities.length + filters.types.length + (filters.due === 'any' ? 0 : 1) + (filters.openOnly ? 1 : 0)
+    filters.projectIds.length + filters.sprintIds.length + filters.departments.length + filters.assigneeIds.length + filters.priorities.length + filters.types.length + (filters.due === 'any' ? 0 : 1) + (filters.openOnly ? 1 : 0)
   );
 }
 
@@ -287,6 +314,7 @@ export function matchesAdvancedFilters(task: Task, filters: AdvancedFilters, tod
   const department = getUserById(task.assigneeId)?.department ?? '';
   return (
     (filters.projectIds.length === 0 || filters.projectIds.includes(task.projectId)) &&
+    (filters.sprintIds.length === 0 || filters.sprintIds.includes(task.sprintId ?? BACKLOG_FILTER)) &&
     (filters.departments.length === 0 || filters.departments.includes(department)) &&
     (filters.assigneeIds.length === 0 || filters.assigneeIds.includes(task.assigneeId)) &&
     (filters.priorities.length === 0 || filters.priorities.includes(task.priority)) &&

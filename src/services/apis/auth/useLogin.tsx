@@ -20,9 +20,11 @@ interface UseLoginProps {
   onAuthenticated: (user: AuthUser, token: string) => void;
   navigate: NavigateFunction;
   setLoading: (loading: boolean) => void;
+  // Where to go after signing in (the page that sent them to login), the dashboard by default
+  redirectTo?: string;
 }
 
-export const useLogin = ({ onAuthenticated, navigate, setLoading }: UseLoginProps) => {
+export const useLogin = ({ onAuthenticated, navigate, setLoading, redirectTo = "/dashboard" }: UseLoginProps) => {
   const storage = new Storage();
 
   return useMutation({
@@ -75,7 +77,7 @@ export const useLogin = ({ onAuthenticated, navigate, setLoading }: UseLoginProp
       onAuthenticated(user, token);
 
       toast.success(`Welcome ${user.name}! Redirecting...`);
-      navigate("/dashboard", { replace: true });
+      navigate(redirectTo, { replace: true });
     },
     onError: (error: any) => {
       setLoading(false);

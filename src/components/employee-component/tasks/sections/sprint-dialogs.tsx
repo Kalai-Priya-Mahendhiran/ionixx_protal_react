@@ -12,6 +12,7 @@ import { cn, toDateInput, todayAsDateInput } from '@/lib/utils';
 import { useCompleteSprint, useCreateSprint } from '@/services/apis/tasks/use-tasks';
 import type { Project, Sprint, Task } from '@/types';
 import { formatShortDate, getDurationDays, parseDateInput } from './task-utils';
+import { DatePicker } from '@/components/ui/date-picker';
 
 const SPRINT_LENGTH_DAYS = 14;
 
@@ -91,14 +92,13 @@ export function CreateSprintDialog({ project, sprints, onOpenChange }: CreateSpr
             <FormItem>
               <RequiredLabel>Start date</RequiredLabel>
               <FormControl>
-                <Input
+                <DatePicker
                   {...field}
-                  type="date"
                   className={fieldClass}
-                  onChange={(event) => {
-                    field.onChange(event);
+                  onChange={(value) => {
+                    field.onChange(value);
                     // Keep the sprint two weeks long when the start moves
-                    if (event.target.value) form.setValue('endDate', addDays(event.target.value, SPRINT_LENGTH_DAYS - 1), { shouldValidate: true });
+                    if (value) form.setValue('endDate', addDays(value, SPRINT_LENGTH_DAYS - 1), { shouldValidate: true });
                   }}
                 />
               </FormControl>
@@ -113,7 +113,7 @@ export function CreateSprintDialog({ project, sprints, onOpenChange }: CreateSpr
             <FormItem>
               <RequiredLabel>End date</RequiredLabel>
               <FormControl>
-                <Input {...field} type="date" min={startDate || undefined} className={fieldClass} />
+                <DatePicker {...field} min={startDate || undefined} className={fieldClass} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { BarChart3, CheckSquare, Columns3, Download, Eye, FileSpreadsheet, FileText, Plus, Settings, type LucideIcon } from 'lucide-react';
+import { BarChart3, CheckSquare, Columns3, Download, Eye, FileSpreadsheet, FileText, Plus, Rocket, Settings, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { PageHeader, headerBadgeClass, headerPrimaryButtonClass, headerSecondaryButtonClass } from '@/components/ui/page-header';
@@ -52,6 +52,7 @@ import { getFilterOptions } from './sections/filter-options';
 import { ExecutiveDashboard } from './reports/executive-dashboard';
 import { QuickFilters } from './sections/quick-filters';
 import { SavedFiltersMenu } from './sections/saved-filters-menu';
+import { SprintMenu } from './sections/sprint-menu';
 import { ShortcutsDialog, type ShortcutHelp } from './sections/shortcuts-dialog';
 import { AuditLogSection } from './settings/audit-log-section';
 import { AutomationSettingsSection } from './settings/automation-settings';
@@ -59,6 +60,7 @@ import { FieldsSettingsSection } from './settings/fields-settings';
 import { PermissionsSettingsSection } from './settings/permissions-settings';
 import { WorkflowSettingsSection } from './settings/workflow-settings';
 import { useTaskSettings } from '@/services/apis/settings/use-task-settings';
+import { useCreateFromLink } from '@/hooks/use-create-from-link';
 import {
   MY_TASKS_TABS,
   countByStatusFilter,
@@ -161,7 +163,7 @@ function TasksPage({ user }: { user: PermissionUser }) {
   const filterState: FilterState = { statusFilter, filters: advancedFilters };
   const setFilterState = (next: FilterState) =>
     updateParams({ status: next.statusFilter === 'all' ? null : next.statusFilter, ...filtersToParams(next.filters) }, true);
-  const filterOptions = useMemo(() => getFilterOptions(scopedTasks, projects), [scopedTasks, projects]);
+  const filterOptions = useMemo(() => getFilterOptions(scopedTasks, projects, sprints), [scopedTasks, projects, sprints]);
   const visibleTasks = scopedTasks.filter(
     (task) => matchesStatusFilter(task, statusFilter) && matchesSearch(task, searchTerm) && matchesAdvancedFilters(task, advancedFilters),
   );
@@ -211,6 +213,8 @@ function TasksPage({ user }: { user: PermissionUser }) {
   const { title, description } = TASK_VIEW_META[view];
 
   const openCreate = () => setFormState({ open: true, task: undefined });
+  // Quick Add → Add Task (only for people who can create tasks)
+  useCreateFromLink(openCreate, canCreate);
   const openEdit = (task: Task) => setFormState({ open: true, task });
   // The task page links back here with the same view, tab, layout and filters
   const showTask = (task: Task) => navigate(taskPath(task.key), { state: { from: location.search } });
@@ -257,6 +261,17 @@ function TasksPage({ user }: { user: PermissionUser }) {
           }
           actions={
             <>
+              {/* Settings and the overview have no board, so the sprints are a button away (on the all-tasks view) */}
+              {(isSettingsView || isOverview) && canOpenTaskView(user, 'all-projects') && (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`${location.pathname}?view=all-projects&section=sprints`)}
+                  className={`gap-2 ${headerSecondaryButtonClass}`}
+                >
+                  <Rocket className="h-4 w-4" />
+                  Sprints
+                </Button>
+              )}
               {view === 'all-projects' && canOpenTaskView(user, 'exec-dashboard') && (
                 <Button variant="outline" onClick={() => navigate(`${location.pathname}?view=exec-dashboard`)} className={`gap-2 ${headerSecondaryButtonClass}`}>
                   <BarChart3 className="h-4 w-4" />
@@ -283,7 +298,7 @@ function TasksPage({ user }: { user: PermissionUser }) {
           }
         />
 
-        {showTabs && <TaskTabs active={tab} counts={tabCounts} onChange={(next) => updateParams({ tab: next })} />}
+        {showTabs && section === 'board' && <TaskTabs active={tab} counts={tabCounts} onChange={(next) => updateParams({ tab: next })} />}
 
         {showSectionTabs && (
           <SectionTabs
@@ -319,12 +334,13 @@ function TasksPage({ user }: { user: PermissionUser }) {
             onSelectPerson={(userId) => updateParams({ section: null, layout: null, group: 'assignee', focus: userId })}
           />
         ) : section === 'sprints' ? (
-          <SprintPlanningSection tasks={viewTasks} projects={projects} />
+          // Every visible task, not just My Tasks', so the sprint shows the whole team's work
+          <SprintPlanningSection tasks={tasks.filter((task) => !task.parentId)} projects={projects} />
         ) : section === 'approvals' ? (
           <ApprovalsSection tasks={viewTasks} subtaskProgress={subtaskProgress} />
         ) : (
           <>
-            {showSectionTabs && !isLoading && <TeamAlertsPanel tasks={viewTasks} />}
+            {showSectionTabs && view !== 'my-tasks' && !isLoading && <TeamAlertsPanel tasks={viewTasks} />}
 
             <TaskStatsSection counts={counts} activeFilter={statusFilter} isLoading={isLoading} onSelect={setStatusFilter} />
 
@@ -340,6 +356,7 @@ function TasksPage({ user }: { user: PermissionUser }) {
               searchInputRef={searchInputRef}
               actions={
                 <>
+                  <SprintMenu filters={advancedFilters} options={filterOptions.sprintIds} projects={projects} sprints={sprints} onChange={setAdvancedFilters} />
                   <AdvancedFiltersButton filters={advancedFilters} options={filterOptions} onChange={setAdvancedFilters} />
                   <SavedFiltersMenu
                     query={filterStateToQuery(filterState)}

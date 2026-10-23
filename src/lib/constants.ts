@@ -92,33 +92,7 @@ export const ROUTES = {
   DeskReports: "/service-desk/reports",
 } ;
 
-export const QUICK_ADD_OPTIONS = [
-  {
-    id: "task",
-    label: "Add Task",
-    icon: "Plus",
-  },
-  {
-    id: "admin-request",
-    label: "Raise a Request",
-    icon: "LifeBuoy",
-  },
-  {
-    id: "event",
-    label: "Add Event",
-    icon: "Calendar",
-  },
-  {
-    id: "leave",
-    label: "Add Leave",
-    icon: "CalendarDays",
-  },
-  {
-    id: "file",
-    label: "Upload File",
-    icon: "Upload",
-  },
-] ;
+// Quick Add and Quick Actions: see lib/quick-actions.ts
 
 export const LEAVE_TYPES = [
   { id: "casual", label: "Casual Leave", color: "bg-blue-100 text-blue-800", icon: "Coffee", iconClass: "bg-blue-100 text-blue-600" },
@@ -635,7 +609,8 @@ export const CELEBRATION_STATUS_COLORS: Record<string, string> = {
 
 export const DEFAULT_BADGE_COLOR = "bg-gray-100 text-gray-800";
 
-export const DASHBOARD_NOTIFICATION_LIMIT = 4;
+// The dashboard list scrolls, so it can hold more
+export const DASHBOARD_NOTIFICATION_LIMIT = 20;
 
 // Attendance
 export const BREAK_TIMINGS = [

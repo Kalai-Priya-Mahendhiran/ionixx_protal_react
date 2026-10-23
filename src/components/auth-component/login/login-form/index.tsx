@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { getRedirectAfterLogin } from "@/components/auth/redirect-after-login";
 import { useLogin } from "@/services/apis/auth/useLogin";
 import { ROUTES } from "@/lib/constants";
 import { useAuth } from "@/context/auth-context";
@@ -22,21 +23,25 @@ import { Eye, EyeOff } from "lucide-react";
 
 const LoginForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login: authLogin } = useAuth();
   const [loading, setLoading] = useState<boolean>(false);
   const [showPassword, setShowPassword] = useState(false);
+  // A shared link (e.g. /tasks/IXP-102) opens again after signing in
+  const redirectTo = getRedirectAfterLogin(location.state);
 
   const { mutate: login } = useLogin({
     onAuthenticated: authLogin,
     navigate,
     setLoading,
+    redirectTo,
   });
 
-  const redirectToDashboard = () => {
+  const redirectAfterLogin = () => {
     try {
-      navigate("/dashboard");
+      navigate(redirectTo, { replace: true });
     } catch {
-      window.location.href = "/dashboard";
+      window.location.href = redirectTo;
     }
   };
 
@@ -53,7 +58,7 @@ const LoginForm = () => {
     login(values, {
       onSuccess: () => {
         setTimeout(() => {
-          redirectToDashboard();
+          redirectAfterLogin();
         }, 1000);
       },
     });

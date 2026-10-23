@@ -1,14 +1,16 @@
-import { useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import { ArrowDownUp, Clock, MessageSquare } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { ArrowDownUp, Clock, ImagePlus, MessageSquare, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { fieldClass } from '@/components/ui/form-fields';
 import { useAuth } from '@/context/auth-context';
 import { can } from '@/lib/permissions/task-permissions';
 import { getUserById } from '@/lib/user-directory';
-import { cn, formatRelativeTime, getInitials } from '@/lib/utils';
+import { cn, formatRelativeTime, generateId, getInitials } from '@/lib/utils';
+import { MAX_UPLOAD_BYTES, TASK_ATTACHMENT_CATEGORY } from '@/services/apis/files/file-service';
+import { useUploadFiles } from '@/services/apis/files/use-files';
 import { useAddComment, useTaskActivity, useTaskComments, useTaskWorkLogs } from '@/services/apis/tasks/use-tasks';
-import type { Task, TaskActivity, TaskComment, TaskUser, WorkLog } from '@/types';
+import type { Task, TaskActivity, TaskAttachment, TaskComment, TaskUser, WorkLog } from '@/types';
 import { getStatusMeta } from './task-config';
 import { formatShortDate } from './task-utils';
 
@@ -25,6 +27,7 @@ const TABS: { value: ActivityTab; label: string }[] = [
 const QUICK_REPLIES = ['👍 Looks good to me', '🙋 Can someone help with this?', '⛔ I am blocked on…', '❓ Could you clarify…', '✅ This is on track'];
 
 const MENTION_LIMIT = 8;
+const MAX_COMMENT_IMAGES = 10;
 
 // Someone who can be @mentioned, with their part in the task (Assignee, Reporter, Watcher)
 export interface MentionCandidate {
@@ -71,14 +74,64 @@ function CommentBody({ comment }: { comment: TaskComment }) {
   );
 }
 
+// Images waiting to be sent with a comment, previewed from the browser before upload
+interface PendingImage {
+  id: string;
+  file: File;
+  previewUrl: string;
+}
+
 function CommentComposer({ task, mentionable }: { task: Task; mentionable: MentionCandidate[] }) {
   const { user } = useAuth();
   const addComment = useAddComment();
+  const uploadFiles = useUploadFiles();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [text, setText] = useState('');
   const [mentions, setMentions] = useState<TaskUser[]>([]);
   const [query, setQuery] = useState<string | null>(null);
   const [highlighted, setHighlighted] = useState(0);
+  const [images, setImages] = useState<PendingImage[]>([]);
+  const [imageError, setImageError] = useState('');
+  const isSending = addComment.isPending || uploadFiles.isPending;
+
+  // Previews are browser blobs; free them when they leave the composer
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
+  useEffect(() => () => imagesRef.current.forEach((image) => URL.revokeObjectURL(image.previewUrl)), []);
+
+  const addImages = (files: File[]) => {
+    const pictures = files.filter((file) => file.type.startsWith('image/'));
+    const small = pictures.filter((file) => file.size <= MAX_UPLOAD_BYTES);
+    const room = Math.max(0, MAX_COMMENT_IMAGES - images.length);
+    const accepted = small.slice(0, room);
+    setImageError(
+      pictures.length < files.length
+        ? 'Only images can be added to a comment — use Attachments for other files.'
+        : small.length < pictures.length
+          ? 'Images larger than 10 MB were skipped.'
+          : small.length > room
+            ? `Up to ${MAX_COMMENT_IMAGES} images per comment.`
+            : '',
+    );
+    if (accepted.length === 0) return;
+    setImages((current) => [...current, ...accepted.map((file) => ({ id: generateId(), file, previewUrl: URL.createObjectURL(file) }))]);
+  };
+
+  const removeImage = (id: string) =>
+    setImages((current) => {
+      const removed = current.find((image) => image.id === id);
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      return current.filter((image) => image.id !== id);
+    });
+
+  const clearComposer = () => {
+    images.forEach((image) => URL.revokeObjectURL(image.previewUrl));
+    setImages([]);
+    setImageError('');
+    setText('');
+    setMentions([]);
+  };
 
   const suggestions = useMemo(
     () =>
@@ -116,19 +169,29 @@ function CommentComposer({ task, mentionable }: { task: Task; mentionable: Menti
     focusAt(next.length);
   };
 
-  const submit = () => {
-    if (!text.trim()) return;
+  const submit = async () => {
+    if ((!text.trim() && images.length === 0) || isSending) return;
     // Only keep mentions whose "@Name" is still in the text
     const mentionIds = mentions.filter((member) => text.includes(`@${member.name}`)).map((member) => member.id);
-    addComment.mutate(
-      { task, body: text, mentionIds },
-      {
-        onSuccess: () => {
-          setText('');
-          setMentions([]);
-        },
-      },
-    );
+    let attachments: TaskAttachment[] = [];
+    if (images.length > 0) {
+      try {
+        const uploaded = await uploadFiles.mutateAsync({ files: images.map((image) => image.file), category: TASK_ATTACHMENT_CATEGORY, taskId: task.id });
+        attachments = uploaded.map((file) => ({
+          id: file.id,
+          fileId: file.id,
+          name: file.name,
+          url: file.url,
+          sizeBytes: file.size,
+          uploadedById: file.uploadedById,
+          uploadedAt: new Date().toISOString(),
+        }));
+      } catch (error) {
+        setImageError(error instanceof Error ? error.message : "Couldn't upload the images. Please try again.");
+        return;
+      }
+    }
+    addComment.mutate({ task, body: text, mentionIds, attachments }, { onSuccess: clearComposer });
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -151,9 +214,19 @@ function CommentComposer({ task, mentionable }: { task: Task; mentionable: Menti
     }
     if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
       event.preventDefault();
-      submit();
+      void submit();
     }
   };
+
+  // Screenshots pasted into the comment box are added as images
+  const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = Array.from(event.clipboardData.files).filter((file) => file.type.startsWith('image/'));
+    if (pasted.length === 0) return;
+    event.preventDefault();
+    addImages(pasted);
+  };
+
+  const hasContent = !!text || images.length > 0;
 
   return (
     <div className="flex gap-3">
@@ -174,11 +247,52 @@ function CommentComposer({ task, mentionable }: { task: Task; mentionable: Menti
               updateQuery(event.target.value, event.target.selectionStart);
             }}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             onBlur={() => setTimeout(() => setQuery(null), 150)}
           />
-          {!text && (
-            <div className="flex flex-wrap gap-1.5 px-3 pb-3">
-              {QUICK_REPLIES.map((reply) => (
+          {images.length > 0 && (
+            <ul className="flex flex-wrap gap-2 px-3 pb-3" aria-label="Images to send">
+              {images.map((image) => (
+                <li key={image.id} className="group relative h-20 w-20 overflow-hidden rounded-md border border-gray-200 bg-gray-50">
+                  <img src={image.previewUrl} alt={image.file.name} className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(image.id)}
+                    aria-label={`Remove ${image.file.name}`}
+                    disabled={isSending}
+                    className="absolute right-1 top-1 rounded-full bg-black/60 p-0.5 text-white hover:bg-black/80"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex flex-wrap items-center gap-1.5 px-3 pb-3">
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="sr-only"
+              tabIndex={-1}
+              onChange={(event) => {
+                addImages(Array.from(event.target.files ?? []));
+                event.target.value = '';
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              disabled={isSending || images.length >= MAX_COMMENT_IMAGES}
+              title={`Add images (up to ${MAX_COMMENT_IMAGES}) — you can also paste screenshots`}
+              className="inline-flex items-center gap-1 rounded-md border border-gray-200 px-2 py-1 text-xs font-medium text-gray-700 hover:border-[#464EB8]/40 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ImagePlus className="h-3.5 w-3.5" />
+              Add images
+            </button>
+            {!hasContent &&
+              QUICK_REPLIES.map((reply) => (
                 <button
                   key={reply}
                   type="button"
@@ -188,9 +302,9 @@ function CommentComposer({ task, mentionable }: { task: Task; mentionable: Menti
                   {reply}
                 </button>
               ))}
-            </div>
-          )}
+          </div>
         </div>
+        {imageError && <p className="mt-1 text-xs text-amber-700">{imageError}</p>}
 
         {suggestions.length > 0 && (
           <ul id="mention-suggestions" role="listbox" className="absolute left-0 top-full z-20 mt-1 w-72 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
@@ -217,14 +331,14 @@ function CommentComposer({ task, mentionable }: { task: Task; mentionable: Menti
           </ul>
         )}
 
-        {text && (
+        {hasContent && (
           <div className="mt-2 flex items-center justify-end gap-3">
             <span className="text-xs text-gray-400">Ctrl + Enter to send</span>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setText('')}>
+            <Button type="button" size="sm" variant="ghost" onClick={clearComposer} disabled={isSending}>
               Cancel
             </Button>
-            <Button type="button" size="sm" onClick={submit} disabled={addComment.isPending} className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
-              {addComment.isPending ? 'Saving…' : 'Save'}
+            <Button type="button" size="sm" onClick={() => void submit()} disabled={isSending} className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
+              {uploadFiles.isPending ? 'Uploading…' : addComment.isPending ? 'Saving…' : 'Save'}
             </Button>
           </div>
         )}
@@ -295,9 +409,32 @@ function CommentItem({ comment }: { comment: TaskComment }) {
           <span className="font-semibold text-gray-900">{nameOf(comment.authorId)}</span>
           <span className="ml-2 text-xs text-gray-400">{formatRelativeTime(comment.createdAt)}</span>
         </p>
-        <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-gray-700">
-          <CommentBody comment={comment} />
-        </p>
+        {comment.body && (
+          <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-gray-700">
+            <CommentBody comment={comment} />
+          </p>
+        )}
+        {(comment.attachments?.length ?? 0) > 0 && (
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {comment.attachments!.map((image) => (
+              <li key={image.id}>
+                <a
+                  href={image.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={`Open ${image.name}`}
+                  className="block h-28 w-28 overflow-hidden rounded-md border border-gray-200 bg-gray-50 hover:ring-2 hover:ring-[#464EB8]/40"
+                >
+                  {image.url ? (
+                    <img src={image.url} alt={image.name} className="h-full w-full object-cover" loading="lazy" />
+                  ) : (
+                    <span className="flex h-full items-center justify-center p-2 text-center text-xs text-gray-500">{image.name}</span>
+                  )}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </li>
   );
@@ -338,7 +475,8 @@ type FeedItem =
 
 /* ---------- Section ---------- */
 
-export function TaskActivitySection({ task, mentionable }: { task: Task; mentionable: MentionCandidate[] }) {
+// canComment defaults to the role's comment rights; the task page also lets project members join in
+export function TaskActivitySection({ task, mentionable, canComment }: { task: Task; mentionable: MentionCandidate[]; canComment?: boolean }) {
   const { user } = useAuth();
   const [tab, setTab] = useState<ActivityTab>('comments');
   const [newestFirst, setNewestFirst] = useState(true);
@@ -399,7 +537,7 @@ export function TaskActivitySection({ task, mentionable }: { task: Task; mention
         </button>
       </div>
 
-      {(tab === 'all' || tab === 'comments') && can(user, 'task.comment', task) && <CommentComposer task={task} mentionable={mentionable} />}
+      {(tab === 'all' || tab === 'comments') && (canComment ?? can(user, 'task.comment', task)) && <CommentComposer task={task} mentionable={mentionable} />}
 
       {tab === 'worklog' && totalLogged > 0 && (
         <p className="flex items-center gap-1.5 text-sm text-gray-600">

@@ -11,6 +11,7 @@ import {
   canReassign,
   getManagerSections,
   getSectionsForView,
+  canAssignWithinProject,
   canCreateSubtask,
   canCreateTask,
   canTransition,
@@ -200,13 +201,15 @@ describe('Phase 3 manager rules', () => {
   const ixp = { leadId: 'PM001', memberIds: ['PM001', 'EMP001'] };
   const hrProject = { leadId: 'HR001', memberIds: ['HR001'] };
 
-  it('lets managers plan sprints only in their projects; system admins everywhere; employees nowhere', () => {
+  it('lets project members plan sprints in their own projects; system admins everywhere', () => {
     expect(canManageSprints(manager, ixp)).toBe(true);
     expect(canManageSprints(manager, hrProject)).toBe(false);
     expect(canManageSprints(sysAdmin, hrProject)).toBe(true);
     expect(canManageSprints(admin, hrProject)).toBe(false);
-    expect(canManageSprints(employee, ixp)).toBe(false);
-    expect(canManageSprints(hr, hrProject)).toBe(false);
+    expect(canManageSprints(employee, ixp)).toBe(true);
+    expect(canManageSprints(employee, hrProject)).toBe(false);
+    expect(canManageSprints(hr, hrProject)).toBe(true);
+    expect(canManageSprints(executive, ixp)).toBe(false);
   });
 
   it('approves team work in review, but never your own', () => {
@@ -225,10 +228,12 @@ describe('Phase 3 manager rules', () => {
 
   it('shows manager tools by role', () => {
     expect(getManagerSections(manager)).toEqual(['board', 'workload', 'sprints', 'approvals']);
-    expect(getManagerSections(admin)).toEqual(['board']);
+    expect(getManagerSections(admin)).toEqual(['board', 'sprints']);
     expect(getManagerSections(sysAdmin)).toEqual(['board', 'workload', 'sprints', 'projects']);
-    expect(getManagerSections(employee)).toEqual(['board']);
-    expect(getManagerSections(executive)).toEqual(['board']);
+    // Every login has the Sprints tab (read-only where they can't plan), My Tasks included
+    expect(getManagerSections(employee)).toEqual(['board', 'sprints']);
+    expect(getSectionsForView(employee, 'my-tasks')).toEqual(['board', 'sprints']);
+    expect(getManagerSections(executive)).toEqual(['board', 'sprints']);
   });
 });
 
@@ -242,10 +247,10 @@ describe('Phase 4 HR rules', () => {
   });
 
   it('shows HR tools on the HR view and manager tools on team views', () => {
-    expect(getSectionsForView(hr, 'hr-tasks')).toEqual(['board', 'checklists', 'templates']);
-    expect(getSectionsForView(sysAdmin, 'hr-tasks')).toEqual(['board', 'checklists', 'templates']);
+    expect(getSectionsForView(hr, 'hr-tasks')).toEqual(['board', 'sprints', 'checklists', 'templates']);
+    expect(getSectionsForView(sysAdmin, 'hr-tasks')).toEqual(['board', 'sprints', 'checklists', 'templates']);
     expect(getSectionsForView(manager, 'team-board')).toEqual(['board', 'workload', 'sprints', 'approvals']);
-    expect(getSectionsForView(manager, 'my-tasks')).toEqual(['board']);
+    expect(getSectionsForView(manager, 'my-tasks')).toEqual(['board', 'sprints']);
   });
 });
 
@@ -265,5 +270,19 @@ describe('Phase 5 admin rules', () => {
     expect(canMoveToProject(sysAdmin, { ...task, parentId: 'P' }, 'PRJ-HR')).toBe(false);
     expect(canMoveToProject(admin, task, 'PRJ-HR')).toBe(false);
     expect(canMoveToProject(manager, teamTask, 'PRJ-HR')).toBe(false);
+  });
+});
+
+describe('Project hand-over', () => {
+  const ixp = { memberIds: ['PM001', 'EMP001', 'EMP002'] };
+
+  it('lets a project member reassign work they can edit to a teammate on the same project', () => {
+    const mine = makeTask({ assigneeId: 'EMP001', reporterId: 'PM001' });
+    expect(canAssignWithinProject(employee, mine, 'EMP002', ixp)).toBe(true);
+    // Not to someone outside the project, and not on someone else's task
+    expect(canAssignWithinProject(employee, mine, 'EMP003', ixp)).toBe(false);
+    expect(canAssignWithinProject(employee, makeTask({ assigneeId: 'EMP002', reporterId: 'PM001' }), 'EMP001', ixp)).toBe(false);
+    // Non-members get nothing from this rule
+    expect(canAssignWithinProject(employee, mine, 'EMP002', { memberIds: ['PM001', 'EMP002'] })).toBe(false);
   });
 });

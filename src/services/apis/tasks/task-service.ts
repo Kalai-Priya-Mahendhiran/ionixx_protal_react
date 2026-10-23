@@ -1,6 +1,8 @@
 import {
   can,
   canApprove,
+  canAssignWithinProject,
+  canManageProjectMembers,
   canManageProjects,
   canMoveToProject,
   canManageSprints,
@@ -8,9 +10,9 @@ import {
   canCreateSubtask,
   canCreateTask,
   canTransition,
-  getScope,
   getSubtaskType,
   getVisibleTasks,
+  hasProjectAccess,
   type PermissionUser,
   type TaskAction,
 } from '@/lib/permissions/task-permissions';
@@ -22,7 +24,7 @@ import {
   sampleTasks,
   sampleWorkLogs,
 } from '@/lib/sample-data/tasks-sample-data';
-import { getUserById } from '@/lib/user-directory';
+import { getActiveUsers, getUserById } from '@/lib/user-directory';
 import { isUserActive } from '@/lib/user-access-store';
 import { generateId, toDateInput } from '@/lib/utils';
 import type {
@@ -66,7 +68,10 @@ export class TaskPermissionError extends Error {
   }
 }
 
-export type ProjectInput = Pick<Project, 'name' | 'key' | 'description' | 'leadId' | 'memberIds' | 'defaultIssueType'>;
+export type ProjectInput = Pick<Project, 'name' | 'key' | 'description' | 'leadId' | 'memberIds' | 'defaultIssueType'> & Pick<Partial<Project>, 'openMembership'>;
+
+// Editing a task: everything but the project (task keys belong to a project), plus the people on it
+export type TaskUpdateInput = Omit<TaskInput, 'projectId'> & Partial<Pick<Task, 'reporterId' | 'watcherIds'>>;
 
 // One change applied to many tasks from the list's bulk actions bar
 export type BulkChange =
@@ -107,9 +112,21 @@ function assertCan(actor: PermissionUser, action: TaskAction, task?: Parameters<
   if (!can(actor, action, task)) throw new TaskPermissionError(message);
 }
 
+// Tasks the actor's role lets them see, plus every task of the projects they're a member of
+function visibleTasks(actor: PermissionUser): Task[] {
+  const memberOf = new Set(projects.filter((project) => project.memberIds.includes(actor.id)).map((project) => project.id));
+  const byRole = getVisibleTasks(actor, tasks);
+  if (memberOf.size === 0) return byRole;
+  const ids = new Set(byRole.map((task) => task.id));
+  return tasks.filter((task) => ids.has(task.id) || memberOf.has(task.projectId));
+}
+
+const isProjectMember = (actor: PermissionUser, task: Pick<Task, 'projectId'>) =>
+  !!projects.find((project) => project.id === task.projectId)?.memberIds.includes(actor.id);
+
 function findTask(actor: PermissionUser, id: string): Task {
   // Tasks the actor can't see are reported as missing, like a 404 from the API
-  const task = getVisibleTasks(actor, tasks).find((item) => item.id === id);
+  const task = visibleTasks(actor).find((item) => item.id === id);
   if (!task) throw new Error('Task not found');
   return task;
 }
@@ -130,8 +147,7 @@ function nextTaskKey(project: Project): string {
 
 // Sprints and epics are planning data of a project: visible to its members and to org-wide viewers
 function isProjectVisible(actor: PermissionUser, projectId: string): boolean {
-  const project = projects.find((item) => item.id === projectId);
-  return !!project && (getScope(actor, 'task.view') === 'all' || project.memberIds.includes(actor.id));
+  return hasProjectAccess(actor, projects.find((item) => item.id === projectId));
 }
 
 // The epic and sprint must belong to the task's project; new links can't target a completed sprint
@@ -298,12 +314,13 @@ function approverOf(task: Task): string {
 }
 
 // Saves a comment and tells mentioned people and everyone following the task
-function postComment(actor: PermissionUser, task: Task, body: string, mentionIds: string[]): TaskComment {
-  const comment: TaskComment = { id: generateId(), taskId: task.id, authorId: actor.id, body: body.trim(), mentionIds, createdAt: now() };
+function postComment(actor: PermissionUser, task: Task, body: string, mentionIds: string[], attachments: TaskAttachment[] = []): TaskComment {
+  const comment: TaskComment = { id: generateId(), taskId: task.id, authorId: actor.id, body: body.trim(), mentionIds, attachments, createdAt: now() };
   comments = [...comments, comment];
   recordActivity({ taskId: task.id, actorId: actor.id, type: 'commented' });
 
-  const excerpt = comment.body.length > 120 ? `${comment.body.slice(0, 117)}…` : comment.body;
+  const text = comment.body || `shared ${attachments.length === 1 ? 'an image' : `${attachments.length} images`}`;
+  const excerpt = text.length > 120 ? `${text.slice(0, 117)}…` : text;
   notificationService.notify(mentionIds, actor.id, {
     type: 'info',
     title: `${nameOf(actor.id)} mentioned you on ${task.key}`,
@@ -350,7 +367,7 @@ export const taskService = {
   async list(actor: PermissionUser): Promise<Task[]> {
     await delay();
     runDueDateChecks();
-    return getVisibleTasks(actor, tasks);
+    return visibleTasks(actor);
   },
 
   // GET /api/projects
@@ -404,16 +421,25 @@ export const taskService = {
   },
 
   // PATCH /api/tasks/:id — project changes are not supported here (task keys belong to a project)
-  async update(actor: PermissionUser, id: string, input: Omit<TaskInput, 'projectId'>): Promise<Task> {
+  async update(actor: PermissionUser, id: string, input: TaskUpdateInput): Promise<Task> {
     await delay();
     const existing = findTask(actor, id);
     assertCan(actor, 'task.edit', existing);
+    if (!input.title.trim()) throw new Error('Give the task a title');
+    if (input.reporterId && input.reporterId !== existing.reporterId && !isUserActive(input.reporterId)) {
+      throw new Error("Deactivated accounts can't be the reporter");
+    }
+    const addedWatchers = (input.watcherIds ?? []).filter((watcherId) => !existing.watcherIds.includes(watcherId));
+    if (addedWatchers.some((watcherId) => !isUserActive(watcherId))) throw new Error("Deactivated accounts can't watch tasks");
 
     const updated: Task = { ...existing, ...input, updatedAt: now() };
-    assertCan(actor, 'task.edit', updated, "You can't save this task with the selected type or assignee");
+    const reassigned = updated.assigneeId !== existing.assigneeId;
+    // A project member handing the task to a teammate may lose edit rights by doing so; that's allowed
+    const projectHandOver = reassigned && updated.type === existing.type && canAssignWithinProject(actor, existing, updated.assigneeId, findProject(existing.projectId));
+    if (!projectHandOver) assertCan(actor, 'task.edit', updated, "You can't save this task with the selected type or assignee");
     assertPlanningLinks(updated, existing.sprintId);
-    if (updated.assigneeId !== existing.assigneeId) {
-      assertCan(actor, 'task.assign', updated, "You can't assign tasks to this person");
+    if (reassigned) {
+      if (!projectHandOver) assertCan(actor, 'task.assign', updated, "You can't assign tasks to this person");
       recordActivity({ taskId: id, actorId: actor.id, type: 'assigned', from: existing.assigneeId, to: updated.assigneeId });
       notifyAssigned(updated, actor.id);
     }
@@ -618,6 +644,9 @@ export const taskService = {
     if (projects.some((project) => project.name.toLowerCase() === name.toLowerCase())) throw new Error(`A project called "${name}" already exists`);
     if (!getUserById(input.leadId)) throw new Error('Choose a project lead');
     if ([input.leadId, ...input.memberIds].some((memberId) => !isUserActive(memberId))) throw new Error("Deactivated accounts can't be added to a project");
+    if (input.memberIds.some((memberId) => memberId !== input.leadId) && !canManageProjectMembers(actor)) {
+      throw new TaskPermissionError('Only a System Admin can add members to a project');
+    }
 
     const project: Project = {
       ...input,
@@ -627,6 +656,8 @@ export const taskService = {
       description: input.description?.trim() || undefined,
       // The lead is always a member
       memberIds: [...new Set([input.leadId, ...input.memberIds])],
+      openMembership: !!input.openMembership,
+      pendingMemberIds: [],
     };
     projects = [...projects, project];
     auditService.record({ actorId: actor.id, entity: 'project', entityKey: project.key, action: 'created', summary: `Project "${project.name}" created` });
@@ -647,18 +678,92 @@ export const taskService = {
     // Deactivated people already on the project may stay (for history); nobody inactive can be added or made lead
     const newPeople = [input.leadId, ...input.memberIds].filter((memberId) => !existing.memberIds.includes(memberId) || memberId === input.leadId);
     if (newPeople.some((memberId) => !isUserActive(memberId))) throw new Error("Deactivated accounts can't lead or join a project");
+    const memberIds = [...new Set([input.leadId, ...input.memberIds])];
+    const membersChanged = memberIds.length !== existing.memberIds.length || memberIds.some((memberId) => !existing.memberIds.includes(memberId));
+    const controlsChanged = input.openMembership !== undefined && input.openMembership !== !!existing.openMembership;
+    if ((membersChanged || controlsChanged) && !canManageProjectMembers(actor)) {
+      throw new TaskPermissionError('Only a System Admin can change who is on a project');
+    }
     const updated: Project = {
       ...existing,
       ...input,
       name,
       description: input.description?.trim() || undefined,
-      memberIds: [...new Set([input.leadId, ...input.memberIds])],
+      memberIds,
+      openMembership: input.openMembership ?? existing.openMembership,
+      // Adding someone settles their pending request
+      pendingMemberIds: (existing.pendingMemberIds ?? []).filter((memberId) => !memberIds.includes(memberId)),
     };
     projects = projects.map((project) => (project.id === id ? updated : project));
     const added = updated.memberIds.filter((memberId) => !existing.memberIds.includes(memberId)).map(nameOf);
     const removed = existing.memberIds.filter((memberId) => !updated.memberIds.includes(memberId)).map(nameOf);
     const memberChanges = [added.length ? `added ${added.join(', ')}` : '', removed.length ? `removed ${removed.join(', ')}` : ''].filter(Boolean).join('; ');
     auditService.record({ actorId: actor.id, entity: 'project', entityKey: updated.key, action: 'updated', summary: memberChanges ? `Members: ${memberChanges}` : 'Project details updated' });
+    return updated;
+  },
+
+  // POST /api/projects/:id/join — open projects only
+  async joinProject(actor: PermissionUser, id: string): Promise<Project> {
+    await delay();
+    const existing = findProject(id);
+    if (existing.memberIds.includes(actor.id)) return existing;
+    if (!existing.openMembership) throw new TaskPermissionError(`${existing.name} needs approval to join — request access instead`);
+    if (!isUserActive(actor.id)) throw new TaskPermissionError("Deactivated accounts can't join a project");
+    const updated: Project = {
+      ...existing,
+      memberIds: [...existing.memberIds, actor.id],
+      pendingMemberIds: (existing.pendingMemberIds ?? []).filter((memberId) => memberId !== actor.id),
+    };
+    projects = projects.map((project) => (project.id === id ? updated : project));
+    auditService.record({ actorId: actor.id, entity: 'project', entityKey: updated.key, action: 'joined', summary: `${nameOf(actor.id)} joined the project` });
+    return updated;
+  },
+
+  // POST /api/projects/:id/access-requests — the System Admins are notified and approve or decline
+  async requestProjectAccess(actor: PermissionUser, id: string, link?: string): Promise<Project> {
+    await delay();
+    const existing = findProject(id);
+    if (existing.memberIds.includes(actor.id)) return existing;
+    if ((existing.pendingMemberIds ?? []).includes(actor.id)) throw new Error(`You've already asked to join ${existing.name}`);
+    const updated: Project = { ...existing, pendingMemberIds: [...(existing.pendingMemberIds ?? []), actor.id] };
+    projects = projects.map((project) => (project.id === id ? updated : project));
+    const admins = getActiveUsers().filter((member) => member.role === 'system_admin').map((member) => member.id);
+    notificationService.notify(admins, actor.id, {
+      type: 'info',
+      title: `${nameOf(actor.id)} asked to join ${existing.name}`,
+      message: 'Approve or decline it from the project in Tasks → Projects',
+      actionUrl: link ?? '/tasks?view=all-projects&section=projects',
+    });
+    auditService.record({ actorId: actor.id, entity: 'project', entityKey: updated.key, action: 'access-requested', summary: `${nameOf(actor.id)} requested access` });
+    return updated;
+  },
+
+  // POST /api/projects/:id/access-requests/:userId { approve }
+  async reviewProjectAccess(actor: PermissionUser, id: string, userId: string, approve: boolean): Promise<Project> {
+    await delay();
+    if (!canManageProjectMembers(actor)) throw new TaskPermissionError('Only a System Admin can approve access requests');
+    const existing = findProject(id);
+    if (!(existing.pendingMemberIds ?? []).includes(userId)) throw new Error('That request has already been handled');
+    if (approve && !isUserActive(userId)) throw new Error("Deactivated accounts can't join a project");
+    const updated: Project = {
+      ...existing,
+      memberIds: approve ? [...new Set([...existing.memberIds, userId])] : existing.memberIds,
+      pendingMemberIds: (existing.pendingMemberIds ?? []).filter((memberId) => memberId !== userId),
+    };
+    projects = projects.map((project) => (project.id === id ? updated : project));
+    notificationService.notify([userId], actor.id, {
+      type: approve ? 'success' : 'warning',
+      title: approve ? `You've been added to ${existing.name}` : `Your request to join ${existing.name} was declined`,
+      message: approve ? 'You can now open its tasks and shared links' : `Ask ${nameOf(actor.id)} if you still need access`,
+      actionUrl: '/tasks',
+    });
+    auditService.record({
+      actorId: actor.id,
+      entity: 'project',
+      entityKey: updated.key,
+      action: approve ? 'access-approved' : 'access-declined',
+      summary: `${approve ? 'Approved' : 'Declined'} access for ${nameOf(userId)}`,
+    });
     return updated;
   },
 
@@ -697,7 +802,7 @@ export const taskService = {
     if (change.kind === 'project' && !target) throw new Error('Choose a project');
 
     ids.forEach((id) => {
-      const task = getVisibleTasks(actor, tasks).find((item) => item.id === id);
+      const task = visibleTasks(actor).find((item) => item.id === id);
       if (!task) return;
       const skip = (reason: string) => result.skipped.push({ key: task.key, reason });
 
@@ -889,7 +994,7 @@ export const taskService = {
     await delay();
     const existing = findTask(actor, id);
     // Anyone can stop watching; starting needs watch rights
-    if (watching) assertCan(actor, 'task.watch', existing, "You can't watch this task");
+    if (watching && !can(actor, 'task.watch', existing) && !isProjectMember(actor, existing)) throw new TaskPermissionError("You can't watch this task");
     const watcherIds = watching
       ? [...new Set([...existing.watcherIds, actor.id])]
       : existing.watcherIds.filter((watcherId) => watcherId !== actor.id);
@@ -955,12 +1060,14 @@ export const taskService = {
   },
 
   // POST /api/tasks/:id/comments
-  async addComment(actor: PermissionUser, id: string, body: string, mentionIds: string[]): Promise<TaskComment> {
+  async addComment(actor: PermissionUser, id: string, body: string, mentionIds: string[], attachments: TaskAttachment[] = []): Promise<TaskComment> {
     await delay();
     const task = findTask(actor, id);
-    assertCan(actor, 'task.comment', task, "You can't comment on this task");
-    if (!body.trim()) throw new Error('Write a comment first');
-    return postComment(actor, task, body, mentionIds);
+    // Project members can join the conversation on any task of their project
+    if (!can(actor, 'task.comment', task) && !isProjectMember(actor, task)) throw new TaskPermissionError("You can't comment on this task");
+    if (!body.trim() && attachments.length === 0) throw new Error('Write a comment or add an image first');
+    await fileService.linkToTask(attachments.flatMap((attachment) => attachment.fileId ?? []), id);
+    return postComment(actor, task, body, mentionIds, attachments);
   },
 
   /* ---------- History & work log ---------- */

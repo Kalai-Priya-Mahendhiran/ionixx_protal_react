@@ -8,11 +8,12 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { FormDialog } from '@/components/ui/form-dialog';
 import { RequiredLabel, SelectField, fieldClass, type Option } from '@/components/ui/form-fields';
 import { useAuth } from '@/context/auth-context';
-import { can, canCreateTask, getAssignableUsers } from '@/lib/permissions/task-permissions';
+import { can, canAssignWithinProject, canCreateTask, getAssignableUsers } from '@/lib/permissions/task-permissions';
 import { TASK_FIELD_NONE, TASK_ISSUE_TYPES, TASK_PRIORITIES, taskSchema, type TaskFormValues } from '@/lib/schemas';
-import { getUserById } from '@/lib/user-directory';
+import { getActiveUsers, getUserById } from '@/lib/user-directory';
 import { cn } from '@/lib/utils';
-import { useCreateTask, useEpics, useSprints, useUpdateTask } from '@/services/apis/tasks/use-tasks';
+import { useCreateTask, useEpics, useSprints, useTasks, useUpdateTask } from '@/services/apis/tasks/use-tasks';
+import { LabelSelect } from './label-select';
 import type { Project, SprintStatus, Task, TaskAttachment } from '@/types';
 import { TaskAttachmentsField } from './task-attachments-field';
 import { getConfiguredLabels, isTypeEnabled } from '@/lib/workflow';
@@ -20,6 +21,7 @@ import { OnLeaveBanner } from './leave-warning';
 import { TaskTypeGlyph, UserChip } from './task-badges';
 import { TASK_PRIORITY_CONFIG, TASK_TYPE_CONFIG } from './task-config';
 import { formatShortDate, getDurationDays, parseLabels } from './task-utils';
+import { DatePicker } from '@/components/ui/date-picker';
 
 const PRIORITY_OPTIONS: Option[] = TASK_PRIORITIES.map((value) => {
   const { label, icon: Icon, className } = TASK_PRIORITY_CONFIG[value];
@@ -68,11 +70,16 @@ export function TaskFormDialog({ open, task, projects, onOpenChange }: TaskFormD
   const updateTask = useUpdateTask();
   const { data: sprints = [] } = useSprints();
   const { data: epics = [] } = useEpics();
+  const { data: allTasks = [] } = useTasks();
+  const labelOptions = useMemo(() => [...new Set([...getConfiguredLabels(), ...allTasks.flatMap((item) => item.labels)])], [allTasks]);
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [createAnother, setCreateAnother] = useState(false);
 
   const isSaving = createTask.isPending || updateTask.isPending;
-  const showAssignee = can(user, 'task.assign');
+  // When editing, project members can also hand the task to a teammate on the same project
+  const taskProject = task ? projects.find((project) => project.id === task.projectId) : undefined;
+  const isProjectMember = !!user && !!taskProject?.memberIds.includes(user.id);
+  const showAssignee = can(user, 'task.assign') || (!!task && isProjectMember && can(user, 'task.edit', task));
   const defaultProject = projects.find((project) => user && project.memberIds.includes(user.id)) ?? projects[0];
 
   const form = useForm<TaskFormValues>({ resolver: zodResolver(taskSchema) });
@@ -100,6 +107,7 @@ export function TaskFormDialog({ open, task, projects, onOpenChange }: TaskFormD
             dueDate: task.dueDate,
             estimateHours: task.estimateHours?.toString() ?? '',
             labels: task.labels.join(', '),
+            reporterId: task.reporterId,
           }
         : {
             title: '',
@@ -114,6 +122,7 @@ export function TaskFormDialog({ open, task, projects, onOpenChange }: TaskFormD
             dueDate: '',
             estimateHours: '',
             labels: '',
+            reporterId: user?.id ?? '',
           },
     );
   }, [open, task, defaultProject, user, form]);
@@ -156,10 +165,22 @@ export function TaskFormDialog({ open, task, projects, onOpenChange }: TaskFormD
   ];
 
   const assigneeOptions: Option[] = useMemo(() => {
-    const users = getAssignableUsers(user);
+    const teammates = isProjectMember ? getActiveUsers().filter((member) => taskProject?.memberIds.includes(member.id)) : [];
+    const users = [...getAssignableUsers(user), ...teammates].filter((member, index, all) => all.findIndex((other) => other.id === member.id) === index);
     // Keep the current assignee selectable even if they're outside the user's assignable list
     const current = task && !users.some((member) => member.id === task.assigneeId) ? getUserById(task.assigneeId) : undefined;
     return [...(current ? [current] : []), ...users].map((member) => ({
+      value: member.id,
+      label: member.id === user?.id ? `${member.name} (me)` : member.name,
+      hint: member.designation,
+    }));
+  }, [user, task, isProjectMember, taskProject]);
+
+  // Every active person, plus the current reporter if they've since been deactivated
+  const reporterOptions: Option[] = useMemo(() => {
+    const people = getActiveUsers();
+    const current = task && !people.some((member) => member.id === task.reporterId) ? getUserById(task.reporterId) : undefined;
+    return [...(current ? [current] : []), ...people].map((member) => ({
       value: member.id,
       label: member.id === user?.id ? `${member.name} (me)` : member.name,
       hint: member.designation,
@@ -207,14 +228,15 @@ export function TaskFormDialog({ open, task, projects, onOpenChange }: TaskFormD
       attachments,
     };
 
-    const allowed = task ? can(user, 'task.edit', { ...task, ...changes }) : canCreateTask(user, changes);
+    const handOver = !!task && changes.assigneeId !== task.assigneeId && canAssignWithinProject(user, task, changes.assigneeId, taskProject);
+    const allowed = task ? handOver || can(user, 'task.edit', { ...task, ...changes }) : canCreateTask(user, changes);
     if (!allowed) {
       form.setError('root', { message: "You don't have permission to save a task with this type and assignee." });
       return;
     }
 
     if (task) {
-      updateTask.mutate({ id: task.id, input: changes }, { onSuccess: () => onOpenChange(false) });
+      updateTask.mutate({ id: task.id, input: { ...changes, reporterId: values.reporterId || task.reporterId } }, { onSuccess: () => onOpenChange(false) });
       return;
     }
 
@@ -372,7 +394,7 @@ export function TaskFormDialog({ open, task, projects, onOpenChange }: TaskFormD
                   <FormItem>
                     <FormLabel className="text-gray-700">Start date</FormLabel>
                     <FormControl>
-                      <Input {...field} type="date" max={dueDate || undefined} className={fieldClass} />
+                      <DatePicker {...field} max={dueDate || undefined} className={fieldClass} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -385,7 +407,7 @@ export function TaskFormDialog({ open, task, projects, onOpenChange }: TaskFormD
                   <FormItem>
                     <RequiredLabel>Due date</RequiredLabel>
                     <FormControl>
-                      <Input {...field} type="date" min={startDate || undefined} className={fieldClass} />
+                      <DatePicker {...field} min={startDate || undefined} className={fieldClass} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -452,9 +474,15 @@ export function TaskFormDialog({ open, task, projects, onOpenChange }: TaskFormD
                 <UserChip userId={assigneeId || user?.id || ''} />
               </ReadOnlyField>
             )}
-            <ReadOnlyField label="Reporter">
-              <UserChip userId={task?.reporterId ?? user?.id ?? ''} />
-            </ReadOnlyField>
+            {task ? (
+              // Anyone who can edit the task can change who reported it
+              <SelectField control={form.control} name="reporterId" label="Reporter" options={reporterOptions} placeholder="Select reporter" required={false} />
+            ) : (
+              // A new task is reported by whoever creates it
+              <ReadOnlyField label="Reporter">
+                <UserChip userId={user?.id ?? ''} />
+              </ReadOnlyField>
+            )}
             <SelectField control={form.control} name="priority" label="Priority" options={PRIORITY_OPTIONS} placeholder="Select priority" />
             <FormField
               control={form.control}
@@ -463,14 +491,14 @@ export function TaskFormDialog({ open, task, projects, onOpenChange }: TaskFormD
                 <FormItem>
                   <FormLabel className="text-gray-700">Labels</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Comma separated, e.g. frontend, release" list="task-label-suggestions" className={fieldClass} />
+                    {/* Labels configured in Settings → Types & Labels, plus any already in use; new ones can be created */}
+                    <LabelSelect
+                      value={parseLabels(field.value ?? '')}
+                      onChange={(labels) => field.onChange(labels.join(', '))}
+                      options={labelOptions}
+                      placeholder="Select labels"
+                    />
                   </FormControl>
-                  {/* Labels configured in Settings → Types & Labels */}
-                  <datalist id="task-label-suggestions">
-                    {getConfiguredLabels().map((label) => (
-                      <option key={label} value={label} />
-                    ))}
-                  </datalist>
                   <FormMessage />
                 </FormItem>
               )}

@@ -7,6 +7,7 @@ import { todayAsDateInput } from '@/lib/utils';
 import { defaultTaskDateRange, getDailyHours, getTaskHours, isInTaskDateRange, type TaskDateRange, type TaskRecord } from './task-form';
 import { DAILY_HOUR_LIMIT, TIME_TRACKER_STATUS_COLORS, TIME_TRACKER_STATUS_LABELS } from '@/lib/constants';
 import type { TaskCardFilter } from './time-tracking-stats-section';
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface TodaysTasksSectionProps {
   tasks: TaskRecord[];
@@ -56,24 +57,11 @@ export function TodaysTasksSection({ tasks, cardFilter, dateRange, onDateRangeCh
         <div className="flex flex-wrap items-end gap-3 rounded-lg bg-indigo-50/60 p-4">
           <label className="grid gap-1 text-sm font-medium text-gray-700">
             From date
-            <input
-              type="date"
-              value={fromDate}
-              max={toDate || today}
-              onChange={(event) => setFromDate(event.target.value)}
-              className="rounded-md border border-gray-300 bg-white px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
+            <DatePicker value={fromDate} max={toDate || today} onChange={setFromDate} clearable={false} className="w-44 font-normal" />
           </label>
           <label className="grid gap-1 text-sm font-medium text-gray-700">
             To date
-            <input
-              type="date"
-              value={toDate}
-              min={fromDate || undefined}
-              max={today}
-              onChange={(event) => setToDate(event.target.value)}
-              className="rounded-md border border-gray-300 bg-white px-3 py-2 font-normal focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
-            />
+            <DatePicker value={toDate} min={fromDate || undefined} max={today} onChange={setToDate} clearable={false} className="w-44 font-normal" />
           </label>
           <Button onClick={() => setDateRange({ from: fromDate, to: toDate })} className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
             Search

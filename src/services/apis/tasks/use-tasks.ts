@@ -2,11 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/auth-context';
 import type { PermissionUser } from '@/lib/permissions/task-permissions';
-import type { Task, TaskAttachment, TaskInput, TaskStatus } from '@/types';
+import type { Project, Task, TaskAttachment, TaskInput, TaskStatus } from '@/types';
 import { FILES_KEY } from '../files/use-files';
 import { NOTIFICATIONS_KEY } from '../notifications/use-notifications';
 import { TIME_ENTRIES_KEY } from '../time-tracker/use-time-entries';
-import { taskService, type BulkChange, type LogWorkInput, type ProjectInput } from './task-service';
+import { taskService, type BulkChange, type LogWorkInput, type ProjectInput, type TaskUpdateInput } from './task-service';
 
 // Detail queries (comments, history, work log) live under this key too, so any task change refreshes them
 const TASKS_KEY = ['tasks'] as const;
@@ -96,10 +96,14 @@ export const useCreateTask = () =>
 
 export const useUpdateTask = () =>
   useTaskMutation(
-    (actor, { id, input }: { id: string; input: Omit<TaskInput, 'projectId'> }) => taskService.update(actor, id, input),
+    (actor, { id, input }: { id: string; input: TaskUpdateInput }) => taskService.update(actor, id, input),
     () => 'Task updated',
     [FILES_KEY],
   );
+
+// Inline edits on the task page: one field at a time, saved without a toast (the field itself shows the new value)
+export const useUpdateTaskField = () =>
+  useTaskMutation((actor, { id, input }: { id: string; input: TaskUpdateInput }) => taskService.update(actor, id, input), null, [FILES_KEY]);
 
 // Optimistic: the card moves immediately (e.g. on a board drop) and rolls back if the server refuses.
 // `silent` skips the success toast, e.g. for ticking sub-tasks off a checklist.
@@ -168,9 +172,10 @@ export const useRemoveAttachment = () =>
 
 export const useAddComment = () =>
   useTaskMutation(
-    (actor, { task, body, mentionIds }: { task: Task; body: string; mentionIds: string[] }) =>
-      taskService.addComment(actor, task.id, body, mentionIds),
+    (actor, { task, body, mentionIds, attachments }: { task: Task; body: string; mentionIds: string[]; attachments?: TaskAttachment[] }) =>
+      taskService.addComment(actor, task.id, body, mentionIds, attachments),
     null,
+    [FILES_KEY],
   );
 
 export const useLogWork = () =>
@@ -280,6 +285,28 @@ export const useUpdateProject = () =>
     (actor, { id, input }: { id: string; input: Omit<ProjectInput, 'key'> }) => taskService.updateProject(actor, id, input),
     ({ input }) => `${input.name} saved`,
     [PROJECTS_KEY],
+  );
+
+// Membership controls: join an open project, ask to join a closed one, and (System Admin) settle requests
+export const useJoinProject = () =>
+  useTaskMutation((actor, project: Project) => taskService.joinProject(actor, project.id), (project) => `You joined ${project.name}`, [
+    PROJECTS_KEY,
+    SPRINTS_KEY,
+  ]);
+
+export const useRequestProjectAccess = () =>
+  useTaskMutation(
+    (actor, { project, link }: { project: Project; link?: string }) => taskService.requestProjectAccess(actor, project.id, link),
+    ({ project }) => `Request sent — a System Admin will review your access to ${project.name}`,
+    [PROJECTS_KEY],
+  );
+
+export const useReviewProjectAccess = () =>
+  useTaskMutation(
+    (actor, { project, userId, approve }: { project: Project; userId: string; approve: boolean }) =>
+      taskService.reviewProjectAccess(actor, project.id, userId, approve),
+    ({ approve }) => (approve ? 'Access approved' : 'Request declined'),
+    [PROJECTS_KEY, SPRINTS_KEY],
   );
 
 // The caller shows the result (how many were updated or skipped), so no toast here

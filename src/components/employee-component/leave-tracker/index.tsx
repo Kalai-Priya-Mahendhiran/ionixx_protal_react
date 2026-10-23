@@ -7,6 +7,7 @@ import { DEFAULT_LEAVE_COUNTRY } from '@/lib/constants';
 import type { LeaveRequestFormValues } from '@/lib/schemas';
 import type { LeaveCountry } from '@/types';
 import { useApplyLeave, useLeaveRequests } from '@/services/apis/leave/use-leave';
+import { useCreateFromLink } from '@/hooks/use-create-from-link';
 import {
   ApplyLeaveSection,
   LeaveCalendarSection,
@@ -23,6 +24,15 @@ export default function Leave() {
 
   const applyLeave = (values: LeaveRequestFormValues, days: number) => applyLeaveRequest.mutate({ ...values, days });
 
+  // Quick Add → Apply Leave
+  useCreateFromLink(() =>
+    requestAnimationFrame(() => {
+      const form = document.getElementById('apply-leave');
+      form?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      form?.querySelector<HTMLElement>('button, input, select, textarea')?.focus({ preventScroll: true });
+    }),
+  );
+
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-8">
@@ -34,7 +44,9 @@ export default function Leave() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Apply Leave */}
-          <ApplyLeaveSection requests={requests} holidays={holidays} onApply={applyLeave} />
+          <div id="apply-leave" className="scroll-mt-24">
+            <ApplyLeaveSection requests={requests} holidays={holidays} onApply={applyLeave} />
+          </div>
 
           {/* Leave Calendar */}
           <LeaveCalendarSection requests={requests} holidays={holidays} country={country} onCountryChange={setCountry} />

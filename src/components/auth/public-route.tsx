@@ -1,5 +1,6 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/auth-context';
+import { getRedirectAfterLogin } from './redirect-after-login';
 
 interface PublicRouteProps {
   children: React.ReactNode;
@@ -7,6 +8,7 @@ interface PublicRouteProps {
 
 export default function PublicRoute({ children }: PublicRouteProps) {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -17,7 +19,7 @@ export default function PublicRoute({ children }: PublicRouteProps) {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={getRedirectAfterLogin(location.state)} replace />;
   }
 
   return <>{children}</>;

@@ -3,7 +3,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { CalendarPlus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { RequiredLabel, SelectField, fieldClass } from '@/components/ui/form-fields';
@@ -11,6 +10,7 @@ import { LEAVE_DAY_PARTS, LEAVE_TYPES } from '@/lib/constants';
 import { leaveRequestSchema, type LeaveRequestFormValues } from '@/lib/schemas';
 import type { Holiday, LeaveRequest } from '@/types';
 import { countLeaveDays, getDatesInRange, isActiveLeaveOn, isWeekend } from './leave-utils';
+import { DatePicker } from '@/components/ui/date-picker';
 
 const LEAVE_TYPE_OPTIONS = LEAVE_TYPES.map((type) => ({ value: type.id, label: type.label }));
 
@@ -88,14 +88,13 @@ export function ApplyLeaveSection({ requests, holidays, onApply }: ApplyLeaveSec
                   <FormItem className="col-span-3">
                     <RequiredLabel>From Date</RequiredLabel>
                     <FormControl>
-                      <Input
+                      <DatePicker
                         {...field}
-                        type="date"
                         className={fieldClass}
-                        onChange={(event) => {
-                          field.onChange(event);
+                        onChange={(value) => {
+                          field.onChange(value);
                           // Default the end date to the start date for quicker single-day requests
-                          if (!form.getValues('endDate')) form.setValue('endDate', event.target.value);
+                          if (!form.getValues('endDate')) form.setValue('endDate', value);
                         }}
                       />
                     </FormControl>
@@ -114,7 +113,7 @@ export function ApplyLeaveSection({ requests, holidays, onApply }: ApplyLeaveSec
                   <FormItem className="col-span-3">
                     <RequiredLabel>To Date</RequiredLabel>
                     <FormControl>
-                      <Input {...field} type="date" min={startDate || undefined} className={fieldClass} />
+                      <DatePicker {...field} min={startDate || undefined} className={fieldClass} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

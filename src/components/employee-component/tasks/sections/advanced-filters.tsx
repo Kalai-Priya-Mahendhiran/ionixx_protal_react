@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
+import * as Popover from '@radix-ui/react-popover';
 import { Check, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -7,11 +8,15 @@ import { DUE_FILTER_OPTIONS, EMPTY_FILTERS, countActiveFilters, type AdvancedFil
 
 const SECTION_TITLES: Record<ListKey, string> = {
   projectIds: 'Project',
+  sprintIds: 'Sprint',
   departments: 'Department',
   assigneeIds: 'Assignee',
   priorities: 'Priority',
   types: 'Type',
 };
+
+// Sprints have their own button next to Filters
+const PANEL_KEYS = (Object.keys(SECTION_TITLES) as ListKey[]).filter((key) => key !== 'sprintIds');
 
 function CheckboxRow({ checked, label, onToggle }: { checked: boolean; label: string; onToggle: () => void }) {
   return (
@@ -38,23 +43,8 @@ interface AdvancedFiltersButtonProps {
 
 export function AdvancedFiltersButton({ filters, options, onChange }: AdvancedFiltersButtonProps) {
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const active = countActiveFilters(filters);
-
-  // Close on outside click or Escape
-  useEffect(() => {
-    if (!open) return;
-    const handleClick = (event: MouseEvent) => {
-      if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const handleKey = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
-    document.addEventListener('mousedown', handleClick);
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('keydown', handleKey);
-    };
-  }, [open]);
+  // The sprint filter is counted on the Sprint button
+  const active = countActiveFilters(filters) - filters.sprintIds.length;
 
   const toggle = (key: ListKey, value: string) => {
     const current = filters[key] as string[];
@@ -62,24 +52,31 @@ export function AdvancedFiltersButton({ filters, options, onChange }: AdvancedFi
   };
 
   return (
-    <div ref={containerRef} className="relative">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => setOpen((current) => !current)}
-        aria-expanded={open}
-        className={cn('h-9 gap-1.5', active > 0 && 'border-[#464EB8]/40 bg-indigo-50 text-[#464EB8]')}
-      >
-        <SlidersHorizontal className="h-4 w-4" />
-        Filters
-        {active > 0 && <span className="rounded-full bg-[#464EB8] px-1.5 text-xs text-white">{active}</span>}
-      </Button>
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={cn('h-9 gap-1.5', active > 0 && 'border-[#464EB8]/40 bg-indigo-50 text-[#464EB8]')}
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          Filters
+          {active > 0 && <span className="rounded-full bg-[#464EB8] px-1.5 text-xs text-white">{active}</span>}
+        </Button>
+      </Popover.Trigger>
 
-      {open && (
-        <div className="absolute right-0 z-30 mt-2 w-[min(640px,calc(100vw-2rem))] rounded-xl border border-indigo-100 bg-white p-4 shadow-xl">
+      {/* Portalled and collision-aware, so the panel never slides under the sidebar or off screen */}
+      <Popover.Portal>
+        <Popover.Content
+          align="start"
+          sideOffset={8}
+          collisionPadding={16}
+          aria-label="Filters"
+          className="z-50 w-[min(640px,calc(100vw-2rem))] rounded-xl border border-indigo-100 bg-white p-4 shadow-xl"
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {(Object.keys(SECTION_TITLES) as ListKey[]).map((key) => (
+            {PANEL_KEYS.map((key) => (
               <section key={key} className="min-w-0">
                 <h3 className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-indigo-600">{SECTION_TITLES[key]}</h3>
                 <div className="app-scrollbar max-h-40 overflow-y-auto">
@@ -113,16 +110,16 @@ export function AdvancedFiltersButton({ filters, options, onChange }: AdvancedFi
             </section>
           </div>
           <div className="mt-3 flex justify-between border-t border-gray-100 pt-3">
-            <Button type="button" variant="ghost" size="sm" onClick={() => onChange(EMPTY_FILTERS)} disabled={active === 0}>
+            <Button type="button" variant="ghost" size="sm" onClick={() => onChange({ ...EMPTY_FILTERS, sprintIds: filters.sprintIds })} disabled={active === 0}>
               Clear all
             </Button>
             <Button type="button" size="sm" onClick={() => setOpen(false)} className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
               Done
             </Button>
           </div>
-        </div>
-      )}
-    </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
 

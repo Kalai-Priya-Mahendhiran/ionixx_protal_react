@@ -7,6 +7,7 @@ import { DASHBOARD_NOTIFICATION_LIMIT } from '@/lib/constants';
 import { timeAgo } from '@/lib/dashboard-feeds';
 import { cn } from '@/lib/utils';
 import { useMarkNotificationsRead, useNotifications } from '@/services/apis/notifications/use-notifications';
+import { DASHBOARD_LIST_CLASS } from './dashboard-list';
 
 // The same notifications as the header bell: leave decisions, approvals waiting, task updates…
 export function NotificationsSection() {
@@ -38,7 +39,7 @@ export function NotificationsSection() {
         {!isLoading && notifications.length === 0 ? (
           <p className="py-8 text-center text-sm text-gray-500">You're all caught up.</p>
         ) : (
-          <ul className="space-y-3">
+          <ul className={DASHBOARD_LIST_CLASS}>
             {notifications.slice(0, DASHBOARD_NOTIFICATION_LIMIT).map((notification) => (
               <li key={notification.id}>
                 <button

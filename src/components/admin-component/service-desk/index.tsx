@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { LifeBuoy, Plus, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader, headerPrimaryButtonClass, headerSecondaryButtonClass } from '@/components/ui/page-header';
 import MainLayout from '@/components/layout/main-layout';
 import { useAuth } from '@/context/auth-context';
+import { useCreateFromLink } from '@/hooks/use-create-from-link';
 import { DEFAULT_DESK_SETTINGS, DESKS } from '@/lib/desk-config';
 import { canConfigureDesk, canManageRequests, desksHandledBy } from '@/lib/permissions/desk-permissions';
 import type { PermissionUser } from '@/lib/permissions/task-permissions';
@@ -32,18 +33,8 @@ function ServiceDeskPage({ user }: { user: PermissionUser }) {
   const [raiseOpen, setRaiseOpen] = useState(false);
   const [slaOpen, setSlaOpen] = useState(false);
 
-  // Quick Add → "Raise a Request" lands here with ?raise=1
-  useEffect(() => {
-    if (params.get('raise') !== '1') return;
-    setRaiseOpen(true);
-    setParams(
-      (current) => {
-        current.delete('raise');
-        return current;
-      },
-      { replace: true },
-    );
-  }, [params, setParams]);
+  // Quick Add → Raise a Request
+  useCreateFromLink(() => setRaiseOpen(true));
 
   const mine = requests.filter((request) => request.requesterId === user.id || request.onBehalfOfId === user.id);
   // The queue holds only requests for the desks this person works

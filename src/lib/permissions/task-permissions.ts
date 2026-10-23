@@ -187,7 +187,8 @@ export type ManagerSection = 'board' | 'workload' | 'sprints' | 'approvals' | 'p
 const MANAGER_SECTION_REQUIREMENTS: Record<ManagerSection, (user: PermissionUser) => boolean> = {
   board: () => true,
   workload: (user) => ['team', 'all'].includes(getScope(user, 'task.view')) && can(user, 'task.assign'),
-  sprints: (user) => can(user, 'sprint.manage'),
+  // Everyone sees sprints (read-only where they can't plan), so every login has the Sprints tab
+  sprints: () => true,
   approvals: (user) => can(user, 'task.approve'),
   projects: (user) => can(user, 'project.manage'),
 };
@@ -206,8 +207,9 @@ export type TaskSection = ManagerSection | 'checklists' | 'templates' | Settings
 
 const SETTINGS_SECTIONS: SettingsSection[] = ['workflow', 'fields', 'permissions', 'automation', 'audit'];
 
-const HR_SECTION_REQUIREMENTS: Record<'board' | 'checklists' | 'templates', (user: PermissionUser) => boolean> = {
+const HR_SECTION_REQUIREMENTS: Record<'board' | 'sprints' | 'checklists' | 'templates', (user: PermissionUser) => boolean> = {
   board: () => true,
+  sprints: () => true,
   checklists: (user) => can(user, 'template.manage'),
   templates: (user) => can(user, 'template.manage'),
 };
@@ -215,8 +217,9 @@ const HR_SECTION_REQUIREMENTS: Record<'board' | 'checklists' | 'templates', (use
 // Tabs on the Tasks page: settings on the Settings view, HR tools on the HR view, manager tools on team-wide views, none on My Tasks.
 // A single 'board' entry means no tabs are shown.
 export function getSectionsForView(user: PermissionUser | null | undefined, view: TaskView): TaskSection[] {
-  // My Tasks and the read-only overview have no tool tabs
-  if (!user || view === 'my-tasks' || view === 'exec-dashboard') return ['board'];
+  // The read-only overview has no tool tabs; My Tasks has the board and the sprints of the user's projects
+  if (!user || view === 'exec-dashboard') return ['board'];
+  if (view === 'my-tasks') return ['board', 'sprints'];
   // The Settings view is only tools; people without access fall back to the default view before this
   if (view === 'settings') return can(user, 'workflow.configure') ? SETTINGS_SECTIONS : ['board'];
   if (view === 'hr-tasks') {
@@ -229,9 +232,36 @@ export function getSectionsForView(user: PermissionUser | null | undefined, view
 
 /* ---------- Admin tools (Phase 5) ---------- */
 
-// Creating projects and managing their members
+// Creating projects and editing their details
 export function canManageProjects(user: PermissionUser | null | undefined): boolean {
   return can(user, 'project.manage');
+}
+
+// Who is on a project (adding people, approving access requests) stays with System Admin, whatever the matrix says
+export function canManageProjectMembers(user: PermissionUser | null | undefined): boolean {
+  return user?.role === 'system_admin';
+}
+
+// Project members can hand a task they may edit to another active member of the same project, even without task.assign
+export function canAssignWithinProject(
+  user: PermissionUser | null | undefined,
+  task: TaskScopeTarget,
+  assigneeId: string,
+  project: Pick<Project, 'memberIds'> | undefined,
+): boolean {
+  return (
+    !!user &&
+    !!project &&
+    project.memberIds.includes(user.id) &&
+    project.memberIds.includes(assigneeId) &&
+    isUserActive(assigneeId) &&
+    can(user, 'task.edit', task)
+  );
+}
+
+// Project access: members browse, comment on and watch every task of the project; org-wide viewers see all projects
+export function hasProjectAccess(user: PermissionUser | null | undefined, project: Pick<Project, 'memberIds'> | undefined): boolean {
+  return !!user && !!project && (getScope(user, 'task.view') === 'all' || project.memberIds.includes(user.id));
 }
 
 // Moving a task changes its key, so it needs both edit rights on the task and project management rights

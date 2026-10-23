@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, CalendarOff } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { FormDialog } from '@/components/ui/form-dialog';
 import { RequiredLabel, SelectField, fieldClass, type Option } from '@/components/ui/form-fields';
@@ -16,6 +15,7 @@ import { useApplyTemplate } from '@/services/apis/tasks/use-tasks';
 import type { Task, TaskTemplate } from '@/types';
 import { PriorityIndicator } from './task-badges';
 import { formatShortDate } from './task-utils';
+import { DatePicker } from '@/components/ui/date-picker';
 
 const inDays = (days: number) => {
   const date = new Date();
@@ -115,7 +115,7 @@ export function ApplyTemplateDialog({ template, onOpenChange, onApplied }: Apply
               <FormItem>
                 <RequiredLabel>{template ? TEMPLATE_ANCHOR_LABELS[template.kind] : 'Date'}</RequiredLabel>
                 <FormControl>
-                  <Input {...field} type="date" className={fieldClass} />
+                  <DatePicker {...field} className={fieldClass} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

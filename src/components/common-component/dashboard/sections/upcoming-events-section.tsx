@@ -10,6 +10,7 @@ import { cn, todayAsDateInput } from '@/lib/utils';
 import { useLeaveRequests } from '@/services/apis/leave/use-leave';
 import { useTasks } from '@/services/apis/tasks/use-tasks';
 import { useOrgPeople } from '@/services/apis/users/use-org-chart';
+import { DASHBOARD_LIST_CLASS } from './dashboard-list';
 
 const KIND: Record<UpcomingKind, { icon: LucideIcon; tile: string; label: string }> = {
   task: { icon: CheckSquare, tile: 'bg-blue-100 text-blue-600', label: 'Task' },
@@ -27,7 +28,7 @@ export function UpcomingEventsSection() {
   const { data: leave = [] } = useLeaveRequests();
   // Subscribed so new joiners and leavers update the anniversaries
   useOrgPeople();
-  const items = buildUpcoming({ userId: user?.id ?? '', today, tasks, leave, holidays: HOLIDAYS_BY_COUNTRY[DEFAULT_LEAVE_COUNTRY], people: getActiveUsers() }).slice(0, 6);
+  const items = buildUpcoming({ userId: user?.id ?? '', today, tasks, leave, holidays: HOLIDAYS_BY_COUNTRY[DEFAULT_LEAVE_COUNTRY], people: getActiveUsers() });
 
   return (
     <Card className="border-0 shadow-xl lg:col-span-2">
@@ -42,7 +43,7 @@ export function UpcomingEventsSection() {
         {items.length === 0 ? (
           <p className="py-8 text-center text-sm text-gray-500">Nothing scheduled for the next two weeks.</p>
         ) : (
-          <ul className="space-y-3">
+          <ul className={DASHBOARD_LIST_CLASS}>
             {items.map((item) => {
               const { icon: Icon, tile, label } = KIND[item.kind];
               const body = (

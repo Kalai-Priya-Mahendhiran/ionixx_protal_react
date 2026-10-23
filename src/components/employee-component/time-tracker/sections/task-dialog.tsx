@@ -12,6 +12,7 @@ import { todayAsDateInput } from '@/lib/utils';
 import { timeTrackerTaskFormSchema, timeTrackerTaskSchema, type TimeTrackerTaskFormValues } from '@/lib/schemas';
 import { emptyTask, type TaskRecord } from './task-form';
 import { RequiredLabel, SelectField, fieldClass, toOptions } from '@/components/ui/form-fields';
+import { DatePicker } from '@/components/ui/date-picker';
 
 type TaskFieldName = FieldPath<TimeTrackerTaskFormValues>;
 
@@ -109,7 +110,7 @@ function TaskDetailsFields({ index, title, onClose }: { index: number; title: st
                 <FormItem>
                   <RequiredLabel>Date</RequiredLabel>
                   <FormControl>
-                    <Input {...field} value={field.value ?? ''} type="date" max={todayAsDateInput()} className={fieldClass} />
+                    <DatePicker {...field} value={field.value ?? ''} max={todayAsDateInput()} className={fieldClass} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

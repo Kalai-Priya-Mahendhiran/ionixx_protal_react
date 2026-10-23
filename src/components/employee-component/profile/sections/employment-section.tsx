@@ -14,6 +14,7 @@ import {
   EmptyState
 } from "../profile-display";
 import { Briefcase, Plus, X, Calendar, MapPin, Building2, DollarSign, Clock, AlertCircle } from "lucide-react";
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface EmploymentSectionProps {
   isEditing: boolean;
@@ -327,7 +328,7 @@ export function EmploymentSection({
                       <FormItem>
                         <FormLabel className="text-slate-700">Start Date <span className="text-red-500">*</span></FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
+                          <DatePicker {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -358,7 +359,7 @@ export function EmploymentSection({
                         <FormItem>
                           <FormLabel className="text-slate-700">End Date <span className="text-red-500">*</span></FormLabel>
                           <FormControl>
-                            <Input type="date" {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
+                            <DatePicker {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

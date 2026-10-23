@@ -22,7 +22,9 @@ export function ProjectsSection({ projects, tasks }: ProjectsSectionProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-gray-600">Each project's key starts its task numbers (IXP-101, HR-12). Members can be planned into its sprints.</p>
+        <p className="text-sm text-gray-600">
+          Each project's key starts its task numbers (IXP-101, HR-12). Members open its tasks and plan its sprints; only a System Admin adds members.
+        </p>
         <Button onClick={() => setDialog({ open: true })} className="gap-2 bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
           <Plus className="h-4 w-4" />
           New project
@@ -87,6 +89,16 @@ export function ProjectsSection({ projects, tasks }: ProjectsSectionProps) {
                           {project.memberIds.length > MAX_AVATARS && (
                             <span className="ml-1.5 text-xs text-gray-500">+{project.memberIds.length - MAX_AVATARS}</span>
                           )}
+                          {(project.pendingMemberIds?.length ?? 0) > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setDialog({ open: true, project })}
+                              className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 hover:bg-amber-200"
+                            >
+                              {project.pendingMemberIds!.length} request{project.pendingMemberIds!.length === 1 ? '' : 's'}
+                            </button>
+                          )}
+                          {project.openMembership && <span className="ml-2 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">Open</span>}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-gray-900">{open}</td>

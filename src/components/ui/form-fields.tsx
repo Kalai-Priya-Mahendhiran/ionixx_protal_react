@@ -1,4 +1,5 @@
 import type { HTMLInputTypeAttribute, ReactNode } from 'react';
+import { DatePicker } from './date-picker';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { Check } from 'lucide-react';
 import { FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -85,6 +86,10 @@ export function TextField<T extends FieldValues>({
         <FormItem className={className}>
           <FieldLabel label={label} required={required} />
           <FormControl>
+            {type === 'date' ? (
+              // Dates use the app's calendar picker rather than the browser's date input
+              <DatePicker {...field} value={field.value ?? ''} min={min === undefined ? undefined : String(min)} max={max === undefined ? undefined : String(max)} placeholder={placeholder} disabled={disabled} aria-required={required || undefined} className={fieldClass} />
+            ) : (
             <Input
               {...field}
               value={field.value ?? ''}
@@ -101,6 +106,7 @@ export function TextField<T extends FieldValues>({
               aria-required={required || undefined}
               className={fieldClass}
             />
+            )}
           </FormControl>
           {hint && <FormDescription className="text-xs">{hint}</FormDescription>}
           <FormMessage />

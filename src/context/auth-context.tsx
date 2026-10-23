@@ -27,6 +27,37 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/*
+ * Each tab keeps its own session (sessionStorage), so people can be signed in as different users side by side.
+ * The latest sign-in is also remembered here, so a link opened in a new tab (e.g. a shared task) starts signed in
+ * as that person instead of showing the login screen. Signing in again in that tab still switches only that tab.
+ */
+const LAST_SESSION_KEY = "kpss.lastSession";
+
+interface StoredSession {
+  token: string;
+  user: User;
+}
+
+function readLastSession(): StoredSession | null {
+  try {
+    const raw = localStorage.getItem(LAST_SESSION_KEY);
+    const session = raw ? (JSON.parse(raw) as StoredSession) : null;
+    return session?.token && session.user ? session : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLastSession(session: StoredSession | null) {
+  try {
+    if (session) localStorage.setItem(LAST_SESSION_KEY, JSON.stringify(session));
+    else localStorage.removeItem(LAST_SESSION_KEY);
+  } catch {
+    // Storage blocked (private mode): new tabs will ask to sign in, which is still safe
+  }
+}
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -51,6 +82,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (storedToken && storedUser) {
       setToken(storedToken);
       setUser(storedUser);
+    } else {
+      // A fresh tab (e.g. a shared link) picks up the most recent sign-in on this browser
+      const last = readLastSession();
+      if (last) {
+        storage.setItem("token", last.token);
+        storage.setItem("user", last.user);
+        storage.setItem("name", last.user.name);
+        setToken(last.token);
+        setUser(last.user);
+      }
     }
     setLoading(false);
   }, []);
@@ -60,6 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setToken(authToken);
     storage.setItem("token", authToken);
     storage.setItem("user", userData);
+    writeLastSession({ token: authToken, user: userData });
   };
 
   const updateUser = (changes: Partial<Pick<User, "name" | "designation" | "department" | "avatar">>) => {
@@ -67,11 +109,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!current) return current;
       const next = { ...current, ...changes };
       storage.setItem("user", next);
+      const last = readLastSession();
+      if (last && last.user.id === next.id) writeLastSession({ ...last, user: next });
       return next;
     });
   };
 
   const logout = () => {
+    // Signing out also stops new tabs from reusing this session (another tab's newer sign-in is left alone)
+    if (readLastSession()?.token === token) writeLastSession(null);
     setUser(null);
     setToken(null);
     storage.clearStorage();

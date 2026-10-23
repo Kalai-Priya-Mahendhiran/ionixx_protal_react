@@ -17,7 +17,8 @@ export const DEFAULT_PERMISSION_MATRIX: PermissionMatrix = {
   'task.comment':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'none', system_admin: 'all',  executive: 'none' },
   'task.logWork':       { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'none', system_admin: 'all',  executive: 'none' },
   'task.watch':         { employee: 'own',  project_manager: 'team', hr: 'hr',   admin: 'none', system_admin: 'all',  executive: 'all' },
-  'sprint.manage':      { employee: 'none', project_manager: 'team', hr: 'none', admin: 'none', system_admin: 'all',  executive: 'none' },
+  // 'team' for sprints means the projects someone leads or is a member of, so every project member can add sprints
+  'sprint.manage':      { employee: 'team', project_manager: 'team', hr: 'team', admin: 'none', system_admin: 'all',  executive: 'none' },
   'template.manage':    { employee: 'none', project_manager: 'none', hr: 'all',  admin: 'none', system_admin: 'all',  executive: 'none' },
   'project.manage':     { employee: 'none', project_manager: 'none', hr: 'none', admin: 'none', system_admin: 'all',  executive: 'none' },
   'workflow.configure': { employee: 'none', project_manager: 'none', hr: 'none', admin: 'none', system_admin: 'all',  executive: 'none' },

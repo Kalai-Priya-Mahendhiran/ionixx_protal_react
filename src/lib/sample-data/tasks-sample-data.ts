@@ -1,5 +1,6 @@
 import { toDateInput } from '@/lib/utils';
-import type { Project, Sprint, Task, TaskActivity, TaskComment, WorkLog } from '@/types';
+import type { Project, Sprint, Task, TaskActivity, TaskComment, TaskTemplate, WorkLog } from '@/types';
+import { sampleTaskTemplates } from './task-template-sample-data';
 
 // Dates are relative to today so overdue / due-soon states always show up in the demo
 const daysFromNow = (days: number) => {
@@ -228,7 +229,78 @@ const SAMPLE_TASKS: SampleTask[] = [
     description: '', status: 'todo', priority: 'medium', assigneeId: 'HR001', reporterId: 'HR001',
     dueInDays: 2, createdDaysAgo: 2,
   },
+
+  // Checklists (HR → Checklists tab), built from the onboarding / offboarding templates
+  // Sneha Reddy joins in 7 days: pre-joining work under way, one IT item overdue
+  ...sampleChecklist({ templateId: 'TPL-ONBOARDING', subjectId: 'EMP007', subjectName: 'Sneha Reddy', firstNumber: 7, anchorInDays: 7, doneBeforeDays: 3, overdueTitles: ['Create email account and portal login'], createdDaysAgo: 12 }),
+  // Meera Sundar (EMP003) has her last working day in 8 days: knowledge transfer planning is late
+  ...sampleChecklist({ templateId: 'TPL-OFFBOARDING', subjectId: 'EMP003', subjectName: 'Meera Sundar', firstNumber: 18, anchorInDays: 8, doneBeforeDays: -5, createdDaysAgo: 20 }),
+  // Naveen Kumar (former staff) left last month: every item done, so it shows under Completed
+  ...sampleChecklist({ templateId: 'TPL-OFFBOARDING', subjectId: 'EMP008', subjectName: 'Naveen Kumar', firstNumber: 27, anchorInDays: -35, doneBeforeDays: 999, createdDaysAgo: 50 }),
 ];
+
+// Who each template owner maps to in the sample org (mirrors resolveOwner in lib/task-templates)
+function sampleOwner(owner: TaskTemplate['items'][number]['owner'], subjectId: string): string {
+  if (owner === 'it') return 'SYS001';
+  if (owner === 'manager') return 'PM001';
+  if (owner === 'employee') return subjectId;
+  return 'HR001';
+}
+
+interface SampleChecklistOptions {
+  templateId: string;
+  subjectId: string;
+  subjectName: string;
+  // HR-<n> key of the checklist itself; its items take the numbers after it
+  firstNumber: number;
+  // Joining day (onboarding) or last working day (offboarding), relative to today
+  anchorInDays: number;
+  // Items due before this many days from today are done (999 = all)
+  doneBeforeDays: number;
+  // Items left undone even though they're due, to show the overdue warning
+  overdueTitles?: string[];
+  createdDaysAgo: number;
+}
+
+// A checklist as HR would get it from "Apply template": one HR task for the employee, one sub-task per template item
+function sampleChecklist({ templateId, subjectId, subjectName, firstNumber, anchorInDays, doneBeforeDays, overdueTitles = [], createdDaysAgo }: SampleChecklistOptions): SampleTask[] {
+  const template = sampleTaskTemplates.find((item) => item.id === templateId)!;
+  const parentKey = `HR-${firstNumber}`;
+  const items = [...template.items].sort((a, b) => a.offsetDays - b.offsetDays);
+  const isDone = (offset: number, title: string) => anchorInDays + offset < doneBeforeDays && !overdueTitles.includes(title);
+  const allDone = items.every((item) => isDone(item.offsetDays, item.title));
+  const due = (offset: number) => anchorInDays + offset;
+  const shared = { projectId: 'PRJ-HR', type: 'hr' as const, reporterId: 'HR001', labels: [template.kind], templateId, subjectId, createdDaysAgo };
+
+  const parent: SampleTask = {
+    ...shared,
+    key: parentKey,
+    title: `${template.kind === 'onboarding' ? 'Onboarding' : 'Offboarding'}: ${subjectName}`,
+    description: template.description ?? '',
+    status: allDone ? 'done' : 'in-progress',
+    priority: 'high',
+    assigneeId: 'HR001',
+    startInDays: due(items[0].offsetDays),
+    dueInDays: due(items[items.length - 1].offsetDays),
+    estimateHours: items.reduce((sum, item) => sum + (item.estimateHours ?? 0), 0),
+    completedDaysAgo: allDone ? Math.max(0, -due(items[items.length - 1].offsetDays)) : undefined,
+  };
+  const subtasks: SampleTask[] = items.map((item, index) => ({
+    ...shared,
+    labels: [],
+    key: `HR-${firstNumber + index + 1}`,
+    parentId: `TSK-${parentKey}`,
+    title: item.title,
+    description: item.description ?? '',
+    status: isDone(item.offsetDays, item.title) ? 'done' : 'todo',
+    priority: item.priority,
+    assigneeId: sampleOwner(item.owner, subjectId),
+    dueInDays: due(item.offsetDays),
+    estimateHours: item.estimateHours,
+    completedDaysAgo: isDone(item.offsetDays, item.title) ? Math.max(0, -due(item.offsetDays)) : undefined,
+  }));
+  return [parent, ...subtasks];
+}
 
 // IDs derive from the key (TSK-IXP-102) so sub-tasks can point at their parent
 export const sampleTasks: Task[] = SAMPLE_TASKS.map(({ dueInDays, createdDaysAgo, startInDays, completedDaysAgo, ...task }) => ({

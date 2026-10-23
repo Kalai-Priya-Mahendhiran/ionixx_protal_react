@@ -21,6 +21,7 @@ import { todayAsDateInput } from '@/lib/utils';
 import type { TimeEntryFormValues, TimeTrackerTaskFormRow, TimeTrackerTaskFormValues } from '@/lib/schemas';
 import type { NewTimeEntry } from './sections/timer-and-entries-section';
 import type { TimeEntry } from '@/types';
+import { useCreateFromLink } from '@/hooks/use-create-from-link';
 
 export default function TimeTracker() {
   // The daily task log is kept by the service, so it survives navigation
@@ -40,6 +41,8 @@ export default function TimeTracker() {
   const updateEntry = useUpdateTimeEntry();
   const deleteEntry = useDeleteTimeEntry();
   const [entryDialog, setEntryDialog] = useState<{ entry?: TimeEntry } | null>(null);
+  // Quick Add → Log Time
+  useCreateFromLink(() => setEntryDialog({}));
 
   const recordEntry = (entry: NewTimeEntry) => createEntry.mutate(entry);
 

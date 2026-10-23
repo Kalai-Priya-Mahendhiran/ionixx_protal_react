@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, ChevronDown, ChevronRight, Clock, Eye, EyeOff, Pencil, SearchX, Share2 } from 'lucide-react';
+import { ArrowLeft, Ban, ChevronDown, ChevronRight, Clock, Eye, EyeOff, Hourglass, Lock, Pencil, SearchX, Share2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { Option } from '@/components/ui/form-fields';
 import MainLayout from '@/components/layout/main-layout';
 import { useAuth } from '@/context/auth-context';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
-import { can, canTransition, type PermissionUser } from '@/lib/permissions/task-permissions';
+import { can, canAssignWithinProject, canTransition, getAssignableUsers, hasProjectAccess, type PermissionUser } from '@/lib/permissions/task-permissions';
 import { ROUTES } from '@/lib/constants';
-import { getWorkflowStatuses } from '@/lib/workflow';
+import { TASK_FIELD_NONE, TASK_ISSUE_TYPES, TASK_PRIORITIES } from '@/lib/schemas';
+import { getConfiguredLabels, getWorkflowStatuses, isTypeEnabled } from '@/lib/workflow';
 import { getActiveUsers, getUserById } from '@/lib/user-directory';
 import { cn, formatDateTime, formatRelativeTime } from '@/lib/utils';
 import {
@@ -19,15 +21,19 @@ import {
   useChangeTaskStatus,
   useDeleteTask,
   useEpics,
+  useJoinProject,
   useProjects,
   useRemoveAttachment,
+  useRequestProjectAccess,
   useSetBlocked,
   useSetWatching,
   useSprints,
   useTasks,
   useUpdateTask,
+  useUpdateTaskField,
 } from '@/services/apis/tasks/use-tasks';
-import type { Task, TaskStatus } from '@/types';
+import type { TaskUpdateInput } from '@/services/apis/tasks/task-service';
+import type { Project, Task, TaskStatus } from '@/types';
 import { TaskFormDialog } from '../sections';
 import { FlagBlockedDialog } from '../sections/flag-blocked-dialog';
 import { LogWorkDialog } from '../sections/log-work-dialog';
@@ -35,12 +41,14 @@ import { TaskActionsMenu } from '../sections/task-actions-menu';
 import { TaskActivitySection, type MentionCandidate } from '../sections/task-activity';
 import { AttachmentDropzone, AttachmentList } from '../sections/task-attachments-field';
 import { DueDateChip, PriorityIndicator, TaskTypeGlyph, UserChip } from '../sections/task-badges';
-import { TASK_TYPE_CONFIG, getLabelColor, getStatusMeta } from '../sections/task-config';
+import { TASK_PRIORITY_CONFIG, TASK_TYPE_CONFIG, getStatusMeta } from '../sections/task-config';
+import { InlineChips, InlineDate, InlineSelect, InlineText, InlineTextarea } from './inline-fields';
+import { LabelSelect } from '../sections/label-select';
 import { copyTaskLink, taskPath } from '../sections/task-link';
 import { TaskSubtasks } from '../sections/task-subtasks';
 import { OnLeaveBanner, OnLeaveChip } from '../sections/leave-warning';
 import { ShortcutsDialog } from '../sections/shortcuts-dialog';
-import { formatShortDate } from '../sections/task-utils';
+import { formatShortDate, toUpdateInput } from '../sections/task-utils';
 import { useTaskSettings } from '@/services/apis/settings/use-task-settings';
 
 /* ---------- Small building blocks ---------- */
@@ -55,6 +63,64 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
 }
 
 const none = <span className="text-gray-400">None</span>;
+
+const optional = (value: string) => (value && value !== TASK_FIELD_NONE ? value : undefined);
+
+const PRIORITY_OPTIONS: Option[] = [...TASK_PRIORITIES].reverse().map((value) => {
+  const { label, icon: Icon, className } = TASK_PRIORITY_CONFIG[value];
+  return { value, label, icon: <Icon className={cn('h-4 w-4', className)} /> };
+});
+
+/* ---------- No access to the task's project ---------- */
+
+// A shared link to a project the person isn't on: open projects can be joined, closed ones take a request
+function ProjectAccessCard({ project, user, backTo }: { project: Project; user: PermissionUser; backTo: string }) {
+  const location = useLocation();
+  const joinProject = useJoinProject();
+  const requestAccess = useRequestProjectAccess();
+  const pending = (project.pendingMemberIds ?? []).includes(user.id);
+
+  return (
+    <Card>
+      <CardContent className="mx-auto max-w-lg p-12 text-center">
+        <Lock className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+        <h1 className="mb-2 text-lg font-medium text-gray-900">You don't have access to {project.name}</h1>
+        <p className="mb-5 text-gray-600">
+          {project.openMembership
+            ? 'Anyone can join this project. Join it to open this task and the rest of its work.'
+            : pending
+              ? 'Your request to join is waiting for a System Admin. You will be notified when it is reviewed.'
+              : 'This link is for members of the project. Ask to join and a System Admin will review your request.'}
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button asChild variant="outline">
+            <Link to={backTo}>Back to tasks</Link>
+          </Button>
+          {project.openMembership ? (
+            <Button onClick={() => joinProject.mutate(project)} disabled={joinProject.isPending} className="gap-2 bg-[#464EB8] text-white hover:bg-[#3a3f9a]">
+              <UserPlus className="h-4 w-4" />
+              {joinProject.isPending ? 'Joining…' : 'Join project'}
+            </Button>
+          ) : pending ? (
+            <Button disabled variant="outline" className="gap-2">
+              <Hourglass className="h-4 w-4" />
+              Request pending
+            </Button>
+          ) : (
+            <Button
+              onClick={() => requestAccess.mutate({ project, link: location.pathname })}
+              disabled={requestAccess.isPending}
+              className="gap-2 bg-[#464EB8] text-white hover:bg-[#3a3f9a]"
+            >
+              <UserPlus className="h-4 w-4" />
+              {requestAccess.isPending ? 'Sending…' : 'Request access'}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 function CollapsibleSection({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -107,6 +173,9 @@ function TaskDetailContent({ user }: { user: PermissionUser }) {
   }, [movedTo, taskKey, navigate, location.state]);
 
   const subtaskCount = task ? tasks.filter((item) => item.parentId === task.id).length : 0;
+  // A key like IXP-102 names its project; people outside it are offered to join or ask for access
+  const keyProject = projects.find((item) => item.key === taskKey.split('-')[0]?.toUpperCase());
+  const lacksProjectAccess = !task && !movedTo && !!keyProject && !hasProjectAccess(user, keyProject);
 
   // Keyboard: E edits (when allowed) · ? lists the shortcuts
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -134,7 +203,9 @@ function TaskDetailContent({ user }: { user: PermissionUser }) {
               </Button>
             </CardContent>
           </Card>
-        ) : !task && movedTo ? null : !task ? (
+        ) : !task && movedTo ? null : lacksProjectAccess && keyProject ? (
+          <ProjectAccessCard project={keyProject} user={user} backTo={backTo} />
+        ) : !task ? (
           <Card>
             <CardContent className="p-12 text-center">
               <SearchX className="mx-auto mb-4 h-12 w-12 text-gray-400" />
@@ -220,10 +291,59 @@ function TaskDetailView({ task, allTasks, user, backTo, onEdit, onDelete }: Task
   const sprint = sprints.find((item) => item.id === task.sprintId);
   const epic = epics.find((item) => item.id === task.epicId);
 
+  const updateField = useUpdateTaskField();
+  const isProjectMember = !!project?.memberIds.includes(user.id);
   const canEdit = can(user, 'task.edit', task);
   const canChangeStatus = can(user, 'task.changeStatus', task);
   const canLogWork = can(user, 'task.logWork', task);
-  const canWatch = can(user, 'task.watch', task);
+  // Project members can follow any task of their project
+  const canWatch = can(user, 'task.watch', task) || isProjectMember;
+  // Managers assign within their scope; project members can also hand work to teammates on the project
+  const canReassign = canEdit && (can(user, 'task.assign') || isProjectMember);
+
+  // Inline edits save one field at a time, checked like the Edit dialog would
+  const saveField = (label: string, patch: Partial<TaskUpdateInput>) => {
+    const input = { ...toUpdateInput(task), ...patch };
+    const handOver = !!patch.assigneeId && canAssignWithinProject(user, task, patch.assigneeId, project);
+    if (!handOver && !can(user, 'task.edit', { ...task, ...input })) {
+      toast.error("You don't have permission to save the task with that change");
+      return;
+    }
+    updateField.mutate({ id: task.id, input }, { onSuccess: () => toast.success(`${label} updated`) });
+  };
+
+  /* ---------- Options for the editable fields ---------- */
+
+  const withCurrent = (ids: string[], currentId: string) => (ids.includes(currentId) ? ids : [currentId, ...ids]);
+  const personOptions = (ids: string[]): Option[] =>
+    ids.map((id) => getUserById(id)).filter((member) => !!member).map((member) => ({
+      value: member.id,
+      label: member.id === user.id ? `${member.name} (me)` : member.name,
+      hint: member.designation,
+    }));
+  const projectTeammates = isProjectMember ? (project?.memberIds ?? []).filter((id) => getActiveUsers().some((member) => member.id === id)) : [];
+  const assigneeOptions = personOptions(withCurrent([...new Set([...getAssignableUsers(user).map((member) => member.id), ...projectTeammates])], task.assigneeId));
+  const reporterOptions = personOptions(withCurrent(getActiveUsers().map((member) => member.id), task.reporterId));
+  const watcherOptions = personOptions(getActiveUsers().map((member) => member.id));
+  // Configured labels first, plus any label already used on a task
+  const labelOptions = [...new Set([...getConfiguredLabels(), ...allTasks.flatMap((item) => item.labels)])];
+  const typeOptions: Option[] = TASK_ISSUE_TYPES.filter((value) => value === task.type || (value !== 'sub-task' && !task.parentId && isTypeEnabled(value))).map((value) => ({
+    value,
+    label: TASK_TYPE_CONFIG[value].label,
+    icon: <TaskTypeGlyph type={value} />,
+  }));
+  const sprintOptions: Option[] = [
+    { value: TASK_FIELD_NONE, label: 'Backlog (no sprint)' },
+    ...sprints
+      .filter((item) => item.projectId === task.projectId && (item.status !== 'completed' || item.id === task.sprintId))
+      .map((item) => ({ value: item.id, label: item.name, hint: `${item.status === 'active' ? 'Active' : item.status === 'planned' ? 'Planned' : 'Completed'} · ${formatShortDate(item.startDate)} – ${formatShortDate(item.endDate)}` })),
+  ];
+  const epicOptions: Option[] = [
+    { value: TASK_FIELD_NONE, label: 'No epic' },
+    ...epics
+      .filter((item) => item.projectId === task.projectId && item.id !== task.id)
+      .map((item) => ({ value: item.id, label: `${item.key} · ${item.title}`, icon: <TaskTypeGlyph type="epic" /> })),
+  ];
   const canAssignToMe = task.assigneeId !== user.id && canEdit && can(user, 'task.assign', { ...task, assigneeId: user.id });
   const isWatching = task.watcherIds.includes(user.id);
   const isBlocked = task.isBlocked && task.status !== 'done';
@@ -235,10 +355,11 @@ function TaskDetailView({ task, allTasks, user, backTo, onEdit, onDelete }: Task
     task.watcherIds.forEach((id) => tags.set(id, 'Watcher'));
     tags.set(task.reporterId, 'Reporter');
     tags.set(task.assigneeId, 'Assignee');
-    return getActiveUsers().filter((member) => can(member, 'task.view', task) || (!!parent && can(member, 'task.view', parent)))
+    return getActiveUsers()
+      .filter((member) => can(member, 'task.view', task) || (!!parent && can(member, 'task.view', parent)) || !!project?.memberIds.includes(member.id))
       .map((member) => ({ member, tag: tags.get(member.id) }))
       .sort((a, b) => Number(!!b.tag) - Number(!!a.tag));
-  }, [task, parent]);
+  }, [task, parent, project]);
 
   const assignToMe = () =>
     updateTask.mutate({
@@ -336,7 +457,17 @@ function TaskDetailView({ task, allTasks, user, backTo, onEdit, onDelete }: Task
         <Card className="min-w-0">
           <CardContent className="space-y-7 p-6">
             <div className="space-y-4">
-              <h1 className="text-2xl font-semibold leading-tight text-gray-900">{task.title}</h1>
+              <h1 className="text-2xl font-semibold leading-tight text-gray-900">
+                <InlineText
+                  value={task.title}
+                  onSave={(title) => saveField('Title', { title })}
+                  editable={canEdit}
+                  ariaLabel="Title"
+                  maxLength={200}
+                  inputClassName="h-11 text-xl font-semibold"
+                  validate={(value) => (value ? undefined : 'Give the task a title')}
+                />
+              </h1>
 
               <OnLeaveBanner userId={task.assigneeId} date={task.dueDate} hidden={task.status === 'done'} />
 
@@ -380,11 +511,14 @@ function TaskDetailView({ task, allTasks, user, backTo, onEdit, onDelete }: Task
             </div>
 
             <CollapsibleSection title="Description">
-              {task.description ? (
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-700">{task.description}</p>
-              ) : (
-                <p className="text-sm text-gray-400">{canEdit ? 'No description yet — use Edit to add one.' : 'No description.'}</p>
-              )}
+              <InlineTextarea
+                value={task.description}
+                onSave={(description) => saveField('Description', { description })}
+                editable={canEdit}
+                ariaLabel="Description"
+                placeholder="Context, steps to reproduce or acceptance criteria"
+                emptyText={canEdit ? 'Add a description…' : 'No description.'}
+              />
             </CollapsibleSection>
 
             {!task.parentId && (
@@ -406,7 +540,7 @@ function TaskDetailView({ task, allTasks, user, backTo, onEdit, onDelete }: Task
               )}
             </section>
 
-            <TaskActivitySection task={task} mentionable={mentionable} />
+            <TaskActivitySection task={task} mentionable={mentionable} canComment={can(user, 'task.comment', task) || isProjectMember} />
           </CardContent>
         </Card>
 
@@ -444,7 +578,14 @@ function TaskDetailView({ task, allTasks, user, backTo, onEdit, onDelete }: Task
               <CardContent className="px-5 py-2">
                 <dl className="divide-y divide-gray-50">
                   <DetailRow label="Assignee">
-                    <UserChip userId={task.assigneeId} />
+                    <InlineSelect
+                      value={task.assigneeId}
+                      options={assigneeOptions}
+                      onChange={(assigneeId) => saveField('Assignee', { assigneeId })}
+                      editable={canReassign}
+                      ariaLabel="Assignee"
+                      display={<UserChip userId={task.assigneeId} />}
+                    />
                     {canAssignToMe && (
                       <button type="button" onClick={assignToMe} disabled={updateTask.isPending} className="mt-1 block text-sm font-medium text-[#464EB8] hover:underline">
                         Assign to me
@@ -452,50 +593,118 @@ function TaskDetailView({ task, allTasks, user, backTo, onEdit, onDelete }: Task
                     )}
                   </DetailRow>
                   <DetailRow label="Reporter">
-                    <UserChip userId={task.reporterId} />
+                    <InlineSelect
+                      value={task.reporterId}
+                      options={reporterOptions}
+                      onChange={(reporterId) => saveField('Reporter', { reporterId })}
+                      editable={canEdit}
+                      ariaLabel="Reporter"
+                      display={<UserChip userId={task.reporterId} />}
+                    />
                   </DetailRow>
                   <DetailRow label="Labels">
-                    {task.labels.length > 0 ? (
-                      <span className="flex flex-wrap gap-1">
-                        {task.labels.map((label) => (
-                          <span key={label} className={cn('rounded px-1.5 py-0.5 text-xs font-medium', getLabelColor(label))}>
-                            {label}
-                          </span>
-                        ))}
-                      </span>
-                    ) : (
-                      none
-                    )}
+                    <LabelSelect
+                      value={task.labels}
+                      onChange={(labels) => saveField('Labels', { labels })}
+                      options={labelOptions}
+                      disabled={!canEdit}
+                      variant="inline"
+                      placeholder="None"
+                    />
                   </DetailRow>
-                  <DetailRow label="Parent">
+                  <DetailRow label={parent ? 'Parent' : 'Epic'}>
                     {parent ? (
+                      // Sub-tasks stay with the task they were created under
                       <Link to={taskPath(parent.key)} state={keepListState} className="inline-flex items-center gap-1.5 hover:text-[#464EB8] hover:underline">
                         <TaskTypeGlyph type={parent.type} />
                         {parent.key} {parent.title}
                       </Link>
-                    ) : epic ? (
-                      <Link to={taskPath(epic.key)} state={keepListState} className="inline-flex items-center gap-1.5 text-purple-700 hover:underline">
-                        <TaskTypeGlyph type="epic" />
-                        {epic.key} {epic.title}
-                      </Link>
+                    ) : task.type === 'epic' ? (
+                      <span className="text-gray-400">Epics can't belong to another epic</span>
                     ) : (
-                      none
+                      <InlineSelect
+                        value={task.epicId ?? TASK_FIELD_NONE}
+                        options={epicOptions}
+                        onChange={(value) => saveField('Epic', { epicId: optional(value) })}
+                        editable={canEdit}
+                        ariaLabel="Epic"
+                        display={
+                          epic ? (
+                            <span className="inline-flex items-center gap-1.5 text-purple-700">
+                              <TaskTypeGlyph type="epic" />
+                              {epic.key} {epic.title}
+                            </span>
+                          ) : (
+                            none
+                          )
+                        }
+                      />
                     )}
                   </DetailRow>
-                  <DetailRow label="Sprint">{sprint ? sprint.name : <span className="text-gray-400">Backlog</span>}</DetailRow>
+                  <DetailRow label="Sprint">
+                    {task.parentId ? (
+                      <span title="Sub-tasks move with their parent task">{sprint ? sprint.name : <span className="text-gray-400">Backlog</span>}</span>
+                    ) : (
+                      <InlineSelect
+                        value={task.sprintId ?? TASK_FIELD_NONE}
+                        options={sprintOptions}
+                        onChange={(value) => saveField('Sprint', { sprintId: optional(value) })}
+                        editable={canEdit}
+                        ariaLabel="Sprint"
+                        display={sprint ? sprint.name : <span className="text-gray-400">Backlog</span>}
+                      />
+                    )}
+                  </DetailRow>
                   <DetailRow label="Priority">
-                    <PriorityIndicator priority={task.priority} />
+                    <InlineSelect
+                      value={task.priority}
+                      options={PRIORITY_OPTIONS}
+                      onChange={(priority) => saveField('Priority', { priority: priority as Task['priority'] })}
+                      editable={canEdit}
+                      ariaLabel="Priority"
+                      display={<PriorityIndicator priority={task.priority} />}
+                    />
                   </DetailRow>
                   <DetailRow label="Type">
-                    <span className="inline-flex items-center gap-1.5">
-                      <TaskTypeGlyph type={task.type} />
-                      {TASK_TYPE_CONFIG[task.type].label}
-                    </span>
+                    <InlineSelect
+                      value={task.type}
+                      options={typeOptions}
+                      onChange={(type) => saveField('Type', { type: type as Task['type'], epicId: type === 'epic' ? undefined : task.epicId })}
+                      editable={canEdit && typeOptions.length > 1}
+                      ariaLabel="Type"
+                      display={
+                        <span className="inline-flex items-center gap-1.5">
+                          <TaskTypeGlyph type={task.type} />
+                          {TASK_TYPE_CONFIG[task.type].label}
+                        </span>
+                      }
+                    />
                   </DetailRow>
-                  <DetailRow label="Start date">{task.startDate ? formatShortDate(task.startDate) : none}</DetailRow>
+                  <DetailRow label="Start date">
+                    <InlineDate
+                      value={task.startDate}
+                      onChange={(startDate) => saveField('Start date', { startDate: startDate || undefined })}
+                      max={task.dueDate}
+                      editable={canEdit}
+                      ariaLabel="Start date"
+                      display={task.startDate ? formatShortDate(task.startDate) : none}
+                    />
+                  </DetailRow>
                   <DetailRow label="Due date">
                     <span className="flex flex-col items-start gap-1">
-                      <DueDateChip task={task} />
+                      {canEdit ? (
+                        <InlineDate
+                          value={task.dueDate}
+                          onChange={(dueDate) => dueDate && saveField('Due date', { dueDate })}
+                          min={task.startDate}
+                          clearable={false}
+                          editable
+                          ariaLabel="Due date"
+                          display={<DueDateChip task={task} />}
+                        />
+                      ) : (
+                        <DueDateChip task={task} />
+                      )}
                       <OnLeaveChip userId={task.assigneeId} date={task.dueDate} hidden={task.status === 'done'} />
                     </span>
                   </DetailRow>
@@ -504,6 +713,18 @@ function TaskDetailView({ task, allTasks, user, backTo, onEdit, onDelete }: Task
                       <UserChip userId={task.subjectId} />
                     </DetailRow>
                   )}
+                  <DetailRow label="Estimate">
+                    <InlineText
+                      value={task.estimateHours?.toString() ?? ''}
+                      onSave={(value) => saveField('Estimate', { estimateHours: value ? Number(value) : undefined })}
+                      editable={canEdit}
+                      ariaLabel="Estimate in hours"
+                      placeholder="e.g. 8"
+                      inputMode="decimal"
+                      display={task.estimateHours !== undefined ? `${task.estimateHours}h` : <span className="text-gray-400">Not estimated</span>}
+                      validate={(value) => (value && !(Number(value) >= 0 && Number(value) <= 1000) ? 'Enter hours between 0 and 1000' : undefined)}
+                    />
+                  </DetailRow>
                   <DetailRow label="Time tracking">
                     {task.estimateHours !== undefined || task.loggedHours > 0 ? (
                       <div className="space-y-1">
@@ -518,13 +739,25 @@ function TaskDetailView({ task, allTasks, user, backTo, onEdit, onDelete }: Task
                             />
                           </div>
                         )}
+                        {canLogWork && (
+                          <button type="button" onClick={() => setLogWorkOpen(true)} className="text-sm font-medium text-[#464EB8] hover:underline">
+                            Log work
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <span className="text-gray-400">No time logged</span>
                     )}
                   </DetailRow>
                   <DetailRow label="Watchers">
-                    {task.watcherIds.length > 0 ? task.watcherIds.map((id) => getUserById(id)?.name).filter(Boolean).join(', ') : none}
+                    <InlineChips
+                      values={task.watcherIds}
+                      onChange={(watcherIds) => saveField('Watchers', { watcherIds })}
+                      editable={canEdit}
+                      ariaLabel="Watcher"
+                      options={watcherOptions}
+                      renderChip={(id) => <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-700">{getUserById(id)?.name ?? 'Unknown user'}</span>}
+                    />
                   </DetailRow>
                 </dl>
               </CardContent>

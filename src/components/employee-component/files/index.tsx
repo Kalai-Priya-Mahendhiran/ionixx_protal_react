@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { PageHeader, headerPrimaryButtonClass } from '@/components/ui/page-header';
 import { StatCard, StatGrid } from '@/components/ui/stat-card';
 import { useAuth } from '@/context/auth-context';
+import { useCreateFromLink } from '@/hooks/use-create-from-link';
 import { STORAGE_QUOTA_BYTES } from '@/services/apis/files/file-service';
 import { useFiles } from '@/services/apis/files/use-files';
 import { FILE_CATEGORIES, FilesContentSection, UploadFileDialog, formatFileSize } from './sections';
@@ -16,6 +17,8 @@ export default function Files() {
   const [uploading, setUploading] = useState(false);
   // Only what this person may see: company files, their department, their own documents and uploads
   const { data: files = [], isLoading } = useFiles();
+  // Quick Add → Upload File
+  useCreateFromLink(() => setUploading(true));
 
   if (!user) return null;
   const viewer = { id: user.id, role: user.role };

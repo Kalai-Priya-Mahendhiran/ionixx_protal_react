@@ -19,6 +19,7 @@ import {
   Github,
   ExternalLink
 } from "lucide-react";
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface PersonalSectionProps {
   isEditing: boolean;
@@ -234,7 +235,7 @@ export function PersonalSection({ isEditing, control, watch }: PersonalSectionPr
                 <FormItem>
                   <FormLabel className="text-slate-700">Date of Birth <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
+                    <DatePicker {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

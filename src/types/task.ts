@@ -95,6 +95,9 @@ export interface Project {
   leadId: string
   memberIds: string[]
   defaultIssueType: TaskType
+  // Membership controls: anyone can join an open project; a closed one takes access requests a System Admin approves
+  openMembership?: boolean
+  pendingMemberIds?: string[]
 }
 
 // Directory entry used to show names and avatars instead of IDs
@@ -160,6 +163,8 @@ export interface TaskComment {
   authorId: string
   body: string
   mentionIds: string[]
+  // Images added to the comment, stored in the Files module
+  attachments?: TaskAttachment[]
   createdAt: string
 }
 

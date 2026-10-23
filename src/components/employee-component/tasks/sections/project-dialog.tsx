@@ -10,7 +10,10 @@ import { RequiredLabel, SelectField, fieldClass, type Option } from '@/component
 import { TASK_ISSUE_TYPES, projectSchema, type ProjectFormValues } from '@/lib/schemas';
 import { getActiveUsers, getUserById } from '@/lib/user-directory';
 import { cn, getInitials } from '@/lib/utils';
-import { useCreateProject, useUpdateProject } from '@/services/apis/tasks/use-tasks';
+import { useCreateProject, useProjects, useReviewProjectAccess, useUpdateProject } from '@/services/apis/tasks/use-tasks';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/auth-context';
+import { canManageProjectMembers } from '@/lib/permissions/task-permissions';
 import type { Project, Task } from '@/types';
 import { TASK_TYPE_CONFIG } from './task-config';
 import { suggestProjectKey } from './task-utils';
@@ -32,8 +35,15 @@ export function ProjectDialog({ open, project, tasks, existingKeys, onOpenChange
   const isSaving = createProject.isPending || updateProject.isPending;
   const [keyTouched, setKeyTouched] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
+  const reviewAccess = useReviewProjectAccess();
+  const { user } = useAuth();
+  // Who is on a project (members, membership controls, access requests) is decided by System Admin only
+  const canEditMembers = canManageProjectMembers(user);
   const form = useForm<ProjectFormValues>({ resolver: zodResolver(projectSchema) });
-  const [name, leadId, memberIds = []] = useWatch({ control: form.control, name: ['name', 'leadId', 'memberIds'] });
+  const [name, leadId, memberIds = [], openMembership = false] = useWatch({ control: form.control, name: ['name', 'leadId', 'memberIds', 'openMembership'] });
+  // Requests come from the live list, so approving one updates the list without resetting the form
+  const { data: liveProjects = [] } = useProjects();
+  const pendingIds = liveProjects.find((item) => item.id === project?.id)?.pendingMemberIds ?? project?.pendingMemberIds ?? [];
 
   useEffect(() => {
     if (!open) return;
@@ -41,8 +51,16 @@ export function ProjectDialog({ open, project, tasks, existingKeys, onOpenChange
     setMemberSearch('');
     form.reset(
       project
-        ? { name: project.name, key: project.key, description: project.description ?? '', leadId: project.leadId, defaultIssueType: project.defaultIssueType, memberIds: project.memberIds }
-        : { name: '', key: '', description: '', leadId: '', defaultIssueType: 'task', memberIds: [] },
+        ? {
+            name: project.name,
+            key: project.key,
+            description: project.description ?? '',
+            leadId: project.leadId,
+            defaultIssueType: project.defaultIssueType,
+            memberIds: project.memberIds,
+            openMembership: !!project.openMembership,
+          }
+        : { name: '', key: '', description: '', leadId: '', defaultIssueType: 'task', memberIds: [], openMembership: false },
     );
   }, [open, project, form]);
 
@@ -52,6 +70,7 @@ export function ProjectDialog({ open, project, tasks, existingKeys, onOpenChange
   }, [name, keyTouched, project, form]);
 
   const toggleMember = (id: string) =>
+    canEditMembers &&
     form.setValue('memberIds', memberIds.includes(id) ? memberIds.filter((item) => item !== id) : [...memberIds, id], { shouldDirty: true });
 
   // Active people, plus any current members who have since been deactivated so they can be removed
@@ -73,7 +92,15 @@ export function ProjectDialog({ open, project, tasks, existingKeys, onOpenChange
       form.setError('key', { message: `${values.key} is already used` });
       return;
     }
-    const input = { name: values.name, description: values.description, leadId: values.leadId, defaultIssueType: values.defaultIssueType, memberIds: values.memberIds };
+    const input = {
+      name: values.name,
+      description: values.description,
+      leadId: values.leadId,
+      defaultIssueType: values.defaultIssueType,
+      memberIds: values.memberIds,
+      // Only sent by System Admins, so editing other details never touches membership
+      ...(canEditMembers ? { openMembership: values.openMembership } : {}),
+    };
     const close = { onSuccess: () => onOpenChange(false) };
     if (project) updateProject.mutate({ id: project.id, input }, close);
     else createProject.mutate({ ...input, key: values.key }, close);
@@ -154,7 +181,15 @@ export function ProjectDialog({ open, project, tasks, existingKeys, onOpenChange
         <div className="flex items-end justify-between gap-2">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Members ({new Set([leadId, ...memberIds].filter(Boolean)).size})</h3>
-            <p className="text-xs text-gray-500">Members can be planned into this project's sprints. The lead is always a member.</p>
+            <p className="text-xs text-gray-500">
+              Members can open every task of the project (including shared links) and plan its sprints. The lead is always a member.
+            </p>
+            {!canEditMembers && (
+              <p className="mt-1 flex items-center gap-1 text-xs font-medium text-amber-700">
+                <Lock className="h-3 w-3" />
+                Only a System Admin can add or remove members.
+              </p>
+            )}
           </div>
           <div className="relative w-48">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
@@ -171,7 +206,7 @@ export function ProjectDialog({ open, project, tasks, existingKeys, onOpenChange
                   type="button"
                   role="checkbox"
                   aria-checked={checked}
-                  disabled={isLead}
+                  disabled={isLead || !canEditMembers}
                   onClick={() => toggleMember(member.id)}
                   className={cn('flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm hover:bg-indigo-50 disabled:cursor-default', checked && 'bg-indigo-50/60')}
                 >
@@ -200,6 +235,80 @@ export function ProjectDialog({ open, project, tasks, existingKeys, onOpenChange
           </p>
         )}
       </section>
+
+      {/* Membership controls, as in Atlassian teams: open projects can be joined by anyone, closed ones need approval */}
+      <section className="space-y-2">
+        <h3 className="text-sm font-semibold text-gray-900">Membership controls</h3>
+        <label className={cn('flex items-start gap-2.5 text-sm text-gray-700', canEditMembers ? 'cursor-pointer' : 'cursor-not-allowed opacity-70')}>
+          <input
+            type="checkbox"
+            checked={openMembership}
+            disabled={!canEditMembers}
+            onChange={(event) => form.setValue('openMembership', event.target.checked, { shouldDirty: true })}
+            className="mt-0.5 h-4 w-4 rounded border-gray-300 accent-[#464EB8]"
+          />
+          <span>
+            Anyone can join this project without approval
+            <span className="block text-xs text-gray-500">
+              {openMembership
+                ? 'People who open a link to this project can join it themselves.'
+                : 'People without access can request to join; a System Admin approves each request.'}
+            </span>
+          </span>
+        </label>
+      </section>
+
+      {project && pendingIds.length > 0 && (
+        <section className="space-y-2">
+          <h3 className="text-sm font-semibold text-gray-900">Access requests ({pendingIds.length})</h3>
+          <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200">
+            {pendingIds.map((id) => {
+              const person = getUserById(id);
+              return (
+                <li key={id} className="flex items-center gap-3 px-3 py-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[10px] font-semibold text-amber-800">
+                    {getInitials(person?.name ?? '?')}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm text-gray-900">{person?.name ?? 'Unknown user'}</span>
+                    <span className="block truncate text-xs text-gray-500">{person?.designation}</span>
+                  </span>
+                  {canEditMembers ? (
+                    <span className="flex gap-1.5">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={reviewAccess.isPending}
+                        onClick={() => reviewAccess.mutate({ project, userId: id, approve: false })}
+                      >
+                        Decline
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={reviewAccess.isPending}
+                        onClick={() =>
+                          reviewAccess.mutate(
+                            { project, userId: id, approve: true },
+                            // Keep the form's member list in step with the approval
+                            { onSuccess: () => form.setValue('memberIds', [...new Set([...form.getValues('memberIds'), id])]) },
+                          )
+                        }
+                        className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]"
+                      >
+                        Approve
+                      </Button>
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-500">Waiting for a System Admin</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
     </FormDialog>
   );
 }

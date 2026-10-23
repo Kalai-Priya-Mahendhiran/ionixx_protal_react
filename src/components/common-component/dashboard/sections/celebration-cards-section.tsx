@@ -5,6 +5,7 @@ import { initials } from '@/lib/org-chart';
 import { getActiveUsers } from '@/lib/user-directory';
 import { cn, todayAsDateInput } from '@/lib/utils';
 import { useOrgPeople } from '@/services/apis/users/use-org-chart';
+import { DASHBOARD_LIST_CLASS } from './dashboard-list';
 
 // One card per kind of celebration; a new kind is one entry here plus its list in buildCelebrations
 const CARDS: { key: keyof Celebrations; title: string; description: string; empty: string; icon: LucideIcon; tone: string }[] = [
@@ -35,8 +36,8 @@ export function CelebrationCardsSection() {
             {celebrations[key].length === 0 ? (
               <p className="py-4 text-center text-sm text-gray-500">{empty}</p>
             ) : (
-              <ul className="space-y-3">
-                {celebrations[key].slice(0, 4).map((item: CelebrationItem) => (
+              <ul className={DASHBOARD_LIST_CLASS}>
+                {celebrations[key].map((item: CelebrationItem) => (
                   <li key={item.person.id} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
                     <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold', tone)}>{initials(item.person.name)}</span>
                     <span className="min-w-0 flex-1">

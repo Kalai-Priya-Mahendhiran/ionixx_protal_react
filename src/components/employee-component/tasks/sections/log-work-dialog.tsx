@@ -11,6 +11,7 @@ import { logWorkSchema, type LogWorkFormValues } from '@/lib/schemas';
 import { todayAsDateInput } from '@/lib/utils';
 import { useLogWork } from '@/services/apis/tasks/use-tasks';
 import type { Task } from '@/types';
+import { DatePicker } from '@/components/ui/date-picker';
 
 interface LogWorkDialogProps {
   task: Task;
@@ -55,7 +56,7 @@ export function LogWorkDialog({ task, open, onOpenChange }: LogWorkDialogProps) 
             <FormItem>
               <RequiredLabel>Date</RequiredLabel>
               <FormControl>
-                <Input {...field} type="date" max={todayAsDateInput()} className={fieldClass} />
+                <DatePicker {...field} max={todayAsDateInput()} className={fieldClass} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -77,7 +77,7 @@ it('getDurationDays() counts both the start and due day', () => {
 describe('taskSchema dates', () => {
   const base = {
     title: 'A task', description: '', projectId: 'PRJ-IXP', type: 'task', priority: 'medium', assigneeId: 'EMP001',
-    epicId: 'none', sprintId: 'none', estimateHours: '', labels: '',
+    epicId: 'none', sprintId: 'none', estimateHours: '', labels: '', reporterId: 'PM001',
   };
 
   it('rejects a due date before the start date', () => {

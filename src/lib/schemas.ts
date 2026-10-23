@@ -371,6 +371,8 @@ export const taskSchema = z
       .refine((value) => value === "" || (Number(value) > 0 && Number(value) <= 999), "Enter hours between 0 and 999"),
     // Comma-separated in the form, split into an array on submit
     labels: z.string(),
+    // Editable when editing; a new task is reported by its creator
+    reporterId: z.string(),
   })
   .refine((values) => !values.startDate || !values.dueDate || values.dueDate >= values.startDate, {
     path: ["dueDate"],
@@ -559,6 +561,8 @@ export const projectSchema = z.object({
   leadId: z.string().min(1, "Choose a project lead"),
   defaultIssueType: z.enum(TASK_ISSUE_TYPES),
   memberIds: z.array(z.string()),
+  // Membership controls: anyone can join without approval
+  openMembership: z.boolean(),
 });
 
 export type ProjectFormValues = z.infer<typeof projectSchema>;

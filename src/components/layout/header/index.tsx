@@ -5,16 +5,15 @@ import { Input } from "@/components/ui/input";
 import { 
   Search, 
   Plus, 
-  HelpCircle, 
   Bell, 
   Menu,
   User,
-  Settings,
   LogOut,
   ChevronRight
 } from "lucide-react";
-import { QUICK_ADD_OPTIONS, ROUTES } from "@/lib/constants";
+import { ROUTES } from "@/lib/constants";
 import { MODULE_CATALOG } from "@/lib/modules";
+import { quickActionLink, quickActionsFor } from "@/lib/quick-actions";
 import { useLocation, useNavigate } from "react-router-dom";
 import { NotificationsPanel } from "./notifications-panel";
 import { useUnreadNotificationCount } from "@/services/apis/notifications/use-notifications";
@@ -94,10 +93,13 @@ interface HeaderProps {
     };
   }, []);
 
-  const handleQuickAdd = (option: string) => {
+  // What this person can create (each opens its page with the form already open)
+  const quickAdd = quickActionsFor(user, true);
+
+  const goTo = (path: string) => {
     setShowQuickAdd(false);
-    // The service desk opens its raise dialog from ?raise=1
-    if (option === "admin-request") navigate(`${ROUTES.ServiceDesk}?raise=1`);
+    setShowProfileMenu(false);
+    navigate(path);
   };
 
   const handleNotificationClick = () => {
@@ -146,11 +148,14 @@ interface HeaderProps {
       {/* Right Section */}
       <div className="flex items-center space-x-2">
         {/* Quick Add */}
+        {quickAdd.length > 0 && (
         <div className="relative" ref={quickAddRef}>
           <Button
             variant="outline" 
             size="sm"
             onClick={() => setShowQuickAdd(!showQuickAdd)}
+            aria-expanded={showQuickAdd}
+            aria-haspopup="menu"
             className="hidden sm:flex items-center space-x-2 border border-gray-300 hover:bg-blue-50 hover:border-blue-500 transition-all"
           >
             <Plus className="h-4 w-4 text-blue-600" />
@@ -158,25 +163,34 @@ interface HeaderProps {
           </Button>
           
           {showQuickAdd && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
-              {QUICK_ADD_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  onClick={() => handleQuickAdd(option.id)}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>{option.label}</span>
-                </button>
-              ))}
+            <div role="menu" aria-label="Quick add" className="absolute right-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
+              <p className="border-b border-gray-100 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500">Create new</p>
+              <div className="p-1.5">
+                {quickAdd.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.id}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => goTo(quickActionLink(action))}
+                      className="group flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left ring-inset transition-colors hover:bg-indigo-100 hover:ring-1 hover:ring-indigo-300 focus:bg-indigo-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-indigo-300"
+                    >
+                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors group-hover:bg-white group-focus:bg-white ${action.tone}`}>
+                        <Icon className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium text-gray-900 group-hover:text-[#464EB8] group-focus:text-[#464EB8]">{action.label}</span>
+                        <span className="block truncate text-xs text-gray-500 group-hover:text-indigo-600 group-focus:text-indigo-600">{action.description}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
-
-        {/* Help */}
-        <Button variant="ghost" size="icon" title="Help">
-          <HelpCircle className="h-8 w-8" />
-        </Button>
+        )}
 
         {/* Notifications */}
         <div className="relative" ref={notificationsRef}>
@@ -212,13 +226,9 @@ interface HeaderProps {
           
           {showProfileMenu && (
             <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
-              <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2">
+              <button type="button" onClick={() => goTo(ROUTES.Profile)} className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2">
                 <User className="h-4 w-4" />
                 <span>My Profile</span>
-              </button>
-              <button className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2">
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
               </button>
               <hr className="my-1" />
               <button 
