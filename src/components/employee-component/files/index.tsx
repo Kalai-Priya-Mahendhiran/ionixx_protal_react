@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Folder, HardDrive, Upload } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,13 @@ import { FILE_CATEGORIES, FilesContentSection, UploadFileDialog, formatFileSize 
 export default function Files() {
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  // ?q= pre-fills the search (the header search links here with the file's name)
+  const [params] = useSearchParams();
+  const linkedQuery = params.get('q');
+  const [searchTerm, setSearchTerm] = useState(linkedQuery ?? '');
+  useEffect(() => {
+    if (linkedQuery !== null) setSearchTerm(linkedQuery);
+  }, [linkedQuery]);
   const [uploading, setUploading] = useState(false);
   // Only what this person may see: company files, their department, their own documents and uploads
   const { data: files = [], isLoading } = useFiles();

@@ -18,6 +18,32 @@ export const sampleProfileUser: User = {
   accountType: 'Savings',
 };
 
+// Each person's own personal details, as they'd have entered them in their profile.
+// Gender also drives leave eligibility (maternity / paternity). People not listed start with these blank.
+type PersonalDetails = {
+  gender: NonNullable<ProfileFormData['gender']>;
+  maritalStatus: NonNullable<ProfileFormData['maritalStatus']>;
+  bloodGroup: NonNullable<ProfileFormData['bloodGroup']>;
+};
+
+export const SAMPLE_PERSONAL_DETAILS: Record<string, PersonalDetails> = {
+  EMP001: { gender: 'Female', maritalStatus: 'Single', bloodGroup: 'B+' }, // Kalai Priya
+  EMP002: { gender: 'Male', maritalStatus: 'Married', bloodGroup: 'O+' }, // Arjun Rao
+  EMP003: { gender: 'Female', maritalStatus: 'Married', bloodGroup: 'A+' }, // Meera Sundar
+  EMP004: { gender: 'Male', maritalStatus: 'Single', bloodGroup: 'AB+' }, // Rohit Deshmukh
+  EMP005: { gender: 'Female', maritalStatus: 'Married', bloodGroup: 'O-' }, // Divya Menon
+  EMP006: { gender: 'Male', maritalStatus: 'Married', bloodGroup: 'B-' }, // Karthik Subramanian
+  EMP007: { gender: 'Female', maritalStatus: 'Single', bloodGroup: 'A-' }, // Sneha Reddy
+  EMP008: { gender: 'Male', maritalStatus: 'Single', bloodGroup: 'O+' }, // Naveen Kumar
+  HR001: { gender: 'Female', maritalStatus: 'Married', bloodGroup: 'A+' }, // Priya Ramesh
+  PM001: { gender: 'Female', maritalStatus: 'Married', bloodGroup: 'B+' }, // Priya Kumar
+  ADM001: { gender: 'Male', maritalStatus: 'Married', bloodGroup: 'O+' }, // Vikram Shah
+  ADM002: { gender: 'Male', maritalStatus: 'Single', bloodGroup: 'AB-' }, // Ravi Teja
+  ADM003: { gender: 'Female', maritalStatus: 'Widowed', bloodGroup: 'B+' }, // Lakshmi Narayan
+  SYS001: { gender: 'Female', maritalStatus: 'Single', bloodGroup: 'O+' }, // Kaviya Iyer
+  EXE001: { gender: 'Female', maritalStatus: 'Married', bloodGroup: 'A-' }, // Ananya Nair
+};
+
 export const sampleProfileFormData: ProfileFormData = {
   // Personal Information
   employeeId: sampleProfileUser.employeeId || 'EMP00123',

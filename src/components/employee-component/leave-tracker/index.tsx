@@ -8,6 +8,8 @@ import type { LeaveRequestFormValues } from '@/lib/schemas';
 import type { LeaveCountry } from '@/types';
 import { useApplyLeave, useLeaveRequests } from '@/services/apis/leave/use-leave';
 import { useCreateFromLink } from '@/hooks/use-create-from-link';
+import { useAuth } from '@/context/auth-context';
+import { getOrgPeople } from '@/lib/org-chart';
 import {
   ApplyLeaveSection,
   LeaveCalendarSection,
@@ -15,11 +17,17 @@ import {
   LeaveBalanceSection
 } from './sections';
 
+// The office's country from a location like "Chennai, IN", so the calendar opens on that office's holidays
+const COUNTRY_BY_CODE: Record<string, LeaveCountry> = { IN: 'india', CA: 'canada', US: 'united-states' };
+const officeCountry = (location?: string): LeaveCountry => COUNTRY_BY_CODE[location?.split(',').pop()?.trim().toUpperCase() ?? ''] ?? DEFAULT_LEAVE_COUNTRY;
+
 export default function Leave() {
+  const { user } = useAuth();
   // Requests come from the shared leave service, so Tasks can warn when an assignee is on approved leave
   const { data: requests = [] } = useLeaveRequests();
   const applyLeaveRequest = useApplyLeave();
-  const [country, setCountry] = useState<LeaveCountry>(DEFAULT_LEAVE_COUNTRY);
+  // Starts on the person's office; they can still look at another country's holidays
+  const [country, setCountry] = useState<LeaveCountry>(() => officeCountry(getOrgPeople().find((person) => person.id === user?.id)?.location));
   const holidays = HOLIDAYS_BY_COUNTRY[country];
 
   const applyLeave = (values: LeaveRequestFormValues, days: number) => applyLeaveRequest.mutate({ ...values, days });

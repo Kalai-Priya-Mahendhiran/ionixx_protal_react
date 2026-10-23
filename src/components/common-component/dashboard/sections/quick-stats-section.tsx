@@ -5,13 +5,13 @@ import { useAuth } from '@/context/auth-context';
 import { LEAVE_BALANCE } from '@/lib/sample-data/leave-tracker-sample-data';
 import { toDateInput, todayAsDateInput } from '@/lib/utils';
 import { useMyAttendanceMonth } from '@/services/apis/attendance/use-attendance';
+import { attendancePercent } from '@/services/apis/attendance/attendance-service';
 import { useLeaveRequests } from '@/services/apis/leave/use-leave';
 import { useTasks } from '@/services/apis/tasks/use-tasks';
 import { useTimeEntries } from '@/services/apis/time-tracker/use-time-entries';
 
 // Leave types counted in "days left" (the everyday ones with a yearly allotment)
 const EVERYDAY_LEAVE = ['casual', 'sick', 'earned'] as const;
-const ATTENDED = new Set(['present', 'late', 'half-day', 'wfh']);
 
 // Monday of the current week
 const weekStart = () => {
@@ -30,8 +30,8 @@ export function QuickStatsSection() {
   const { data: entries = [], isLoading: loadingEntries } = useTimeEntries();
   const { data: leave = [], isLoading: loadingLeave } = useLeaveRequests();
 
-  const working = month.filter((day) => !['holiday', 'leave', 'not-in-yet'].includes(day.status));
-  const attendance = working.length ? Math.round((working.filter((day) => ATTENDED.has(day.status)).length / working.length) * 100) : 100;
+  // Shared with the Attendance page so both show the same figure
+  const { percent: attendance, workingDays } = attendancePercent(month);
 
   const mine = tasks.filter((task) => task.assigneeId === user?.id);
   const done = mine.filter((task) => task.status === 'done').length;
@@ -44,7 +44,7 @@ export function QuickStatsSection() {
 
   return (
     <StatGrid>
-      <StatCard icon={CheckCircle} label="Attendance this month" value={`${attendance}%`} tone="green" hint={`${working.length} days`} loading={loadingAttendance} onClick={() => navigate('/attendance')} />
+      <StatCard icon={CheckCircle} label="Attendance this month" value={`${attendance}%`} tone="green" hint={`${workingDays} days`} loading={loadingAttendance} onClick={() => navigate('/attendance')} />
       <StatCard icon={Target} label="My tasks done" value={`${done}/${mine.length}`} tone="blue" loading={loadingTasks} onClick={() => navigate('/tasks')} />
       <StatCard icon={Clock} label="Hours this week" value={`${Math.round(hours * 10) / 10}h`} tone="purple" loading={loadingEntries} onClick={() => navigate('/time-tracker')} />
       <StatCard icon={CalendarDays} label="Leave days left" value={allotted - used} tone="amber" hint={`of ${allotted}`} loading={loadingLeave} onClick={() => navigate('/leave')} />

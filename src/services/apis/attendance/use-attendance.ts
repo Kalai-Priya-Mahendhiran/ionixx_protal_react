@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/auth-context';
 import { todayAsDateInput } from '@/lib/utils';
 import { attendanceService } from './attendance-service';
+import { ORG_PEOPLE_KEY } from '../users/use-org-chart';
 
 export const ATTENDANCE_KEY = ['attendance'] as const;
 
@@ -37,6 +38,8 @@ function useAttendanceMutation<TVariables>(run: (variables: TVariables) => Promi
     mutationFn: run,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ATTENDANCE_KEY });
+      // Team Overview, the org chart and the directory show today's status from attendance
+      queryClient.invalidateQueries({ queryKey: ORG_PEOPLE_KEY });
       toast.success(success);
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : 'Something went wrong'),

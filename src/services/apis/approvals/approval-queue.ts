@@ -1,7 +1,7 @@
 import { LEAVE_TYPES } from '@/lib/constants';
 import type { PermissionUser } from '@/lib/permissions/task-permissions';
 import { getUserById } from '@/lib/user-directory';
-import { leaveService } from '../leave/leave-service';
+import { describeRoute, leaveService } from '../leave/leave-service';
 import { claimTypeLabel, declarationTypeLabel, payrollService } from '../payroll/payroll-service';
 import { WORK_REQUEST_LABELS, workRequestService } from './work-request-service';
 
@@ -35,12 +35,17 @@ export interface ApprovalItem {
   appliedDate: string;
   decidedBy?: string;
   decidedDate?: string;
+  // Why this request is with the viewer, e.g. "Sent to HR because Priya Kumar is on leave today"
+  routeNote?: string;
+  // The approver's note to the employee
+  decisionComment?: string;
 }
 
 export interface ApprovalSource {
   id: string;
   list: (actor: PermissionUser) => Promise<ApprovalItem[]>;
-  decide: (actor: PermissionUser, id: string, decision: ApprovalDecision) => Promise<unknown>;
+  // A comment is required when rejecting, optional when approving; the requester sees it
+  decide: (actor: PermissionUser, id: string, decision: ApprovalDecision, comment: string) => Promise<unknown>;
 }
 
 const person = (userId: string) => {
@@ -66,8 +71,10 @@ const leaveSource: ApprovalSource = {
       appliedDate: request.appliedDate,
       decidedBy: request.status === 'pending' ? undefined : request.approvedBy,
       decidedDate: request.status === 'pending' ? undefined : request.approvedDate,
+      routeNote: request.status === 'pending' ? describeRoute(request.userId) : undefined,
+      decisionComment: request.decisionComment,
     })),
-  decide: (actor, id, decision) => leaveService.decide(actor, id, decision),
+  decide: (actor, id, decision, comment) => leaveService.decide(actor, id, decision, comment),
 };
 
 const workRequestSource: ApprovalSource = {
@@ -88,8 +95,10 @@ const workRequestSource: ApprovalSource = {
       appliedDate: request.appliedDate,
       decidedBy: request.decidedBy,
       decidedDate: request.decidedDate,
+      routeNote: request.status === 'pending' ? describeRoute(request.userId) : undefined,
+      decisionComment: request.decisionComment,
     })),
-  decide: (actor, id, decision) => workRequestService.decide(actor, id, decision),
+  decide: (actor, id, decision, comment) => workRequestService.decide(actor, id, decision, comment),
 };
 
 // Reimbursement claims and tax-saving proofs, reviewed by payroll (HR)
@@ -130,9 +139,9 @@ const payrollSource: ApprovalSource = {
       })),
     ];
   },
-  decide: (actor, id, decision) => {
+  decide: (actor, id, decision, comment) => {
     const [kind, ref] = [id.slice(0, id.indexOf(':')), id.slice(id.indexOf(':') + 1)];
-    return kind === 'claim' ? payrollService.decideClaim(actor, ref, decision) : payrollService.decideDeclaration(actor, ref, decision);
+    return kind === 'claim' ? payrollService.decideClaim(actor, ref, decision, comment) : payrollService.decideDeclaration(actor, ref, decision, comment);
   },
 };
 
@@ -150,9 +159,9 @@ export const approvalQueue = {
     return lists.flat().sort((a, b) => b.appliedDate.localeCompare(a.appliedDate));
   },
 
-  async decide(actor: PermissionUser, item: Pick<ApprovalItem, 'source' | 'id'>, decision: ApprovalDecision): Promise<void> {
+  async decide(actor: PermissionUser, item: Pick<ApprovalItem, 'source' | 'id'>, decision: ApprovalDecision, comment = ''): Promise<void> {
     const source = sources.find((entry) => entry.id === item.source);
     if (!source) throw new Error('This kind of request can no longer be decided here');
-    await source.decide(actor, item.id, decision);
+    await source.decide(actor, item.id, decision, comment);
   },
 };

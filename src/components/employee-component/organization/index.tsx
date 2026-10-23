@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Building, Building2, Contact, GitBranch, UserPlus, Users, UsersRound, type LucideIcon } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
@@ -28,6 +28,8 @@ export default function Organization() {
   const tabParam = params.get('tab');
   const tab: OrgTab = isOrgTab(tabParam) ? tabParam : 'chart';
   const openTab = (next: OrgTab) => setParams(next === 'chart' ? {} : { tab: next });
+  // ?person=EMP002 opens that person's profile (used by the header search)
+  const linkedPersonId = params.get('person');
 
   // Live: people added, moved or removed in User Management show up without a reload
   const { data: people } = useOrgPeople();
@@ -41,7 +43,23 @@ export default function Organization() {
   const [profileId, setProfileId] = useState<string | null>(null);
   // Looked up by id so the open profile reflects the latest data
   const profile = people.find((person) => person.id === profileId) ?? null;
-  const setProfile = (person: OrgPerson | null) => setProfileId(person?.id ?? null);
+  const setProfile = (person: OrgPerson | null) => {
+    setProfileId(person?.id ?? null);
+    // Closing a linked profile drops it from the URL, so Back doesn't reopen it
+    if (!person && linkedPersonId) {
+      setParams((current) => {
+        current.delete('person');
+        return current;
+      }, { replace: true });
+    }
+  };
+
+  useEffect(() => {
+    if (!linkedPersonId || !people.some((person) => person.id === linkedPersonId)) return;
+    setProfileId(linkedPersonId);
+    setPath(chainTo(people, linkedPersonId).map((person) => person.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the link changes, not on every live refresh
+  }, [linkedPersonId]);
 
   const showInChart = (person: OrgPerson) => {
     setPath(chainTo(people, person.id).map((entry) => entry.id));

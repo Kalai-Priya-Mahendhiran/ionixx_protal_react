@@ -43,7 +43,11 @@ export interface LeaveRequest {
   status: 'pending' | 'approved' | 'rejected'
   appliedDate: string
   approvedBy?: string
+  // Who decided, so the decision stays in their Approvals history even if routing changes later
+  approvedById?: string
   approvedDate?: string
+  // The approver's note to the employee (required when rejecting)
+  decisionComment?: string
 }
 
 export type LeaveCountry = 'india' | 'canada' | 'united-states'

@@ -1,5 +1,8 @@
-import { useState, type ReactNode } from "react";
-import { AlertCircle, Calendar, CheckCheck, CheckCircle2, Clock, FileCheck2, Home, Inbox, Receipt, XCircle } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { AlertCircle, Calendar, CheckCheck, CheckCircle2, Clock, FileCheck2, Home, Inbox, MessageSquare, Receipt, Route, XCircle } from "lucide-react";
+import { AppDialog } from "@/components/ui/form-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { fieldClass } from "@/components/ui/form-fields";
 import MainLayout from "@/components/layout/main-layout";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -10,8 +13,8 @@ import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { APPROVAL_TYPE_COLORS } from "@/lib/constants";
 import { initials } from "@/lib/org-chart";
 import { formatINR } from "@/lib/payroll";
-import type { ApprovalItem, ApprovalStatus } from "@/services/apis/approvals/approval-queue";
-import { useApprovalQueue, useDecideApproval } from "@/services/apis/approvals/use-approvals";
+import type { ApprovalDecision, ApprovalItem, ApprovalStatus } from "@/services/apis/approvals/approval-queue";
+import { useApprovalQueue, useDecideApprovals } from "@/services/apis/approvals/use-approvals";
 import { PageTabs } from "@/components/ui/page-tabs";
 
 /*
@@ -36,12 +39,27 @@ const kindColor = (kind: string) => APPROVAL_TYPE_COLORS[kind as keyof typeof AP
 
 export default function Approvals() {
   const { data: items = [], isLoading } = useApprovalQueue();
-  const decide = useDecideApproval();
+  const decide = useDecideApprovals();
   const [activeTab, setActiveTab] = useState<ApprovalStatus>("pending");
+  // Approve / Reject open a confirmation with a comment box instead of deciding on one click; it can cover several requests
+  const [pendingDecision, setPendingDecision] = useState<PendingDecision | null>(null);
+  // Pending requests ticked for a bulk decision
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const byStatus = (status: ApprovalStatus) => items.filter((item) => item.status === status);
   const counts = Object.fromEntries(STATUSES.map((status) => [status.id, byStatus(status.id).length])) as Record<ApprovalStatus, number>;
   const list = byStatus(activeTab);
+  // Only requests still pending and on screen count as selected
+  const selectedItems = activeTab === "pending" ? list.filter((item) => selected.has(item.key)) : [];
+  const allSelected = list.length > 0 && selectedItems.length === list.length;
+  const toggle = (key: string) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  const busyKeys = decide.isPending ? new Set(decide.variables?.items.map((item) => item.key)) : new Set<string>();
 
   return (
     <MainLayout>
@@ -66,14 +84,45 @@ export default function Approvals() {
           <CardContent>
             <PageTabs className="mb-4" label="Request status" tabs={STATUSES.map((status) => ({ ...status, count: counts[status.id] }))} value={activeTab} onChange={setActiveTab} />
 
+            {activeTab === "pending" && list.length > 0 && (
+              <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(input) => {
+                      if (input) input.indeterminate = selectedItems.length > 0 && !allSelected;
+                    }}
+                    onChange={() => setSelected(allSelected ? new Set() : new Set(list.map((item) => item.key)))}
+                    className="h-4 w-4 rounded border-gray-300 accent-[#464EB8]"
+                  />
+                  {selectedItems.length ? `${selectedItems.length} selected` : "Select all"}
+                </label>
+                {selectedItems.length > 0 && (
+                  <div className="ml-auto flex gap-2">
+                    <Button size="sm" onClick={() => setPendingDecision({ items: selectedItems, decision: "approved" })} disabled={decide.isPending} className="bg-green-600 text-white hover:bg-green-700">
+                      <CheckCircle2 className="mr-1 h-4 w-4" />
+                      Approve {selectedItems.length}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setPendingDecision({ items: selectedItems, decision: "rejected" })} disabled={decide.isPending} className="border-red-300 text-red-600 hover:bg-red-50">
+                      <XCircle className="mr-1 h-4 w-4" />
+                      Reject {selectedItems.length}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-3">
               {list.map((item) => (
                 <RequestRow
                   key={item.key}
                   item={item}
-                  busy={decide.isPending && decide.variables?.item.key === item.key}
-                  onApprove={() => decide.mutate({ item, decision: "approved" })}
-                  onReject={() => decide.mutate({ item, decision: "rejected" })}
+                  busy={busyKeys.has(item.key)}
+                  selected={selected.has(item.key)}
+                  onToggle={activeTab === "pending" ? () => toggle(item.key) : undefined}
+                  onApprove={() => setPendingDecision({ items: [item], decision: "approved" })}
+                  onReject={() => setPendingDecision({ items: [item], decision: "rejected" })}
                 />
               ))}
               {!isLoading && list.length === 0 && (
@@ -86,14 +135,135 @@ export default function Approvals() {
           </CardContent>
         </Card>
       </div>
+
+      <DecisionDialog
+        pending={pendingDecision}
+        busy={decide.isPending}
+        onCancel={() => setPendingDecision(null)}
+        onConfirm={(comment) =>
+          pendingDecision &&
+          decide.mutate(
+            { ...pendingDecision, comment },
+            {
+              onSuccess: () => {
+                setPendingDecision(null);
+                setSelected(new Set());
+              },
+            },
+          )
+        }
+      />
     </MainLayout>
   );
 }
 
-function RequestRow({ item, busy, onApprove, onReject }: { item: ApprovalItem; busy: boolean; onApprove: () => void; onReject: () => void }) {
+interface PendingDecision {
+  items: ApprovalItem[];
+  decision: ApprovalDecision;
+}
+
+// Confirms a decision on one or several requests; a comment is optional when approving and required when rejecting, and each requester sees it
+function DecisionDialog({ pending, busy, onCancel, onConfirm }: { pending: PendingDecision | null; busy: boolean; onCancel: () => void; onConfirm: (comment: string) => void }) {
+  const [comment, setComment] = useState("");
+  const [showError, setShowError] = useState(false);
+  useEffect(() => {
+    setComment("");
+    setShowError(false);
+  }, [pending]);
+
+  const approving = pending?.decision === "approved";
+  const count = pending?.items.length ?? 0;
+  // One request shows its details; several show a list
+  const item = count === 1 ? pending?.items[0] : undefined;
+  const missing = !approving && !comment.trim();
+  const confirm = () => {
+    if (missing) {
+      setShowError(true);
+      return;
+    }
+    onConfirm(comment.trim());
+  };
+
   return (
-    <div className="rounded-lg border border-gray-200 p-4 transition-all hover:border-[#464EB8]/40 hover:shadow-sm">
+    <AppDialog
+      open={!!pending}
+      onOpenChange={(open) => !open && onCancel()}
+      title={count > 1 ? `${approving ? "Approve" : "Reject"} ${count} requests?` : approving ? "Approve this request?" : "Reject this request?"}
+      description={count > 1 ? "The same comment goes to everyone below." : item ? `${item.requesterName} · ${item.typeLabel} · ${formatDate(item.startDate)}${item.startDate !== item.endDate ? ` → ${formatDate(item.endDate)}` : ""}${item.days !== undefined ? ` · ${item.days} day${item.days === 1 ? "" : "s"}` : ""}` : undefined}
+      busy={busy}
+      footer={
+        <>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={confirm}
+            disabled={busy}
+            className={approving ? "bg-green-600 text-white hover:bg-green-700" : "bg-red-600 text-white hover:bg-red-700"}
+          >
+            {busy ? "Saving…" : `${approving ? "Approve" : "Reject"}${count > 1 ? ` ${count}` : ""}`}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        {count > 1 && (
+          <ul className="max-h-40 divide-y divide-gray-100 overflow-y-auto rounded-md border border-gray-200 text-sm">
+            {pending?.items.map((entry) => (
+              <li key={entry.key} className="flex justify-between gap-3 px-3 py-1.5">
+                <span className="truncate font-medium text-gray-900">{entry.requesterName}</span>
+                <span className="shrink-0 text-gray-500">
+                  {entry.typeLabel} · {formatDate(entry.startDate)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {item?.reason && (
+          <p className="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-700">
+            <span className="font-medium text-gray-900">Reason: </span>
+            {item.reason}
+          </p>
+        )}
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium text-gray-700">
+            Comment {approving ? <span className="font-normal text-gray-400">(optional)</span> : <span className="text-red-600">*</span>}
+          </span>
+          <Textarea
+            value={comment}
+            onChange={(event) => {
+              setComment(event.target.value);
+              setShowError(false);
+            }}
+            rows={3}
+            maxLength={500}
+            placeholder={approving ? "Add a note for them (optional)" : "Explain why, so they know what to change"}
+            aria-invalid={showError && missing}
+            className={fieldClass}
+            autoFocus
+          />
+          {showError && missing && <span className="block text-xs text-red-600">Add a comment so they know why it was rejected.</span>}
+          <span className="block text-xs text-gray-500">{count > 1 ? "Each of them" : (item?.requesterName ?? "They")} will see this with your decision.</span>
+        </label>
+      </div>
+    </AppDialog>
+  );
+}
+
+function RequestRow({ item, busy, selected = false, onToggle, onApprove, onReject }: { item: ApprovalItem; busy: boolean; selected?: boolean; onToggle?: () => void; onApprove: () => void; onReject: () => void }) {
+  return (
+    <div className={`rounded-lg border p-4 transition-all hover:border-[#464EB8]/40 hover:shadow-sm ${selected ? "border-[#464EB8]/50 bg-indigo-50/40" : "border-gray-200"}`}>
       <div className="flex items-start gap-4">
+        {onToggle && (
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onToggle}
+            aria-label={`Select ${item.requesterName}'s ${item.typeLabel.toLowerCase()}`}
+            className="mt-3.5 h-4 w-4 shrink-0 rounded border-gray-300 accent-[#464EB8]"
+          />
+        )}
         <Avatar className="h-11 w-11">
           <AvatarFallback className="bg-gradient-to-br from-indigo-600 to-violet-600 font-semibold text-white">{initials(item.requesterName)}</AvatarFallback>
         </Avatar>
@@ -127,6 +297,18 @@ function RequestRow({ item, busy, onApprove, onReject }: { item: ApprovalItem; b
             )}
           </p>
           <p className="mt-1 text-sm text-gray-600">{item.reason}</p>
+          {item.routeNote && (
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-indigo-700">
+              <Route className="h-3.5 w-3.5" aria-hidden="true" />
+              {item.routeNote}
+            </p>
+          )}
+          {item.decisionComment && (
+            <p className="mt-1.5 flex items-start gap-1.5 text-sm text-gray-700">
+              <MessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden="true" />
+              <span>“{item.decisionComment}”</span>
+            </p>
+          )}
           <p className="mt-2 text-xs text-gray-400">
             Applied {formatDate(item.appliedDate)}
             {item.decidedBy && item.decidedDate && (

@@ -33,7 +33,8 @@ export const DEPARTMENTS: DepartmentInfo[] = [
 ];
 
 // 'invited': added in User Management but hasn't signed in yet
-export type WorkStatus = 'in-office' | 'remote' | 'on-leave' | 'invited';
+// 'not-in' = a working day with no check-in yet (or at all); the live value comes from attendance
+export type WorkStatus = 'in-office' | 'remote' | 'on-leave' | 'not-in' | 'invited';
 
 // Contact details for people the team roster doesn't cover (leadership logins, office staff)
 export const PERSON_DETAILS: Record<string, { employeeId: string; phone: string; location: string; joiningDate: string; status: WorkStatus }> = {

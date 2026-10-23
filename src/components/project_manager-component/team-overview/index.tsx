@@ -25,7 +25,8 @@ import { getUserById } from "@/lib/user-directory";
 import { useOrgPeople } from "@/services/apis/users/use-org-chart";
 
 // The org chart person in the shape this page shows; skills come from the roster when known
-const ORG_STATUS: Record<OrgPerson["status"], TeamMember["status"]> = { "in-office": "active", remote: "remote", "on-leave": "on-leave", invited: "active" };
+// Status comes from today's attendance via useOrgPeople, the same source as Attendance Monitoring
+const ORG_STATUS: Record<OrgPerson["status"], TeamMember["status"]> = { "in-office": "active", remote: "remote", "on-leave": "on-leave", "not-in": "not-in", invited: "not-in" };
 const toMember = (person: OrgPerson): TeamMember => ({
   id: person.id,
   name: person.name,
@@ -79,7 +80,8 @@ export default function TeamOverview() {
     const active = teamMembers.filter((m) => m.status === "active").length;
     const remote = teamMembers.filter((m) => m.status === "remote").length;
     const onLeave = teamMembers.filter((m) => m.status === "on-leave").length;
-    return { total, active, remote, onLeave };
+    const notIn = teamMembers.filter((m) => m.status === "not-in").length;
+    return { total, active, remote, onLeave, notIn };
   }, [teamMembers]);
 
   return (
@@ -88,7 +90,7 @@ export default function TeamOverview() {
         <PageHeader
           icon={Users}
           title="Team Overview"
-          description={`${stats.total} team members · ${stats.active} in office · ${stats.remote} remote · ${stats.onLeave} on leave`}
+          description={`${stats.total} team members · ${stats.active} in office · ${stats.remote} remote · ${stats.onLeave} on leave · ${stats.notIn} not checked in`}
         />
 
         <StatGrid>

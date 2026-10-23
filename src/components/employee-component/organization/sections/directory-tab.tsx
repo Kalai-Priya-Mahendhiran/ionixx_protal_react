@@ -21,6 +21,7 @@ const STATUS_OPTIONS: { value: WorkStatus; label: string }[] = [
   { value: 'in-office', label: 'In office' },
   { value: 'remote', label: 'Remote' },
   { value: 'on-leave', label: 'On leave' },
+  { value: 'not-in', label: 'Not checked in' },
   { value: 'invited', label: 'Yet to join' },
 ];
 

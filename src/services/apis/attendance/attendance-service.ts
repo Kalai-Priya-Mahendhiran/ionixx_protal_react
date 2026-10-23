@@ -17,11 +17,25 @@ import { approvedWfhOn } from '../approvals/work-request-service';
 export const OFFICE_HOURS = {
   // Checking in after this is late
   start: '09:30',
-  // With no check-in by now, the day counts as absent
-  absentAfter: '11:00',
-  // Fewer hours than this is a half day
+  // Checking in after this only leaves half a working day, so the day is a half day
+  halfDayAfter: '13:30',
+  // The working day ends here: only then does a day with no check-in count as absent
+  end: '18:30',
+  // Fewer hours than this (once checked out) is a half day
   halfDayHours: 4,
 };
+
+// Statuses that count as attending; a half day counts as half
+const ATTENDANCE_WEIGHT: Partial<Record<AttendanceStatus, number>> = { present: 1, late: 1, wfh: 1, 'half-day': 0.5, absent: 0 };
+
+// Share of working days attended, for the dashboard and the Attendance page alike.
+// Holidays, leave and today before the person has checked in don't count either way.
+export function attendancePercent(records: Pick<AttendanceRecord, 'status'>[]): { percent: number; workingDays: number } {
+  const counted = records.filter((record) => ATTENDANCE_WEIGHT[record.status] !== undefined);
+  if (counted.length === 0) return { percent: 100, workingDays: 0 };
+  const attended = counted.reduce((total, record) => total + (ATTENDANCE_WEIGHT[record.status] ?? 0), 0);
+  return { percent: Math.round((attended / counted.length) * 100), workingDays: counted.length };
+}
 
 export type AttendanceStatus = 'present' | 'late' | 'half-day' | 'absent' | 'leave' | 'wfh' | 'holiday' | 'not-in-yet';
 
@@ -79,6 +93,9 @@ const hash = (text: string) => [...text].reduce((total, char) => (total * 31 + c
 
 const LOGIN_IDS = new Set(MOCK_USERS.map((user) => user.id));
 
+// How far back the sample history goes (and how far the calendar lets you page back)
+export const HISTORY_DAYS = 185;
+
 function sampleDay(userId: string, date: string): StoredDay | null {
   const roll = hash(`${userId}:${date}`) % 100;
   if (roll < 3) return null; // absent
@@ -95,7 +112,8 @@ function seed() {
   const today = todayAsDateInput();
   for (const person of getActiveUsers()) {
     const joined = person.joiningDate ?? '2000-01-01';
-    for (let back = 45; back >= 1; back -= 1) {
+    // About six months of history, so the Attendance calendar can be paged back
+    for (let back = HISTORY_DAYS; back >= 1; back -= 1) {
       const date = new Date();
       date.setDate(date.getDate() - back);
       const day = toDateInput(date);
@@ -114,6 +132,24 @@ seed();
 
 // ── Working out a day's status ──────────────────────────────────────────────
 
+// Where someone is today, from their attendance: the one status Team Overview, the org chart and the directory show
+export type Presence = 'in-office' | 'remote' | 'on-leave' | 'not-in';
+
+export function presenceOf(status: AttendanceStatus): Presence {
+  switch (status) {
+    case 'present':
+    case 'late':
+    case 'half-day':
+      return 'in-office';
+    case 'wfh':
+      return 'remote';
+    case 'leave':
+      return 'on-leave';
+    default:
+      return 'not-in';
+  }
+}
+
 interface DayContext {
   onLeave: boolean;
   wfh: boolean;
@@ -125,7 +161,8 @@ function describe(userId: string, date: string, stored: StoredDay | undefined, c
   if (context.onLeave) return { ...base, checkIn: null, checkOut: null, hoursWorked: 0, status: 'leave' };
   if (!isWorkingDay(date)) return { ...base, checkIn: stored?.checkIn ?? null, checkOut: stored?.checkOut ?? null, hoursWorked: 0, status: 'holiday' };
   if (!stored?.checkIn) {
-    const waiting = date === today && nowTime() < OFFICE_HOURS.absentAfter;
+    // Today isn't over until the working day ends, so no check-in yet is "not in yet", not absent
+    const waiting = date === today && nowTime() < OFFICE_HOURS.end;
     return { ...base, checkIn: null, checkOut: null, hoursWorked: 0, status: context.wfh ? 'wfh' : waiting ? 'not-in-yet' : 'absent' };
   }
   const end = stored.checkOut ?? (date === today ? nowTime() : stored.checkIn);
@@ -133,7 +170,7 @@ function describe(userId: string, date: string, stored: StoredDay | undefined, c
   const finished = !!stored.checkOut;
   const status: AttendanceStatus = context.wfh
     ? 'wfh'
-    : finished && hoursWorked < OFFICE_HOURS.halfDayHours
+    : stored.checkIn > OFFICE_HOURS.halfDayAfter || (finished && hoursWorked < OFFICE_HOURS.halfDayHours)
       ? 'half-day'
       : stored.checkIn > OFFICE_HOURS.start
         ? 'late'
@@ -215,10 +252,24 @@ export const attendanceService = {
           : record.status === 'absent'
             ? 'No check-in recorded'
             : record.status === 'half-day'
-              ? `Only ${record.hoursWorked.toFixed(1)}h worked`
+              ? record.checkIn && record.checkIn > OFFICE_HOURS.halfDayAfter
+                ? `Checked in at ${record.checkIn} (half day)`
+                : `Only ${record.hoursWorked.toFixed(1)}h worked`
               : undefined;
       return { ...record, name: person.name, designation: person.designation, employeeId: person.employeeId, exception };
     });
+  },
+
+  // GET /api/attendance/presence — where everyone is today (no times), so every screen shows the same status
+  async presence(date = todayAsDateInput()): Promise<Record<string, Presence>> {
+    await delay();
+    const { covers, wfh } = await leaveAndWfhOn(date);
+    return Object.fromEntries(
+      getActiveUsers().map((person) => [
+        person.id,
+        presenceOf(describe(person.id, date, days.get(keyOf(person.id, date)), { onLeave: covers(person.id, date), wfh: wfh.includes(person.id) }).status),
+      ]),
+    );
   },
 
   // POST /api/attendance/:userId/:date/resolve — the manager explains a late/absent day

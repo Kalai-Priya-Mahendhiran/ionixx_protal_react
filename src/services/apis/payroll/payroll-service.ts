@@ -139,12 +139,14 @@ export const payrollService = {
   },
 
   // POST /api/payroll/claims/:claimNo/decision
-  async decideClaim(actor: PermissionUser, claimNo: string, decision: PayrollDecision): Promise<Claim> {
+  async decideClaim(actor: PermissionUser, claimNo: string, decision: PayrollDecision, comment = ''): Promise<Claim> {
     await delay();
     const claim = claims.find((entry) => entry.claimNo === claimNo);
     if (!claim) throw new Error('This claim no longer exists');
     if (!canDecide(actor, claim.userId)) throw new Error("You can't decide on this claim");
     if (claim.status !== 'Pending') throw new Error(`This claim was already ${claim.status.toLowerCase()}`);
+    const note = comment.trim();
+    if (decision === 'rejected' && !note) throw new Error('Add a comment explaining why the claim is rejected');
     const allowed = decision === 'approved' ? Math.min(claim.amount, remainingLimit(claim.userId, claim.type, claim.financialYear)) : 0;
     const status: Claim['status'] = decision === 'rejected' || allowed === 0 ? 'Rejected' : allowed < claim.amount ? 'Partially Approved' : 'Approved';
     const remarks = decision === 'approved' && allowed < claim.amount ? `${claim.remarks} · Limited to the ${formatINR(allowed)} left of this year's limit` : claim.remarks;
@@ -152,7 +154,7 @@ export const payrollService = {
     claims = claims.map((entry) => (entry.claimNo === claimNo ? decided : entry));
     notificationService.notify([claim.userId], actor.id, {
       title: `Your claim ${claim.claimNo} was ${status.toLowerCase()}`,
-      message: status === 'Rejected' ? `${claimTypeLabel(claim.type)} · ${formatINR(claim.amount)}` : `${formatINR(allowed)} comes with your next salary`,
+      message: `${status === 'Rejected' ? `${claimTypeLabel(claim.type)} · ${formatINR(claim.amount)}` : `${formatINR(allowed)} comes with your next salary`}${note ? ` · "${note}"` : ''}`,
       type: status === 'Rejected' ? 'warning' : 'success',
       actionUrl: '/pay?tab=claims',
     });
@@ -160,17 +162,19 @@ export const payrollService = {
   },
 
   // POST /api/payroll/declarations/:id/decision
-  async decideDeclaration(actor: PermissionUser, id: string, decision: PayrollDecision): Promise<TaxDeclaration> {
+  async decideDeclaration(actor: PermissionUser, id: string, decision: PayrollDecision, comment = ''): Promise<TaxDeclaration> {
     await delay();
     const declaration = declarations.find((entry) => entry.id === id);
     if (!declaration) throw new Error('This declaration no longer exists');
     if (!canDecide(actor, declaration.userId)) throw new Error("You can't decide on this declaration");
     if (declaration.status !== 'Pending') throw new Error(`This declaration was already ${declaration.status.toLowerCase()}`);
+    const note = comment.trim();
+    if (decision === 'rejected' && !note) throw new Error('Add a comment explaining why the proof is rejected');
     const decided: OwnedDeclaration = { ...declaration, status: decision === 'approved' ? 'Approved' : 'Rejected', approvedAmount: decision === 'approved' ? declaration.declaredAmount : 0 };
     declarations = declarations.map((entry) => (entry.id === id ? decided : entry));
     notificationService.notify([declaration.userId], actor.id, {
       title: `Your ${declarationTypeLabel(declaration.type)} proof was ${decision}`,
-      message: decision === 'approved' ? `${formatINR(decided.approvedAmount)} now counts towards your tax savings` : 'Please check the proof and resubmit',
+      message: `${decision === 'approved' ? `${formatINR(decided.approvedAmount)} now counts towards your tax savings` : 'Please check the proof and resubmit'}${note ? ` · "${note}"` : ''}`,
       type: decision === 'approved' ? 'success' : 'warning',
       actionUrl: '/pay?tab=tax-submission',
     });

@@ -3,6 +3,8 @@ import { LEAVE_TYPES, getIcon } from '@/lib/constants';
 import { LEAVE_BALANCE } from '@/lib/sample-data/leave-tracker-sample-data';
 import type { LeaveRequest } from '@/types';
 import { RestrictedHolidayInfo } from './restricted-holiday-info';
+import { isLeaveTypeAvailable } from '@/lib/leave-eligibility';
+import { useMyProfile } from '@/services/apis/profile/use-profile';
 
 interface LeaveBalanceSectionProps {
   requests: LeaveRequest[];
@@ -13,10 +15,12 @@ export function LeaveBalanceSection({ requests }: LeaveBalanceSectionProps) {
   const usedDays = (type: LeaveRequest['leaveType']) => requests
     .filter((request) => request.leaveType === type && request.status === 'approved')
     .reduce((total, request) => total + (request.days ?? 0), 0);
+  // Only the balances this person can use (maternity / paternity follow their profile)
+  const { data: profile } = useMyProfile();
 
   return (
     <StatGrid>
-      {LEAVE_TYPES.map((leaveType) => {
+      {LEAVE_TYPES.filter((leaveType) => isLeaveTypeAvailable(leaveType.id, profile?.gender)).map((leaveType) => {
         const type = leaveType.id as LeaveRequest['leaveType'];
         const allotted = LEAVE_BALANCE[type];
         // Unlimited types (Loss Of Pay) show days taken; the rest show days left out of the allotment

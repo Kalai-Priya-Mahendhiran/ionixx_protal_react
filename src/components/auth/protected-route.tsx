@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/auth-context';
 import { hasModuleAccess } from '@/lib/modules';
 import { isUserActive } from '@/lib/user-access-store';
+import { NoAccessPage } from '@/components/common-component/status-page';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -39,8 +40,9 @@ export default function ProtectedRoute({ children, module }: ProtectedRouteProps
 
   if (user && !isUserActive(user.id)) return <SignOutDeactivated />;
 
+  // Say so instead of quietly sending them to the Dashboard
   if (module && user && !hasModuleAccess(user, module)) {
-    return <Navigate to="/dashboard" replace />;
+    return <NoAccessPage module={module} />;
   }
 
   return <>{children}</>;

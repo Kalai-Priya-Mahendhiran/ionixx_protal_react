@@ -136,7 +136,8 @@ export const DEFAULT_TASK_VIEW: Record<UserRole, TaskView> = {
   project_manager: 'team-board',
   hr: 'hr-tasks',
   admin: 'all-projects',
-  system_admin: 'settings',
+  // "Tasks" opens the tasks; settings have their own menu item (Task Settings)
+  system_admin: 'all-projects',
   executive: 'exec-dashboard',
 };
 

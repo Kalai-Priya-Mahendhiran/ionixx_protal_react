@@ -116,7 +116,10 @@ export interface SidebarItem {
   id: string;
   label: string;
   icon: string;
+  // The page (module) — page access is checked on this
   path: string;
+  // Optional query that picks a view of the page, e.g. 'tab=mine' on the Service Desk
+  search?: string;
 }
 
 export const SIDEBAR_ITEMS = {
@@ -151,7 +154,8 @@ export const SIDEBAR_ITEMS = {
   kpiMonitoring: { id: "kpi-monitoring", label: "KPI Monitoring", icon: "Gauge", path: ROUTES.KpiMonitoring },
 
   // Service desk: everyone follows their requests; Admin (office operations) works the queue
-  myRequests: { id: "my-requests", label: "My Requests", icon: "LifeBuoy", path: ROUTES.ServiceDesk },
+  // Always the person's own requests, even for people who also work a desk queue
+  myRequests: { id: "my-requests", label: "My Requests", icon: "LifeBuoy", path: ROUTES.ServiceDesk, search: "tab=mine" },
   serviceDesk: { id: "service-desk", label: "Service Desk", icon: "LifeBuoy", path: ROUTES.ServiceDesk },
   assetLog: { id: "asset-log", label: "Asset Log", icon: "Laptop", path: ROUTES.AssetLog },
   expenses: { id: "expenses", label: "Expenses", icon: "Receipt", path: ROUTES.Expenses },
@@ -163,6 +167,8 @@ export const SIDEBAR_ITEMS = {
   systemConfig: { id: "system-config", label: "System Config", icon: "Settings", path: ROUTES.SystemConfig },
   integrations: { id: "integrations", label: "Integrations", icon: "Plug", path: ROUTES.Integrations },
   logs: { id: "logs", label: "Logs", icon: "ScrollText", path: ROUTES.Logs },
+  // Workflow, fields, permissions and automation for the Tasks module
+  taskSettings: { id: "task-settings", label: "Task Settings", icon: "Settings", path: ROUTES.Tasks, search: "view=settings" },
 } as const satisfies Record<string, SidebarItem>;
 const ITEM = SIDEBAR_ITEMS;
 
@@ -183,6 +189,9 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.dashboard,
     ITEM.profile,
     ITEM.pay,
+    ITEM.attendance,
+    ITEM.timeTracker,
+    ITEM.leave,
     ITEM.files,
     ITEM.organization,
     ITEM.tasks,
@@ -197,6 +206,9 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.dashboard,
     ITEM.profile,
     ITEM.pay,
+    ITEM.attendance,
+    ITEM.timeTracker,
+    ITEM.leave,
     ITEM.files,
     ITEM.organization,
     ITEM.tasks,
@@ -211,6 +223,9 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.dashboard,
     ITEM.profile,
     ITEM.pay,
+    ITEM.attendance,
+    ITEM.timeTracker,
+    ITEM.leave,
     ITEM.files,
     ITEM.organization,
     ITEM.tasks,
@@ -219,13 +234,19 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.kpiMonitoring,
     ITEM.reports,
   ],
+  // System Admin works the access/software desk, so they get the queue and their own requests as separate items
   system_admin: [
     ITEM.dashboard,
     ITEM.profile,
     ITEM.pay,
+    ITEM.attendance,
+    ITEM.timeTracker,
+    ITEM.leave,
     ITEM.files,
     ITEM.organization,
     ITEM.tasks,
+    ITEM.taskSettings,
+    ITEM.serviceDesk,
     ITEM.myRequests,
     ITEM.userManagement,
     ITEM.rolesPermissions,
@@ -234,7 +255,7 @@ export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
     ITEM.logs,
   ],
   // Admin is office operations: the service desk, assets and expenses (no project tasks or system config)
-  admin: [ITEM.dashboard, ITEM.profile, ITEM.pay, ITEM.files, ITEM.organization, ITEM.serviceDesk, ITEM.assetLog, ITEM.expenses, ITEM.deskReports],
+  admin: [ITEM.dashboard, ITEM.profile, ITEM.pay, ITEM.attendance, ITEM.timeTracker, ITEM.leave, ITEM.files, ITEM.organization, ITEM.serviceDesk, ITEM.myRequests, ITEM.assetLog, ITEM.expenses, ITEM.deskReports],
 };
 
 export const ROLE_ROUTE_ACCESS: Record<string, UserRole[]> = {
@@ -244,9 +265,10 @@ export const ROLE_ROUTE_ACCESS: Record<string, UserRole[]> = {
   [ROUTES.Reports]: ["hr", "project_manager", "executive"],
 
   // Employee
-  [ROUTES.Attendance]: ["employee"],
-  [ROUTES.TimeTracker]: ["employee"],
-  [ROUTES.Leave]: ["employee"],
+  // Everyone checks in, logs time and takes leave, whatever their role
+  [ROUTES.Attendance]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
+  [ROUTES.TimeTracker]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
+  [ROUTES.Leave]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
   // Everyone is paid, so everyone sees their own pay and tax
   [ROUTES.Pay]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
   [ROUTES.Tasks]: ["employee", "hr", "project_manager", "system_admin", "executive"],

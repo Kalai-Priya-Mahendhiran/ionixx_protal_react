@@ -75,6 +75,9 @@ export function LeaveHistorySection({ requests }: LeaveHistorySectionProps) {
                         {request.approvedDate && (
                           <p className="text-xs text-gray-500">{formatLeaveDate(request.approvedDate)}</p>
                         )}
+                        {request.decisionComment && (
+                          <p className="mt-0.5 max-w-[16rem] whitespace-normal text-xs italic text-gray-600">“{request.decisionComment}”</p>
+                        )}
                       </>
                     )}
                   </td>

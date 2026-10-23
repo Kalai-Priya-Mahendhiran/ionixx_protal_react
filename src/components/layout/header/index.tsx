@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { 
-  Search, 
   Plus, 
   Bell, 
   Menu,
@@ -16,6 +14,7 @@ import { MODULE_CATALOG } from "@/lib/modules";
 import { quickActionLink, quickActionsFor } from "@/lib/quick-actions";
 import { useLocation, useNavigate } from "react-router-dom";
 import { NotificationsPanel } from "./notifications-panel";
+import { GlobalSearch } from "./global-search";
 import { useUnreadNotificationCount } from "@/services/apis/notifications/use-notifications";
 
 interface HeaderProps {
@@ -135,14 +134,7 @@ interface HeaderProps {
 
       {/* Center Section - Search */}
       <div className="flex-1 max-w-md mx-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Search employees, tasks, or anything..."
-            className="pl-10 pr-4"
-          />
-        </div>
+        <GlobalSearch />
       </div>
 
       {/* Right Section */}

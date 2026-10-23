@@ -22,6 +22,7 @@ const STATUS: Record<WorkStatus, { label: string; className: string }> = {
   'in-office': { label: 'In office', className: 'bg-teal-50 text-teal-700 ring-teal-600/20' },
   remote: { label: 'Remote', className: 'bg-sky-50 text-sky-700 ring-sky-600/20' },
   'on-leave': { label: 'On leave', className: 'bg-amber-50 text-amber-800 ring-amber-600/20' },
+  'not-in': { label: 'Not checked in', className: 'bg-gray-50 text-gray-600 ring-gray-500/20' },
   invited: { label: 'Yet to join', className: 'bg-gray-50 text-gray-600 ring-gray-500/20' },
 };
 

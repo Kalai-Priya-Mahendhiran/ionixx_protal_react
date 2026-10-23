@@ -272,6 +272,12 @@ function TasksPage({ user }: { user: PermissionUser }) {
                   Sprints
                 </Button>
               )}
+              {!isSettingsView && canOpenTaskView(user, 'settings') && (
+                <Button variant="outline" onClick={() => navigate(`${location.pathname}?view=settings`)} className={`gap-2 ${headerSecondaryButtonClass}`}>
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </Button>
+              )}
               {view === 'all-projects' && canOpenTaskView(user, 'exec-dashboard') && (
                 <Button variant="outline" onClick={() => navigate(`${location.pathname}?view=exec-dashboard`)} className={`gap-2 ${headerSecondaryButtonClass}`}>
                   <BarChart3 className="h-4 w-4" />

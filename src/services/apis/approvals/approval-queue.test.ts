@@ -34,11 +34,22 @@ describe('approval queue', () => {
     expect((await leaveService.listAbsences()).some((absence) => absence.userId === 'EMP001' && absence.startDate === '2026-12-01')).toBe(true);
   });
 
-  it('routes leadership requests to the executive and lets HR act on anyone', async () => {
+  it('routes leadership requests to the executive, and each request to exactly one decider', async () => {
     expect((await approvalQueue.list(executive)).some((item) => item.requesterId === 'HR001' && item.status === 'pending')).toBe(true);
-    expect((await approvalQueue.list(hr)).some((item) => item.requesterId === 'EMP003')).toBe(true);
+    // Meera's sick leave is her manager's call, so it isn't also in HR's queue
+    const meera = (item: { requesterId: string; status: string }) => item.requesterId === 'EMP003' && item.status === 'pending';
+    expect((await approvalQueue.list(manager)).some(meera)).toBe(true);
+    expect((await approvalQueue.list(hr)).some(meera)).toBe(false);
+    expect((await approvalQueue.list(manager)).find(meera)?.routeNote).toContain('reporting manager');
     // HR never decides their own leave
     expect((await approvalQueue.list(hr)).some((item) => item.requesterId === 'HR001')).toBe(false);
+  });
+
+  it('needs a comment to reject, and passes the comment to the employee', async () => {
+    const request = await leaveService.apply(employee, { ...leaveInput, startDate: '2026-12-10', endDate: '2026-12-10', days: 1, reason: 'Errand' });
+    await expect(approvalQueue.decide(manager, { source: 'leave', id: request.id }, 'rejected')).rejects.toThrow('comment');
+    await approvalQueue.decide(manager, { source: 'leave', id: request.id }, 'rejected', 'Release week, please pick another day');
+    expect((await leaveService.list(employee)).find((entry) => entry.id === request.id)).toMatchObject({ status: 'rejected', decisionComment: 'Release week, please pick another day' });
   });
 
   it('keeps work-from-home requests in the same queue', async () => {

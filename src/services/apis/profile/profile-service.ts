@@ -2,7 +2,7 @@ import { getOrgPeople } from '@/lib/org-chart';
 import type { PermissionUser } from '@/lib/permissions/task-permissions';
 import type { ProfileFormData } from '@/lib/schemas';
 import { getPayrollData } from '@/lib/sample-data/payroll-sample-data';
-import { sampleProfileFormData } from '@/lib/sample-data/profile-sample-data';
+import { SAMPLE_PERSONAL_DETAILS, sampleProfileFormData } from '@/lib/sample-data/profile-sample-data';
 import { getUserById, updateDirectoryUser } from '@/lib/user-directory';
 import { auditService } from '../audit/audit-service';
 
@@ -27,6 +27,7 @@ function initialProfile(userId: string): ProfileFormData {
   const [firstName = '', ...rest] = (user?.name ?? '').split(' ');
   const lastName = rest.join(' ');
   const [bankName] = pay.bankAccount.split(' ••••');
+  const personal = SAMPLE_PERSONAL_DETAILS[userId];
   return {
     // Education, past employment and consent start from the sample template; the person edits them
     ...structuredCopy(sampleProfileFormData),
@@ -36,13 +37,24 @@ function initialProfile(userId: string): ProfileFormData {
     lastName,
     preferredName: '',
     dateOfBirth: user?.birthDate ?? sampleProfileFormData.dateOfBirth,
+    // The person's own details; anyone without them starts blank instead of inheriting the template's values
+    gender: personal?.gender ?? 'Prefer not to say',
+    maritalStatus: personal?.maritalStatus,
+    bloodGroup: personal?.bloodGroup,
+    // A passport number is personal too, so nobody gets the template's
+    governmentIds: { ...sampleProfileFormData.governmentIds, pan: pay.pan, passportNumber: '' },
+    // Next of kin: a spouse if married, otherwise a parent
+    emergencyContact: {
+      ...sampleProfileFormData.emergencyContact,
+      name: `${lastName || firstName} family`,
+      relationship: personal?.maritalStatus === 'Married' ? 'Spouse' : 'Parent',
+      phone: person?.phone ?? sampleProfileFormData.emergencyContact.phone,
+    },
     personalEmail: `${slug(firstName)}.${slug(lastName) || 'home'}@email.com`,
     workEmail: user?.email ?? '',
     mobilePersonal: person?.phone ?? '',
     currentLocation: person?.location ?? pay.location,
     currentAddress: `${pay.location}, India`,
-    emergencyContact: { ...sampleProfileFormData.emergencyContact, name: `${lastName || firstName} family`, phone: person?.phone ?? sampleProfileFormData.emergencyContact.phone },
-    governmentIds: { ...sampleProfileFormData.governmentIds, pan: pay.pan },
     linkedinUrl: `https://linkedin.com/in/${slug(firstName)}${slug(lastName)}`,
     githubUrl: '',
     bankName: bankName || sampleProfileFormData.bankName,
@@ -53,6 +65,9 @@ function initialProfile(userId: string): ProfileFormData {
 function structuredCopy<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
+
+// The gender on someone's profile (saved or initial), for rules such as leave eligibility
+export const getGenderOf = (userId: string) => profiles.get(userId)?.gender ?? SAMPLE_PERSONAL_DETAILS[userId]?.gender ?? 'Prefer not to say';
 
 export const profileService = {
   // GET /api/profile/me

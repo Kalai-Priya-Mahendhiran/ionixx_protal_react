@@ -1,5 +1,6 @@
 import React from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import type { SidebarItem } from "@/lib/mock-users";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
 import { useSidebarItems } from "@/services/apis/users/use-sidebar-items";
@@ -10,19 +11,32 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
+// Where an item links to: its page plus the view it picks, e.g. /service-desk?tab=mine
+const hrefOf = (item: SidebarItem) => (item.search ? `${item.path}?${item.search}` : item.path);
+
+// Its query is all present in the current URL ("tab=mine" matches "?tab=mine&status=open")
+const searchMatches = (item: SidebarItem, search: string) => {
+  if (!item.search) return false;
+  const current = new URLSearchParams(search);
+  return [...new URLSearchParams(item.search)].every(([key, value]) => current.get(key) === value);
+};
+
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const { user } = useAuth();
 
   // Role defaults, pages System Admin added or removed, and pages that follow from the data (e.g. Approvals for team leads); live
   const items = useSidebarItems(user);
 
-  const handleNavigation = (path: string) => {
-    navigate(path);
-    // On small screens the sidebar is a drawer over the page, so close it once a page is picked
+  // On small screens the sidebar is a drawer over the page, so close it once a page is picked
+  const closeOnMobile = () => {
     if (isOpen && !window.matchMedia('(min-width: 1024px)').matches) onToggle();
   };
+
+  // Sub-pages (e.g. /tasks/IXP-102) keep their section highlighted. When two items share a page
+  // (Service Desk / My Requests, Tasks / Task Settings) the one whose view is in the URL wins, else the plain one.
+  const onPage = items.filter((item) => pathname === item.path || pathname.startsWith(`${item.path}/`));
+  const activeId = (onPage.find((item) => searchMatches(item, search)) ?? onPage.find((item) => !item.search) ?? onPage[0])?.id;
 
   return (
     <div className={cn(
@@ -55,13 +69,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         <ul className="space-y-2">
           {items.map((item) => {
             const Icon = getIcon(item.icon);
-            // Sub-pages (e.g. /tasks/IXP-102) keep their section highlighted
-            const isActive = pathname === item.path || pathname.startsWith(`${item.path}/`);
+            const isActive = item.id === activeId;
 
             return (
               <li key={item.id}>
-                <button
-                  onClick={() => handleNavigation(item.path)}
+                {/* A real link, so it can be opened in a new tab, bookmarked or copied */}
+                <Link
+                  to={hrefOf(item)}
+                  onClick={closeOnMobile}
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
                     "w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors duration-200",
                     isActive
@@ -71,7 +87,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                 >
                   <Icon className="w-5 h-5" />
                   <span className="font-medium">{item.label}</span>
-                </button>
+                </Link>
               </li>
             );
           })}

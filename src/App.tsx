@@ -49,6 +49,7 @@ import Integrations from '@/components/system_admin-component/integrations';
 import Logs from '@/components/system_admin-component/logs';
 
 import { ROUTES } from '@/lib/constants';
+import { NotFoundPage } from '@/components/common-component/status-page';
 
 export default function App() {
   return (
@@ -344,7 +345,15 @@ export default function App() {
       />
 
       <Route path="/" element={<RootRedirect />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      {/* Unknown addresses get a 404 page (signed-out visitors are asked to sign in first) */}
+      <Route
+        path="*"
+        element={
+          <ProtectedRoute>
+            <NotFoundPage />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }

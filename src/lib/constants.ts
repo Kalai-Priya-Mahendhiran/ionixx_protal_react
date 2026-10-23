@@ -365,12 +365,14 @@ export const TEAM_MEMBER_STATUS_COLORS = {
   active: "bg-green-100 text-green-800",
   "on-leave": "bg-orange-100 text-orange-800",
   remote: "bg-blue-100 text-blue-800",
+  "not-in": "bg-gray-100 text-gray-700",
 };
 
 export const TEAM_MEMBER_STATUS_LABELS = {
   active: "In office",
   "on-leave": "On leave",
   remote: "Remote",
+  "not-in": "Not checked in",
 };
 
 // Integrations

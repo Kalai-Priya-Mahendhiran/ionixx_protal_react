@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CalendarPlus } from 'lucide-react';
@@ -11,6 +12,8 @@ import { leaveRequestSchema, type LeaveRequestFormValues } from '@/lib/schemas';
 import type { Holiday, LeaveRequest } from '@/types';
 import { countLeaveDays, getDatesInRange, isActiveLeaveOn, isWeekend } from './leave-utils';
 import { DatePicker } from '@/components/ui/date-picker';
+import { isLeaveTypeAvailable } from '@/lib/leave-eligibility';
+import { useMyProfile } from '@/services/apis/profile/use-profile';
 
 const LEAVE_TYPE_OPTIONS = LEAVE_TYPES.map((type) => ({ value: type.id, label: type.label }));
 
@@ -35,6 +38,15 @@ export function ApplyLeaveSection({ requests, holidays, onApply }: ApplyLeaveSec
     defaultValues: emptyLeaveRequest,
   });
   const { control } = form;
+  // Maternity / paternity follow the gender on the person's profile (the server checks the same rule)
+  const { data: profile } = useMyProfile();
+  const leaveTypeOptions = LEAVE_TYPE_OPTIONS.filter((option) => isLeaveTypeAvailable(option.value, profile?.gender));
+  // Until the To date is picked by hand it follows the From date; once picked, From can't go past it
+  const [endPicked, setEndPicked] = useState(false);
+  const resetForm = () => {
+    form.reset(emptyLeaveRequest);
+    setEndPicked(false);
+  };
 
   const [startDate, startDayPart, endDate, endDayPart] = useWatch({
     control,
@@ -61,7 +73,7 @@ export function ApplyLeaveSection({ requests, holidays, onApply }: ApplyLeaveSec
       return;
     }
     onApply(values, days);
-    form.reset(emptyLeaveRequest);
+    resetForm();
   };
 
   return (
@@ -78,7 +90,7 @@ export function ApplyLeaveSection({ requests, holidays, onApply }: ApplyLeaveSec
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(submit)} className="space-y-4">
-            <SelectField control={control} name="leaveType" label="Leave Type" placeholder="Select Leave Type" options={LEAVE_TYPE_OPTIONS} />
+            <SelectField control={control} name="leaveType" label="Leave Type" placeholder="Select Leave Type" options={leaveTypeOptions} />
 
             <div className="grid grid-cols-5 gap-3">
               <FormField
@@ -90,11 +102,13 @@ export function ApplyLeaveSection({ requests, holidays, onApply }: ApplyLeaveSec
                     <FormControl>
                       <DatePicker
                         {...field}
+                        max={endPicked && endDate ? endDate : undefined}
                         className={fieldClass}
                         onChange={(value) => {
                           field.onChange(value);
-                          // Default the end date to the start date for quicker single-day requests
-                          if (!form.getValues('endDate')) form.setValue('endDate', value);
+                          // The To date follows until it's picked by hand, so single-day requests are one click
+                          const end = form.getValues('endDate');
+                          if (value && (!endPicked || !end || end < value)) form.setValue('endDate', value, { shouldValidate: !!end });
                         }}
                       />
                     </FormControl>
@@ -113,7 +127,15 @@ export function ApplyLeaveSection({ requests, holidays, onApply }: ApplyLeaveSec
                   <FormItem className="col-span-3">
                     <RequiredLabel>To Date</RequiredLabel>
                     <FormControl>
-                      <DatePicker {...field} min={startDate || undefined} className={fieldClass} />
+                      <DatePicker
+                        {...field}
+                        min={startDate || undefined}
+                        className={fieldClass}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          setEndPicked(!!value);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -142,7 +164,7 @@ export function ApplyLeaveSection({ requests, holidays, onApply }: ApplyLeaveSec
             </div>
 
             <div className="flex justify-end gap-2 border-t pt-4">
-              <Button type="button" variant="outline" onClick={() => form.reset(emptyLeaveRequest)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={resetForm}>Cancel</Button>
               <Button type="submit" className="bg-[#464EB8] text-white hover:bg-[#3a3f9a]">Submit</Button>
             </div>
           </form>

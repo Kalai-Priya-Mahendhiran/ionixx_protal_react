@@ -7,7 +7,8 @@ export interface TeamMember {
   employeeId: string;
   reportingManager: string;
   joiningDate: string;
-  status: "active" | "on-leave" | "remote";
+  // Today's status; Team Overview takes it live from attendance ("not-in" = no check-in yet)
+  status: "active" | "on-leave" | "remote" | "not-in";
   skills: string[];
   phone: string;
   location: string;
