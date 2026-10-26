@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useResetSettings, useSavePermissions, useTaskSettings } from '@/services/apis/settings/use-task-settings';
 import type { PermissionMatrix, PermissionScope, TaskAction } from '@/types';
 import { SettingsPanel } from './settings-panel';
+import { PERMISSION_SCOPE_OPTIONS } from '@/lib/constants';
 
 const ROLES: UserRole[] = ['employee', 'project_manager', 'hr', 'admin', 'system_admin', 'executive'];
 
@@ -53,14 +54,6 @@ const ACTION_GROUPS: { title: string; actions: { action: TaskAction; label: stri
       { action: 'desk.reports', scopes: YES_NO, label: 'Desk reports', hint: 'Requests, SLA and spend reports' },
     ],
   },
-];
-
-const SCOPE_OPTIONS: { value: PermissionScope; label: string; hint: string }[] = [
-  { value: 'none', label: 'No', hint: 'Never' },
-  { value: 'own', label: 'Own', hint: 'Tasks assigned to or reported by them' },
-  { value: 'team', label: 'Team', hint: 'Their direct reports’ tasks' },
-  { value: 'hr', label: 'HR only', hint: 'HR-type tasks' },
-  { value: 'all', label: 'All', hint: 'Every task' },
 ];
 
 const SCOPE_STYLE: Record<PermissionScope, string> = {
@@ -158,7 +151,7 @@ export function PermissionsSettingsSection() {
                               SCOPE_STYLE[scope],
                             )}
                           >
-                            {SCOPE_OPTIONS.filter((option) => !scopes || scopes.includes(option.value)).map((option) => (
+                            {PERMISSION_SCOPE_OPTIONS.filter((option) => !scopes || scopes.includes(option.value)).map((option) => (
                               <option key={option.value} value={option.value} title={option.hint}>
                                 {option.label}
                               </option>

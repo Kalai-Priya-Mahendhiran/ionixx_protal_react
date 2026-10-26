@@ -20,6 +20,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { DatePicker } from '@/components/ui/date-picker';
+import { GENDER_OPTIONS, MARITAL_STATUS_OPTIONS, WORK_AUTHORIZATION_OPTIONS, BLOOD_GROUP_OPTIONS } from '@/lib/constants';
 
 interface PersonalSectionProps {
   isEditing: boolean;
@@ -162,12 +163,11 @@ export function PersonalSection({ isEditing, control, watch }: PersonalSectionPr
             <FormField
               control={control}
               name="employeeId"
-              disabled
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-slate-700">Employee ID <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
-                    <Input {...field} className="bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
+                    <Input {...field} disabled className="bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -176,12 +176,11 @@ export function PersonalSection({ isEditing, control, watch }: PersonalSectionPr
             <FormField
               control={control}
               name="firstName"
-              disabled
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-slate-700">First Name <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
-                    <Input {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
+                    <Input {...field} disabled className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -190,12 +189,11 @@ export function PersonalSection({ isEditing, control, watch }: PersonalSectionPr
             <FormField
               control={control}
               name="middleName"
-              disabled
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-slate-700">Middle Name</FormLabel>
                   <FormControl>
-                    <Input {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
+                    <Input {...field} disabled className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -204,12 +202,11 @@ export function PersonalSection({ isEditing, control, watch }: PersonalSectionPr
             <FormField
               control={control}
               name="lastName"
-              disabled
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-slate-700">Last Name <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
-                    <Input {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
+                    <Input {...field} disabled className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -250,10 +247,9 @@ export function PersonalSection({ isEditing, control, watch }: PersonalSectionPr
                   <FormControl>
                     <select {...field} className="w-full h-10 px-3 py-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                       <option value="">Select Gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
+                      {GENDER_OPTIONS.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
                     </select>
                   </FormControl>
                   <FormMessage />
@@ -282,11 +278,9 @@ export function PersonalSection({ isEditing, control, watch }: PersonalSectionPr
                   <FormControl>
                     <select {...field} className="w-full h-10 px-3 py-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                       <option value="">Select Status</option>
-                      <option value="Single">Single</option>
-                      <option value="Married">Married</option>
-                      <option value="Divorced">Divorced</option>
-                      <option value="Widowed">Widowed</option>
-                      <option value="Other">Other</option>
+                      {MARITAL_STATUS_OPTIONS.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
                     </select>
                   </FormControl>
                   <FormMessage />
@@ -319,7 +313,9 @@ export function PersonalSection({ isEditing, control, watch }: PersonalSectionPr
                 <FormItem>
                   <FormLabel className="text-slate-700">Work Email</FormLabel>
                   <FormControl>
-                    <Input type="email" {...field} className="bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
+                    {/* Set by the company with the account. Locked on the input, not the field: a disabled form field
+                        is left out of the saved data, which would wipe it on Save (same for the ID and name above) */}
+                    <Input type="email" {...field} disabled className="bg-slate-50 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -434,11 +430,9 @@ export function PersonalSection({ isEditing, control, watch }: PersonalSectionPr
                   <FormControl>
                     <select {...field} className="w-full h-10 px-3 py-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                       <option value="">Select Status</option>
-                      <option value="Citizen">Citizen</option>
-                      <option value="Permanent Resident">Permanent Resident</option>
-                      <option value="Work Visa">Work Visa</option>
-                      <option value="Student Visa">Student Visa</option>
-                      <option value="Other">Other</option>
+                      {WORK_AUTHORIZATION_OPTIONS.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
                     </select>
                   </FormControl>
                   <FormMessage />
@@ -567,14 +561,9 @@ export function PersonalSection({ isEditing, control, watch }: PersonalSectionPr
                   <FormControl>
                     <select {...field} className="w-full h-10 px-3 py-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                       <option value="">Select Blood Group</option>
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
+                      {BLOOD_GROUP_OPTIONS.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
                     </select>
                   </FormControl>
                   <FormMessage />

@@ -12,20 +12,9 @@ import { useAuditLog } from '@/services/apis/settings/use-task-settings';
 import type { AuditEntity, AuditEntry } from '@/types';
 import { taskPath } from './task-link';
 import { DatePicker } from '@/components/ui/date-picker';
+import { AUDIT_ENTITY_LABELS } from '@/lib/constants';
 
 const PAGE_SIZE = 50;
-
-const ENTITY_LABELS: Record<AuditEntity, string> = {
-  task: 'Task',
-  project: 'Project',
-  template: 'Template',
-  settings: 'Settings',
-  automation: 'Automation',
-  request: 'Admin request',
-  asset: 'Asset',
-  expense: 'Expense',
-  user: 'User access',
-};
 
 const ENTITY_STYLE: Record<AuditEntity, string> = {
   task: 'bg-indigo-100 text-indigo-700',
@@ -43,7 +32,7 @@ const actorName = (actorId: string) => (actorId === 'system' ? 'Automation' : (g
 
 function downloadAuditCsv(entries: AuditEntry[]) {
   const header = ['When', 'Who', 'Area', 'Item', 'Action', 'Details'];
-  const rows = entries.map((entry) => [formatDateTime(entry.at), actorName(entry.actorId), ENTITY_LABELS[entry.entity], entry.entityKey, entry.action, entry.summary]);
+  const rows = entries.map((entry) => [formatDateTime(entry.at), actorName(entry.actorId), AUDIT_ENTITY_LABELS[entry.entity], entry.entityKey, entry.action, entry.summary]);
   const csv = String.fromCharCode(0xfeff) + [header, ...rows].map((row) => row.map(toCsvField).join(',')).join('\r\n');
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
@@ -114,9 +103,9 @@ export function AuditLogSection() {
             className="h-10 rounded-md border border-input bg-white px-3 text-sm"
           >
             <option value="">All areas</option>
-            {(Object.keys(ENTITY_LABELS) as AuditEntity[]).map((entity) => (
+            {(Object.keys(AUDIT_ENTITY_LABELS) as AuditEntity[]).map((entity) => (
               <option key={entity} value={entity}>
-                {ENTITY_LABELS[entity]}
+                {AUDIT_ENTITY_LABELS[entity]}
               </option>
             ))}
           </select>
@@ -179,7 +168,7 @@ export function AuditLogSection() {
                         </span>
                       </td>
                       <td className="px-3 py-2">
-                        <span className={cn('rounded px-2 py-0.5 text-xs font-semibold', ENTITY_STYLE[entry.entity])}>{ENTITY_LABELS[entry.entity]}</span>
+                        <span className={cn('rounded px-2 py-0.5 text-xs font-semibold', ENTITY_STYLE[entry.entity])}>{AUDIT_ENTITY_LABELS[entry.entity]}</span>
                       </td>
                       <td className="px-3 py-2 font-medium">
                         {entry.entity === 'task' || entry.entity === 'request' ? (

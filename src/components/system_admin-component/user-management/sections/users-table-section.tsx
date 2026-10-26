@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ROLE_LABELS, type UserRole } from "@/lib/mock-users";
 import { cn, formatDateTime, getInitials } from "@/lib/utils";
 import type { AccountStatus, UserAccount } from "@/types";
-import { ROLES, STATUS_LABEL, STATUS_STYLE, fieldClass, overrideCount } from "./user-management-utils";
+import { ROLES, STATUS_STYLE, fieldClass, overrideCount } from "./user-management-utils";
+import { ACCOUNT_STATUS_LABELS } from "@/lib/constants";
 
 interface UsersTableSectionProps {
   accounts: UserAccount[];
@@ -62,9 +63,9 @@ export function UsersTableSection({
           </select>
           <select value={statusFilter} onChange={(event) => onStatusFilterChange(event.target.value as AccountStatus | "all")} aria-label="Status" className={cn(fieldClass, "md:w-40")}>
             <option value="all">All statuses</option>
-            {(Object.keys(STATUS_LABEL) as AccountStatus[]).map((status) => (
+            {(Object.keys(ACCOUNT_STATUS_LABELS) as AccountStatus[]).map((status) => (
               <option key={status} value={status}>
-                {STATUS_LABEL[status]}
+                {ACCOUNT_STATUS_LABELS[status]}
               </option>
             ))}
           </select>
@@ -124,7 +125,7 @@ export function UsersTableSection({
                     <td className="py-3 px-2 text-gray-700">{account.department}</td>
                     <td className="py-3 px-2 text-gray-600">{account.lastSignInAt ? formatDateTime(account.lastSignInAt) : account.hasLogin ? "—" : "Never"}</td>
                     <td className="py-3 px-2">
-                      <Badge className={STATUS_STYLE[account.status]}>{STATUS_LABEL[account.status]}</Badge>
+                      <Badge className={STATUS_STYLE[account.status]}>{ACCOUNT_STATUS_LABELS[account.status]}</Badge>
                     </td>
                     <td className="py-3 px-2 text-right">
                       <Button size="sm" variant="outline" onClick={() => onManage(account.id)} aria-label={`Manage ${account.name}`}>

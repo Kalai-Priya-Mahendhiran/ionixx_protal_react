@@ -1,5 +1,4 @@
 import * as React from "react";
-import { Input } from "@/components/ui/input";
 import { UploadCloud } from "lucide-react";
 
 interface FileUploadProps extends Omit<
@@ -108,9 +107,15 @@ export const FileUpload = React.forwardRef<HTMLInputElement, FileUploadProps>(
     const openFilePicker = () => internalRef.current?.click();
 
     return (
-      <div>
-        <Input
+      // `relative` keeps the visually hidden input inside this box
+      <div className="relative">
+        {/* A plain input, not the styled Input: its w-full/h-10 would override sr-only and leave an invisible,
+            full-width box sticking out of the card, which scrolls the form sideways when it is focused */}
+        <input
           {...inputProps}
+          // The error state belongs to the visible drop zone below, so "go to the first invalid field" lands there
+          aria-invalid={undefined}
+          aria-describedby={undefined}
           ref={setInputRef}
           type="file"
           accept={accept}

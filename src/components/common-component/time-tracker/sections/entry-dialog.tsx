@@ -1,16 +1,16 @@
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormDialog } from '@/components/ui/form-dialog';
-import { MODULES, TASK_TYPES } from '@/lib/sample-data/time-tracker-sample-data';
 import { useProjectNames } from '@/services/apis/time-tracker/use-task-log';
 import type { TimeEntry } from '@/types';
 import { todayAsDateInput } from '@/lib/utils';
 import { timeEntrySchema, type TimeEntryFormValues } from '@/lib/schemas';
 import { emptyTimeEntry, hoursBetween } from './time-entry-form';
 import { SelectField, TextField, TextareaField, toOptions } from '@/components/ui/form-fields';
+import { TIME_TRACKER_MODULES, TIME_TRACKER_TASK_TYPES } from '@/lib/constants';
 
-const MODULE_OPTIONS = toOptions(MODULES);
-const TASK_TYPE_OPTIONS = toOptions(TASK_TYPES);
+const MODULE_OPTIONS = toOptions(TIME_TRACKER_MODULES);
+const TASK_TYPE_OPTIONS = toOptions(TIME_TRACKER_TASK_TYPES);
 
 interface EntryDialogProps {
   entry?: TimeEntry;

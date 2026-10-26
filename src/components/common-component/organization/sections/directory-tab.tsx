@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { OrgDepartment, OrgPerson } from '@/lib/org-chart';
 import type { WorkStatus } from '@/lib/sample-data/organization-sample-data';
 import { PersonAvatar, StatusPill, YouBadge } from './org-shared';
+import { WORK_STATUS_OPTIONS } from '@/lib/constants';
 
 interface DirectoryTabProps {
   people: OrgPerson[];
@@ -17,14 +18,6 @@ interface DirectoryTabProps {
 }
 
 const ALL = 'all';
-const STATUS_OPTIONS: { value: WorkStatus; label: string }[] = [
-  { value: 'in-office', label: 'In office' },
-  { value: 'remote', label: 'Remote' },
-  { value: 'on-leave', label: 'On leave' },
-  { value: 'not-in', label: 'Not checked in' },
-  { value: 'invited', label: 'Yet to join' },
-];
-
 export function DirectoryTab({ people, departments, viewerId, onOpenPerson, onShowInChart }: DirectoryTabProps) {
   const [query, setQuery] = useState('');
   const [department, setDepartment] = useState(ALL);
@@ -66,7 +59,7 @@ export function DirectoryTab({ people, departments, viewerId, onOpenPerson, onSh
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL}>Any status</SelectItem>
-              {STATUS_OPTIONS.map((option) => (
+              {WORK_STATUS_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>

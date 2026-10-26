@@ -53,6 +53,9 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import type { UserRole } from "./mock-users";
+import type { AccountStatus, AuditEntity, AutomationAction, AutomationTrigger, ConditionField, PermissionScope, StatusCategory } from "@/types";
+import type { WorkStatus } from "./sample-data/organization-sample-data";
+import type { TaskRecord } from "@/components/common-component/time-tracker/sections/task-form";
 
 export const ROUTES = {
   Login: "/login",
@@ -861,3 +864,119 @@ export const BREAK_TIMINGS = [
   { label: "Lunch Break", duration: "1 hour", icon: "UtensilsCrossed", cardClass: "bg-green-50 border-green-200", iconClass: "bg-green-100 text-green-600" },
   { label: "Evening Break", duration: "15 mins", icon: "Sunset", cardClass: "bg-purple-50 border-purple-200", iconClass: "bg-purple-100 text-purple-600" },
 ];
+
+/*
+ * Dropdown options. Every fixed list a dropdown offers lives here; screens map over them.
+ * Lists that come from data (projects, departments, people, workflow statuses, desk categories) are not here.
+ */
+
+// Profile: personal details
+export const GENDER_OPTIONS = ["Male", "Female", "Other", "Prefer not to say"];
+export const MARITAL_STATUS_OPTIONS = ["Single", "Married", "Divorced", "Widowed", "Other"];
+export const WORK_AUTHORIZATION_OPTIONS = ["Citizen", "Permanent Resident", "Work Visa", "Student Visa", "Other"];
+export const BLOOD_GROUP_OPTIONS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+// Profile: education and work
+export const EDUCATION_TYPE_OPTIONS = ["High School", "Diploma", "Bachelor's", "Master's", "PhD", "Certification", "Other"];
+export const STUDY_MODE_OPTIONS = ["Full-time", "Part-time", "Distance", "Online"];
+export const EMPLOYMENT_TYPE_OPTIONS = ["Full-time", "Part-time", "Contract", "Internship", "Freelance"];
+// Profile: bank details
+export const BANK_ACCOUNT_TYPE_OPTIONS = ["Savings", "Current", "Salary", "Fixed Deposit", "Recurring Deposit"];
+
+// Time Tracker
+export const TIME_TRACKER_MODULES = ["Dashboard", "Employee Management", "Authentication", "Time Tracking", "Reporting", "General"];
+export const TIME_TRACKER_TASK_TYPES = [
+  "Analysis",
+  "API Document",
+  "API Document Review",
+  "API Documentation",
+  "API Testing",
+  "Blog Writing",
+  "Bug Analysis",
+  "Bug Fix",
+  "Bug Fixation",
+  "Coding",
+  "Code Review",
+  "Daily Meeting",
+  "Deployment",
+  "Documentation",
+  "Editing & Review",
+] as const;
+export const TIME_TRACKER_TASK_STATUS_OPTIONS: { value: TaskRecord["status"]; label: string }[] = [
+  { value: "not-started", label: "Not started" },
+  { value: "started", label: "Started" },
+  { value: "completed", label: "Completed" },
+  { value: "hold", label: "Hold" },
+];
+
+// Organization directory: today's status filter
+export const WORK_STATUS_OPTIONS: { value: WorkStatus; label: string }[] = [
+  { value: "in-office", label: "In office" },
+  { value: "remote", label: "Remote" },
+  { value: "on-leave", label: "On leave" },
+  { value: "not-in", label: "Not checked in" },
+  { value: "invited", label: "Yet to join" },
+];
+
+// Task automation rules
+export const AUTOMATION_TRIGGER_OPTIONS: { value: AutomationTrigger; label: string }[] = [
+  { value: "task-created", label: "a task is created" },
+  { value: "status-changed", label: "a task moves to a status" },
+  { value: "assigned", label: "a task is assigned" },
+  { value: "blocked", label: "a task is flagged as blocked" },
+  { value: "due-date-passed", label: "a task's due date passes" },
+];
+export const AUTOMATION_FIELD_OPTIONS: { value: ConditionField; label: string }[] = [
+  { value: "status", label: "Status" },
+  { value: "priority", label: "Priority" },
+  { value: "type", label: "Type" },
+  { value: "project", label: "Project" },
+];
+export const AUTOMATION_OPERATOR_OPTIONS: { value: "is" | "is-not"; label: string }[] = [
+  { value: "is", label: "is" },
+  { value: "is-not", label: "is not" },
+];
+export const AUTOMATION_ACTION_OPTIONS: { value: AutomationAction["kind"]; label: string }[] = [
+  { value: "notify", label: "Notify" },
+  { value: "set-priority", label: "Set priority to" },
+  { value: "add-label", label: "Add label" },
+];
+export const AUTOMATION_RECIPIENT_OPTIONS: { value: Extract<AutomationAction, { kind: "notify" }>["recipient"]; label: string }[] = [
+  { value: "assignee", label: "the assignee" },
+  { value: "reporter", label: "the reporter" },
+  { value: "manager", label: "the assignee's manager" },
+  { value: "watchers", label: "the watchers" },
+];
+
+// Task permissions: on whose tasks a role can do something
+export const PERMISSION_SCOPE_OPTIONS: { value: PermissionScope; label: string; hint: string }[] = [
+  { value: "none", label: "No", hint: "Never" },
+  { value: "own", label: "Own", hint: "Tasks assigned to or reported by them" },
+  { value: "team", label: "Team", hint: "Their direct reports’ tasks" },
+  { value: "hr", label: "HR only", hint: "HR-type tasks" },
+  { value: "all", label: "All", hint: "Every task" },
+];
+
+// Workflow settings: what kind of step a status is. Only the first two can be picked for a status; the others are fixed.
+export const STATUS_CATEGORY_LABELS: Record<StatusCategory, string> = {
+  todo: "Waiting (to do)",
+  active: "In progress",
+  review: "Approval step",
+  done: "Finished",
+};
+export const PICKABLE_STATUS_CATEGORIES: StatusCategory[] = ["todo", "active"];
+
+// Audit log: area filter
+export const AUDIT_ENTITY_LABELS: Record<AuditEntity, string> = {
+  task: "Task",
+  project: "Project",
+  template: "Template",
+  settings: "Settings",
+  automation: "Automation",
+  request: "Admin request",
+  asset: "Asset",
+  expense: "Expense",
+  user: "User access",
+};
+
+// User Management: account status filter
+export const ACCOUNT_STATUS_LABELS: Record<AccountStatus, string> = { active: "Active", invited: "Invited", deactivated: "Deactivated" };

@@ -17,28 +17,7 @@ import { validateRule, type AutomationRuleInput } from '@/services/apis/automati
 import { useAutomationRules, useCreateRule, useDeleteRule, useUpdateRule } from '@/services/apis/settings/use-task-settings';
 import { useProjects } from '@/services/apis/tasks/use-tasks';
 import type { AutomationAction, AutomationCondition, AutomationRule, AutomationTrigger, ConditionField, Project } from '@/types';
-
-const TRIGGERS: { value: AutomationTrigger; label: string }[] = [
-  { value: 'task-created', label: 'a task is created' },
-  { value: 'status-changed', label: 'a task moves to a status' },
-  { value: 'assigned', label: 'a task is assigned' },
-  { value: 'blocked', label: 'a task is flagged as blocked' },
-  { value: 'due-date-passed', label: "a task's due date passes" },
-];
-
-const FIELDS: { value: ConditionField; label: string }[] = [
-  { value: 'status', label: 'Status' },
-  { value: 'priority', label: 'Priority' },
-  { value: 'type', label: 'Type' },
-  { value: 'project', label: 'Project' },
-];
-
-const RECIPIENTS: { value: Extract<AutomationAction, { kind: 'notify' }>['recipient']; label: string }[] = [
-  { value: 'assignee', label: 'the assignee' },
-  { value: 'reporter', label: 'the reporter' },
-  { value: 'manager', label: "the assignee's manager" },
-  { value: 'watchers', label: 'the watchers' },
-];
+import { AUTOMATION_ACTION_OPTIONS, AUTOMATION_FIELD_OPTIONS, AUTOMATION_OPERATOR_OPTIONS, AUTOMATION_RECIPIENT_OPTIONS, AUTOMATION_TRIGGER_OPTIONS } from '@/lib/constants';
 
 const selectClass = 'h-9 rounded-md border border-gray-200 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30';
 
@@ -60,14 +39,14 @@ function describeRule(rule: AutomationRuleInput, projects: Project[]) {
   const trigger =
     rule.trigger === 'status-changed'
       ? `a task moves to ${rule.triggerStatus ? getStatusLabel(rule.triggerStatus) : 'any status'}`
-      : TRIGGERS.find((item) => item.value === rule.trigger)?.label;
+      : AUTOMATION_TRIGGER_OPTIONS.find((item) => item.value === rule.trigger)?.label;
   const conditions = rule.conditions.map((condition) => {
     const label = valueOptions(condition.field, projects).find((option) => option.value === condition.value)?.label ?? condition.value;
-    return `${FIELDS.find((field) => field.value === condition.field)?.label} ${condition.operator === 'is' ? 'is' : 'is not'} ${label}`;
+    return `${AUTOMATION_FIELD_OPTIONS.find((field) => field.value === condition.field)?.label} ${condition.operator === 'is' ? 'is' : 'is not'} ${label}`;
   });
   const actions = rule.actions.map((action) =>
     action.kind === 'notify'
-      ? `notify ${RECIPIENTS.find((recipient) => recipient.value === action.recipient)?.label}`
+      ? `notify ${AUTOMATION_RECIPIENT_OPTIONS.find((recipient) => recipient.value === action.recipient)?.label}`
       : action.kind === 'set-priority'
         ? `set priority to ${getPriorityLabel(action.priority)}`
         : `add label "${action.label}"`,
@@ -157,7 +136,7 @@ function RuleEditor({ open, rule, onOpenChange }: { open: boolean; rule?: Automa
               aria-label="When"
               className={selectClass}
             >
-              {TRIGGERS.map((item) => (
+              {AUTOMATION_TRIGGER_OPTIONS.map((item) => (
                 <option key={item.value} value={item.value}>
                   {item.label}
                 </option>
@@ -191,15 +170,18 @@ function RuleEditor({ open, rule, onOpenChange }: { open: boolean; rule?: Automa
                 aria-label="Field"
                 className={selectClass}
               >
-                {FIELDS.map((field) => (
+                {AUTOMATION_FIELD_OPTIONS.map((field) => (
                   <option key={field.value} value={field.value}>
                     {field.label}
                   </option>
                 ))}
               </select>
               <select value={condition.operator} onChange={(event) => setCondition(index, { operator: event.target.value as 'is' | 'is-not' })} aria-label="Operator" className={selectClass}>
-                <option value="is">is</option>
-                <option value="is-not">is not</option>
+                {AUTOMATION_OPERATOR_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
               <select value={condition.value} onChange={(event) => setCondition(index, { value: event.target.value })} aria-label="Value" className={selectClass}>
                 {valueOptions(condition.field, projects).map((option) => (
@@ -243,13 +225,15 @@ function RuleEditor({ open, rule, onOpenChange }: { open: boolean; rule?: Automa
                 aria-label="Action"
                 className={selectClass}
               >
-                <option value="notify">Notify</option>
-                <option value="set-priority">Set priority to</option>
-                <option value="add-label">Add label</option>
+                {AUTOMATION_ACTION_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
               {action.kind === 'notify' && (
                 <select value={action.recipient} onChange={(event) => setAction(index, { kind: 'notify', recipient: event.target.value as typeof action.recipient })} aria-label="Recipient" className={selectClass}>
-                  {RECIPIENTS.map((recipient) => (
+                  {AUTOMATION_RECIPIENT_OPTIONS.map((recipient) => (
                     <option key={recipient.value} value={recipient.value}>
                       {recipient.label}
                     </option>

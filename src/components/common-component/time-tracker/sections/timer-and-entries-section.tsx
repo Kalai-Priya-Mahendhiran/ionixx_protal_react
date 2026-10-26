@@ -3,11 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Timer, Play, Pause, Square, Calendar, Plus, Pencil, Trash2 } from 'lucide-react';
-import { MODULES, TASK_TYPES } from '@/lib/sample-data/time-tracker-sample-data';
 import { useProjectNames } from '@/services/apis/time-tracker/use-task-log';
 import type { TimeEntry } from '@/types';
 import { todayAsDateInput } from '@/lib/utils';
 import { currentTimeOfDay } from './time-entry-form';
+import { TIME_TRACKER_MODULES, TIME_TRACKER_TASK_TYPES } from '@/lib/constants';
 
 export type NewTimeEntry = Omit<TimeEntry, 'id' | 'userId' | 'status'>;
 
@@ -122,7 +122,7 @@ export function TimerAndEntriesSection({ entries, onRecordEntry, onAddEntry, onE
                 Epic / Module <span className="text-red-500">*</span>
                 <select value={details.module} onChange={updateDetail('module')} disabled={isTimerActive} className={fieldClass}>
                   <option value="">Select epic or module</option>
-                  {MODULES.map((module) => <option key={module} value={module}>{module}</option>)}
+                  {TIME_TRACKER_MODULES.map((module) => <option key={module} value={module}>{module}</option>)}
                 </select>
                 {errorText(missing.module, 'Select an epic or module')}
               </label>
@@ -131,7 +131,7 @@ export function TimerAndEntriesSection({ entries, onRecordEntry, onAddEntry, onE
                 User story / task <span className="text-red-500">*</span>
                 <select value={details.task} onChange={updateDetail('task')} disabled={isTimerActive} className={fieldClass}>
                   <option value="">Select task type</option>
-                  {TASK_TYPES.map((taskType) => <option key={taskType} value={taskType}>{taskType}</option>)}
+                  {TIME_TRACKER_TASK_TYPES.map((taskType) => <option key={taskType} value={taskType}>{taskType}</option>)}
                 </select>
                 {errorText(missing.task, 'Select a user story or task')}
               </label>

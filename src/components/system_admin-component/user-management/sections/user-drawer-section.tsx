@@ -5,14 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AppSheet } from "@/components/ui/sheet";
 import { ROLE_LABELS, type UserRole } from "@/lib/mock-users";
-import { MODULE_CATALOG } from "@/lib/constants";
+import { ACCOUNT_STATUS_LABELS, MODULE_CATALOG } from "@/lib/constants";
 import { CORE_MODULES, RESTRICTED_MODULES, roleHasModule } from "@/lib/modules";
 import { cn, formatDateTime, getInitials } from "@/lib/utils";
 import { useProjects } from "@/services/apis/tasks/use-tasks";
 import { useActivateUser, useResetPassword, useSetModuleAccess, useSetProjectMembership, useSetUserRole } from "@/services/apis/users/use-user-access";
 import type { UserAccount } from "@/types";
 import { DeactivateDialog } from "./deactivate-dialog";
-import { ROLES, STATUS_LABEL, fieldClass } from "./user-management-utils";
+import { ROLES, fieldClass } from "./user-management-utils";
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -62,7 +62,7 @@ export function UserDrawerSection({ account, isSelf, onClose }: { account: UserA
                 <p className="text-sm text-white/90">
                   {account.designation} · {account.department}
                 </p>
-                <Badge className="mt-2 bg-white/20 text-white border-white/30">{STATUS_LABEL[account.status]}</Badge>
+                <Badge className="mt-2 bg-white/20 text-white border-white/30">{ACCOUNT_STATUS_LABELS[account.status]}</Badge>
               </div>
             </div>
           </div>

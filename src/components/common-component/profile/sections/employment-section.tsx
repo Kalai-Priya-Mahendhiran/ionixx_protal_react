@@ -15,6 +15,7 @@ import {
 } from "./profile-display";
 import { Briefcase, Plus, X, Calendar, MapPin, Building2, DollarSign, Clock, AlertCircle } from "lucide-react";
 import { DatePicker } from '@/components/ui/date-picker';
+import { EMPLOYMENT_TYPE_OPTIONS } from '@/lib/constants';
 
 interface EmploymentSectionProps {
   isEditing: boolean;
@@ -310,11 +311,9 @@ export function EmploymentSection({
                         <FormControl>
                           <select {...field} className="w-full h-10 px-3 py-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                             <option value="">Select Type</option>
-                            <option value="Full-time">Full-time</option>
-                            <option value="Part-time">Part-time</option>
-                            <option value="Contract">Contract</option>
-                            <option value="Internship">Internship</option>
-                            <option value="Freelance">Freelance</option>
+                            {EMPLOYMENT_TYPE_OPTIONS.map((option) => (
+                              <option key={option} value={option}>{option}</option>
+                            ))}
                           </select>
                         </FormControl>
                         <FormMessage />

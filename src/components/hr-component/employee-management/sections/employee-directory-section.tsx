@@ -75,9 +75,11 @@ export function EmployeeDirectorySection({
             className="px-3 py-2 border border-gray-300 rounded-md text-sm md:w-40 focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
           >
             <option value="all">All statuses</option>
-            <option value="active">Active</option>
-            <option value="on-leave">On leave</option>
-            <option value="inactive">Inactive</option>
+            {Object.entries(EMPLOYMENT_STATUS_LABELS).map(([status, label]) => (
+              <option key={status} value={status}>
+                {label}
+              </option>
+            ))}
           </select>
         </div>
 

@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { INTEGRATION_STATUS_STYLES, INTEGRATION_STATUS_LABELS, INTEGRATION_CATEGORIES } from "@/lib/constants";
+import { INTEGRATION_CATEGORIES, INTEGRATION_STATUS_LABELS, INTEGRATION_STATUS_STYLES } from "@/lib/constants";
 import { formatDateTime, type Category, type Integration, type IntegrationStatus } from "./integrations-meta";
 
 const statusIcon: Record<IntegrationStatus, React.ReactNode> = {
@@ -92,9 +92,11 @@ export function IntegrationsGridSection({
             className="px-3 py-2 border border-gray-300 rounded-md text-sm md:w-44 focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
           >
             <option value="all">All statuses</option>
-            <option value="connected">Connected</option>
-            <option value="disconnected">Not connected</option>
-            <option value="error">Error</option>
+            {Object.entries(INTEGRATION_STATUS_LABELS).map(([status, label]) => (
+              <option key={status} value={status}>
+                {label}
+              </option>
+            ))}
           </select>
         </div>
 

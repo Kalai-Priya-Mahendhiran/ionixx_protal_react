@@ -66,9 +66,11 @@ export function KpiDashboardSection({
               className="px-3 py-1.5 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30"
             >
               <option value="all">All statuses</option>
-              <option value="on-track">On track</option>
-              <option value="at-risk">At risk</option>
-              <option value="off-track">Off track</option>
+              {(Object.keys(KPI_STATUS_CONFIG) as Status[]).map((status) => (
+                <option key={status} value={status}>
+                  {KPI_STATUS_CONFIG[status].label}
+                </option>
+              ))}
             </select>
           </div>
         </div>

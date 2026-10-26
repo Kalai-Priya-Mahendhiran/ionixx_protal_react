@@ -28,32 +28,6 @@ export const sampleTimeEntries: TimeEntry[] = [
 export const NON_PROJECT_TIME = 'Internal (meetings, admin)';
 // Used only until the Tasks projects have loaded
 export const PROJECTS = ['Employee Portal', 'People Operations', NON_PROJECT_TIME];
-export const MODULES = ['Dashboard', 'Employee Management', 'Authentication', 'Time Tracking', 'Reporting', 'General'];
-export const TASK_TYPES = [
-  'Analysis',
-  'API Document',
-  'API Document Review',
-  'API Documentation',
-  'API Testing',
-  'Blog Writing',
-  'Bug Analysis',
-  'Bug Fix',
-  'Bug Fixation',
-  'Coding',
-  'Code Review',
-  'Daily Meeting',
-  'Deployment',
-  'Documentation',
-  'Editing & Review',
-] as const;
-
-export const TASK_STATUS_OPTIONS: { value: TaskRecord['status']; label: string }[] = [
-  { value: 'not-started', label: 'Not started' },
-  { value: 'started', label: 'Started' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'hold', label: 'Hold' },
-];
-
 
 // 10 Oct is over the 8h daily limit, so its tasks show as overrunning
 export const sampleTodaysTasks: TaskRecord[] = [

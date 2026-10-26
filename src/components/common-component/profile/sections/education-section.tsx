@@ -16,6 +16,7 @@ import {
 } from "./profile-display";
 import { GraduationCap, Award, Plus, X, Calendar, MapPin, Building2 } from "lucide-react";
 import { DatePicker } from '@/components/ui/date-picker';
+import { EDUCATION_TYPE_OPTIONS, STUDY_MODE_OPTIONS } from '@/lib/constants';
 
 interface EducationSectionProps {
   isEditing: boolean;
@@ -245,13 +246,9 @@ export function EducationSection({
                           <FormControl>
                             <select {...field} className="w-full h-10 px-3 py-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                               <option value="">Select Type</option>
-                              <option value="High School">High School</option>
-                              <option value="Diploma">Diploma</option>
-                              <option value="Bachelor's">Bachelor's</option>
-                              <option value="Master's">Master's</option>
-                              <option value="PhD">PhD</option>
-                              <option value="Certification">Certification</option>
-                              <option value="Other">Other</option>
+                              {EDUCATION_TYPE_OPTIONS.map((option) => (
+                                <option key={option} value={option}>{option}</option>
+                              ))}
                             </select>
                           </FormControl>
                           <FormMessage />
@@ -319,10 +316,9 @@ export function EducationSection({
                           <FormControl>
                             <select {...field} className="w-full h-10 px-3 py-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                               <option value="">Select Mode</option>
-                              <option value="Full-time">Full-time</option>
-                              <option value="Part-time">Part-time</option>
-                              <option value="Distance">Distance</option>
-                              <option value="Online">Online</option>
+                              {STUDY_MODE_OPTIONS.map((option) => (
+                                <option key={option} value={option}>{option}</option>
+                              ))}
                             </select>
                           </FormControl>
                           <FormMessage />

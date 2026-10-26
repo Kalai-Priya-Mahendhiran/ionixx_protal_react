@@ -11,15 +11,9 @@ import { useResetSettings, useSaveWorkflow, useTaskSettings } from '@/services/a
 import { useTasks } from '@/services/apis/tasks/use-tasks';
 import type { StatusCategory, StatusColor, WorkflowSettings, WorkflowStatus } from '@/types';
 import { SettingsPanel } from './settings-panel';
+import { PICKABLE_STATUS_CATEGORIES, STATUS_CATEGORY_LABELS } from '@/lib/constants';
 
 const COLORS = Object.keys(STATUS_COLOR_CLASSES) as StatusColor[];
-
-const CATEGORY_LABELS: Record<StatusCategory, string> = {
-  todo: 'Waiting (to do)',
-  active: 'In progress',
-  review: 'Approval step',
-  done: 'Finished',
-};
 
 const OWN_COLUMN = '__own__';
 
@@ -194,15 +188,18 @@ export function WorkflowSettingsSection() {
                     </td>
                     <td className="px-3 py-2">
                       {status.system ? (
-                        <span className="text-gray-600">{CATEGORY_LABELS[status.category]}</span>
+                        <span className="text-gray-600">{STATUS_CATEGORY_LABELS[status.category]}</span>
                       ) : (
                         <Select value={status.category} onValueChange={(category) => updateStatus(status.id, { category: category as StatusCategory })}>
                           <SelectTrigger className="h-8 w-40" aria-label={`Kind of ${status.label}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="todo">{CATEGORY_LABELS.todo}</SelectItem>
-                            <SelectItem value="active">{CATEGORY_LABELS.active}</SelectItem>
+                            {PICKABLE_STATUS_CATEGORIES.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {STATUS_CATEGORY_LABELS[category]}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       )}

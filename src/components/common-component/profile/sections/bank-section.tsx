@@ -10,6 +10,7 @@ import {
   SubSection 
 } from "./profile-display";
 import { CreditCard, Lock, Shield, Building2 } from "lucide-react";
+import { BANK_ACCOUNT_TYPE_OPTIONS } from '@/lib/constants';
 
 interface BankSectionProps {
   isEditing: boolean;
@@ -129,11 +130,9 @@ export function BankSection({ isEditing, control, watch }: BankSectionProps) {
                 <FormControl>
                   <select {...field} className="w-full h-10 px-3 py-2 bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                     <option value="">Select Account Type</option>
-                    <option value="Savings">Savings</option>
-                    <option value="Current">Current</option>
-                    <option value="Salary">Salary</option>
-                    <option value="Fixed Deposit">Fixed Deposit</option>
-                    <option value="Recurring Deposit">Recurring Deposit</option>
+                    {BANK_ACCOUNT_TYPE_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
                   </select>
                 </FormControl>
                 <FormMessage />

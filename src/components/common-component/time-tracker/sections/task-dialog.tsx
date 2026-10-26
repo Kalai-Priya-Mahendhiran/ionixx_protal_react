@@ -6,18 +6,18 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { FormDialog } from '@/components/ui/form-dialog';
-import { MODULES, TASK_TYPES, TASK_STATUS_OPTIONS } from '@/lib/sample-data/time-tracker-sample-data';
 import { useProjectNames } from '@/services/apis/time-tracker/use-task-log';
 import { todayAsDateInput } from '@/lib/utils';
 import { timeTrackerTaskFormSchema, timeTrackerTaskSchema, type TimeTrackerTaskFormValues } from '@/lib/schemas';
 import { emptyTask, type TaskRecord } from './task-form';
 import { RequiredLabel, SelectField, fieldClass, toOptions } from '@/components/ui/form-fields';
 import { DatePicker } from '@/components/ui/date-picker';
+import { TIME_TRACKER_MODULES, TIME_TRACKER_TASK_TYPES, TIME_TRACKER_TASK_STATUS_OPTIONS } from '@/lib/constants';
 
 type TaskFieldName = FieldPath<TimeTrackerTaskFormValues>;
 
-const MODULE_OPTIONS = toOptions(MODULES);
-const TASK_TYPE_OPTIONS = toOptions(TASK_TYPES);
+const MODULE_OPTIONS = toOptions(TIME_TRACKER_MODULES);
+const TASK_TYPE_OPTIONS = toOptions(TIME_TRACKER_TASK_TYPES);
 
 /* ---------- Hours input (estimate / actual) ---------- */
 
@@ -77,7 +77,7 @@ function TaskDetailsFields({ index, title, onClose }: { index: number; title: st
           control={control}
           name={`tasks.${index}.status`}
           label="Task status"
-          options={TASK_STATUS_OPTIONS}
+          options={TIME_TRACKER_TASK_STATUS_OPTIONS}
           onValueChange={handleStatusChange}
         />
         <SelectField control={control} name={`tasks.${index}.project`} label="Project" placeholder="Select project" options={projectOptions} />

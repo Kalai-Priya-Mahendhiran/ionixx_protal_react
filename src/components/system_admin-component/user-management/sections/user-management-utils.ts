@@ -8,7 +8,6 @@ export const STATUS_STYLE: Record<AccountStatus, string> = {
   invited: "bg-amber-100 text-amber-800",
   deactivated: "bg-gray-200 text-gray-700",
 };
-export const STATUS_LABEL: Record<AccountStatus, string> = { active: "Active", invited: "Invited", deactivated: "Deactivated" };
 
 export const fieldClass = "w-full px-3 py-2 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#464EB8]/30";
 export const overrideCount = (account: UserAccount) => account.grantedModules.length + account.revokedModules.length;
