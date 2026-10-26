@@ -3,6 +3,7 @@ import MainLayout from "@/components/layout/main-layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { AuditLogSection } from "@/components/employee-component/tasks/sections/audit-log-section";
 import { SystemHealthSection } from "./sections";
+import { LOGS_INFO } from "./sections/logs-info";
 
 // The audit trail (who changed what and when) is the same log as Task Settings → Audit log
 export default function Logs() {
@@ -12,6 +13,7 @@ export default function Logs() {
         <PageHeader
           icon={ScrollText}
           title="Logs & Monitoring"
+          info={LOGS_INFO}
           description="Audit trail of every change, and the health of core services"
         />
 

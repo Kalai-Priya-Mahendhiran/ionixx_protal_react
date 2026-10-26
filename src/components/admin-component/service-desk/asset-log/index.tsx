@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { useAssets, useReturnAsset, useSetAssetStatus } from '@/services/apis/service-desk/use-service-desk';
 import type { Asset, AssetStatus, AssetType } from '@/types';
 import { AddAssetDialog, AssetFiltersSection, AssetHistoryDialog, AssetTableSection, IssueAssetDialog } from './sections';
+import { ASSET_LOG_INFO } from './sections/asset-log-info';
 
 export default function AssetLog() {
   const { data: assets = [], isLoading, isError, refetch } = useAssets();
@@ -39,6 +40,7 @@ export default function AssetLog() {
           icon={Laptop}
           title="Asset Log"
           description="Which asset is issued to whom: laptops, monitors, headsets, ID and access cards"
+          info={ASSET_LOG_INFO}
           actions={
             <Button onClick={() => setAdding(true)} className={cn('gap-2', headerPrimaryButtonClass)}>
               <Plus className="h-4 w-4" />

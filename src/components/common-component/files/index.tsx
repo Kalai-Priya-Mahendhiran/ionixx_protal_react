@@ -10,6 +10,7 @@ import { useCreateFromLink } from '@/hooks/use-create-from-link';
 import { STORAGE_QUOTA_BYTES } from '@/services/apis/files/file-service';
 import { useFiles } from '@/services/apis/files/use-files';
 import { FILE_CATEGORIES, FilesContentSection, UploadFileDialog, formatFileSize } from './sections';
+import { getFilesInfo } from './sections/files-info';
 
 export default function Files() {
   const { user } = useAuth();
@@ -49,6 +50,7 @@ export default function Files() {
           icon={Folder}
           title="Files"
           description={`Company documents, ${user.department} team files and your own documents`}
+          info={getFilesInfo(user.role, user.department)}
           actions={
             <Button className={headerPrimaryButtonClass} onClick={() => setUploading(true)}>
               <Upload className="mr-2 h-4 w-4" />

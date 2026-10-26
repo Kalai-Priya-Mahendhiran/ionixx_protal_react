@@ -52,6 +52,7 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
+import type { UserRole } from "./mock-users";
 
 export const ROUTES = {
   Login: "/login",
@@ -93,6 +94,246 @@ export const ROUTES = {
 } ;
 
 // Quick Add and Quick Actions: see lib/quick-actions.ts
+
+/*
+ * Menus: every page in the portal, the sidebar item for each, each role's menu and which roles can open each page.
+ * Who sees what is worked out from these in lib/modules.ts (role default, personal grants and removals, managers).
+ */
+
+// Every page, with the name used in User Management, Roles & Permissions, search and the header
+export interface PortalModule {
+  path: string;
+  label: string;
+  group: string;
+}
+
+export const MODULE_CATALOG: PortalModule[] = [
+  { path: ROUTES.Dashboard, label: "Dashboard", group: "Everyone" },
+  { path: ROUTES.Profile, label: "Profile", group: "Everyone" },
+  { path: ROUTES.Attendance, label: "Attendance", group: "Self-service" },
+  { path: ROUTES.TimeTracker, label: "Time Tracker", group: "Self-service" },
+  { path: ROUTES.Leave, label: "Leave Tracker", group: "Self-service" },
+  { path: ROUTES.Pay, label: "Pay & Tax", group: "Self-service" },
+  { path: ROUTES.Files, label: "Files", group: "Self-service" },
+  { path: ROUTES.Organization, label: "Organization", group: "Self-service" },
+  { path: ROUTES.Tasks, label: "Tasks", group: "Work" },
+  { path: ROUTES.ServiceDesk, label: "Service Desk / My Requests", group: "Work" },
+  { path: ROUTES.Reports, label: "Reports", group: "Work" },
+  { path: ROUTES.TeamOverview, label: "Team Overview", group: "Team management" },
+  { path: ROUTES.Approvals, label: "Approvals", group: "Team management" },
+  { path: ROUTES.AttendanceMonitoring, label: "Attendance Monitoring", group: "Team management" },
+  { path: ROUTES.PerformanceReview, label: "Performance Review", group: "Team management" },
+  { path: ROUTES.EmployeeManagement, label: "Employee Management", group: "HR" },
+  { path: ROUTES.Recruitment, label: "Recruitment", group: "HR" },
+  { path: ROUTES.Training, label: "Training", group: "HR" },
+  { path: ROUTES.Compliance, label: "Compliance", group: "HR" },
+  { path: ROUTES.Analytics, label: "Analytics", group: "Executive" },
+  { path: ROUTES.KpiMonitoring, label: "KPI Monitoring", group: "Executive" },
+  { path: ROUTES.AssetLog, label: "Asset Log", group: "Office operations" },
+  { path: ROUTES.Expenses, label: "Expenses", group: "Office operations" },
+  { path: ROUTES.DeskReports, label: "Desk Reports", group: "Office operations" },
+  { path: ROUTES.UserManagement, label: "User Management", group: "System" },
+  { path: ROUTES.RolesPermissions, label: "Roles & Permissions", group: "System" },
+  { path: ROUTES.SystemConfig, label: "System Config", group: "System" },
+  { path: ROUTES.Integrations, label: "Integrations", group: "System" },
+  { path: ROUTES.Logs, label: "Logs", group: "System" },
+];
+
+// Sidebar menu items
+export interface SidebarItem {
+  id: string;
+  label: string;
+  icon: string;
+  // The page (module) — page access is checked on this
+  path: string;
+  // Optional query that picks a view of the page, e.g. 'tab=mine' on the Service Desk
+  search?: string;
+}
+
+export const SIDEBAR_ITEMS = {
+  // Common
+  dashboard: { id: "dashboard", label: "Dashboard", icon: "Home", path: ROUTES.Dashboard },
+  profile: { id: "profile", label: "Profile", icon: "User", path: ROUTES.Profile },
+
+  // Employee
+  attendance: { id: "attendance", label: "Attendance", icon: "Clock", path: ROUTES.Attendance },
+  timeTracker: { id: "time-tracker", label: "Time Tracker", icon: "Timer", path: ROUTES.TimeTracker },
+  leave: { id: "leave", label: "Leave Tracker", icon: "Calendar", path: ROUTES.Leave },
+  pay: { id: "pay", label: "Pay & Tax", icon: "Wallet", path: ROUTES.Pay },
+  tasks: { id: "tasks", label: "Tasks", icon: "CheckSquare", path: ROUTES.Tasks },
+  files: { id: "files", label: "Files", icon: "Folder", path: ROUTES.Files },
+  organization: { id: "organization", label: "Organization", icon: "Building", path: ROUTES.Organization },
+  reports: { id: "reports", label: "Reports", icon: "BarChart3", path: ROUTES.Reports },
+
+  // Manager (MSS)
+  teamOverview: { id: "team", label: "Team Overview", icon: "Users", path: ROUTES.TeamOverview },
+  approvals: { id: "approvals", label: "Approvals", icon: "CheckCheck", path: ROUTES.Approvals },
+  attendanceMonitoring: { id: "attendance-monitoring", label: "Attendance Monitoring", icon: "ClipboardCheck", path: ROUTES.AttendanceMonitoring },
+  performanceReview: { id: "performance-review", label: "Performance Review", icon: "Star", path: ROUTES.PerformanceReview },
+
+  // HR
+  employeeManagement: { id: "employee-management", label: "Employee Management", icon: "UserCog", path: ROUTES.EmployeeManagement },
+  recruitment: { id: "recruitment", label: "Recruitment", icon: "Briefcase", path: ROUTES.Recruitment },
+  training: { id: "training", label: "Training", icon: "GraduationCap", path: ROUTES.Training },
+  compliance: { id: "compliance", label: "Compliance", icon: "ShieldCheck", path: ROUTES.Compliance },
+
+  // Executive
+  analytics: { id: "analytics", label: "Analytics", icon: "LineChart", path: ROUTES.Analytics },
+  kpiMonitoring: { id: "kpi-monitoring", label: "KPI Monitoring", icon: "Gauge", path: ROUTES.KpiMonitoring },
+
+  // Service desk: everyone follows their requests; Admin (office operations) works the queue
+  // Always the person's own requests, even for people who also work a desk queue
+  myRequests: { id: "my-requests", label: "My Requests", icon: "LifeBuoy", path: ROUTES.ServiceDesk, search: "tab=mine" },
+  serviceDesk: { id: "service-desk", label: "Service Desk", icon: "LifeBuoy", path: ROUTES.ServiceDesk },
+  assetLog: { id: "asset-log", label: "Asset Log", icon: "Laptop", path: ROUTES.AssetLog },
+  expenses: { id: "expenses", label: "Expenses", icon: "Receipt", path: ROUTES.Expenses },
+  deskReports: { id: "desk-reports", label: "Desk Reports", icon: "PieChart", path: ROUTES.DeskReports },
+
+  // System Admin
+  userManagement: { id: "user-management", label: "User Management", icon: "Users2", path: ROUTES.UserManagement },
+  rolesPermissions: { id: "roles-permissions", label: "Roles & Permissions", icon: "Lock", path: ROUTES.RolesPermissions },
+  systemConfig: { id: "system-config", label: "System Config", icon: "Settings", path: ROUTES.SystemConfig },
+  integrations: { id: "integrations", label: "Integrations", icon: "Plug", path: ROUTES.Integrations },
+  logs: { id: "logs", label: "Logs", icon: "ScrollText", path: ROUTES.Logs },
+  // Workflow, fields, permissions and automation for the Tasks module
+  taskSettings: { id: "task-settings", label: "Task Settings", icon: "Settings", path: ROUTES.Tasks, search: "view=settings" },
+} as const satisfies Record<string, SidebarItem>;
+const ITEM = SIDEBAR_ITEMS;
+
+export const ROLE_SIDEBAR_ITEMS: Record<UserRole, SidebarItem[]> = {
+  employee: [
+    ITEM.dashboard,
+    ITEM.profile,
+    ITEM.pay,
+    ITEM.attendance,
+    ITEM.timeTracker,
+    ITEM.leave,
+    ITEM.tasks,
+    ITEM.myRequests,
+    ITEM.files,
+    ITEM.organization,
+  ],
+  project_manager: [
+    ITEM.dashboard,
+    ITEM.profile,
+    ITEM.pay,
+    ITEM.attendance,
+    ITEM.timeTracker,
+    ITEM.leave,
+    ITEM.files,
+    ITEM.organization,
+    ITEM.tasks,
+    ITEM.myRequests,
+    ITEM.teamOverview,
+    ITEM.approvals,
+    ITEM.attendanceMonitoring,
+    ITEM.performanceReview,
+    ITEM.reports,
+  ],
+  hr: [
+    ITEM.dashboard,
+    ITEM.profile,
+    ITEM.pay,
+    ITEM.attendance,
+    ITEM.timeTracker,
+    ITEM.leave,
+    ITEM.files,
+    ITEM.organization,
+    ITEM.tasks,
+    ITEM.myRequests,
+    ITEM.employeeManagement,
+    ITEM.recruitment,
+    ITEM.training,
+    ITEM.compliance,
+    ITEM.reports,
+  ],
+  executive: [
+    ITEM.dashboard,
+    ITEM.profile,
+    ITEM.pay,
+    ITEM.attendance,
+    ITEM.timeTracker,
+    ITEM.leave,
+    ITEM.files,
+    ITEM.organization,
+    ITEM.tasks,
+    ITEM.myRequests,
+    ITEM.analytics,
+    ITEM.kpiMonitoring,
+    ITEM.reports,
+  ],
+  // System Admin works the access/software desk, so they get the queue and their own requests as separate items
+  system_admin: [
+    ITEM.dashboard,
+    ITEM.profile,
+    ITEM.pay,
+    ITEM.attendance,
+    ITEM.timeTracker,
+    ITEM.leave,
+    ITEM.files,
+    ITEM.organization,
+    ITEM.tasks,
+    ITEM.taskSettings,
+    ITEM.serviceDesk,
+    ITEM.myRequests,
+    ITEM.userManagement,
+    ITEM.rolesPermissions,
+    ITEM.systemConfig,
+    ITEM.integrations,
+    ITEM.logs,
+  ],
+  // Admin is office operations: the service desk, assets and expenses (no project tasks or system config)
+  admin: [ITEM.dashboard, ITEM.profile, ITEM.pay, ITEM.attendance, ITEM.timeTracker, ITEM.leave, ITEM.files, ITEM.organization, ITEM.serviceDesk, ITEM.myRequests, ITEM.assetLog, ITEM.expenses, ITEM.deskReports],
+};
+
+export const ROLE_ROUTE_ACCESS: Record<string, UserRole[]> = {
+  // Common
+  [ROUTES.Dashboard]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
+  [ROUTES.Profile]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
+  [ROUTES.Reports]: ["hr", "project_manager", "executive"],
+
+  // Employee
+  // Everyone checks in, logs time and takes leave, whatever their role
+  [ROUTES.Attendance]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
+  [ROUTES.TimeTracker]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
+  [ROUTES.Leave]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
+  // Everyone is paid, so everyone sees their own pay and tax
+  [ROUTES.Pay]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
+  [ROUTES.Tasks]: ["employee", "hr", "project_manager", "system_admin", "executive"],
+  // Everyone has their own documents (offer letter, Form 16…) plus company and department files
+  [ROUTES.Files]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
+  // Everyone can look up colleagues and reporting lines
+  [ROUTES.Organization]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
+
+  // Manager (MSS)
+  [ROUTES.TeamOverview]: ["project_manager"],
+  [ROUTES.Approvals]: ["project_manager"],
+  [ROUTES.AttendanceMonitoring]: ["project_manager"],
+  [ROUTES.PerformanceReview]: ["project_manager"],
+
+  // HR
+  [ROUTES.EmployeeManagement]: ["hr"],
+  [ROUTES.Recruitment]: ["hr"],
+  [ROUTES.Training]: ["hr"],
+  [ROUTES.Compliance]: ["hr"],
+
+  // Executive
+  [ROUTES.Analytics]: ["executive"],
+  [ROUTES.KpiMonitoring]: ["executive"],
+
+  // System Admin
+  [ROUTES.UserManagement]: ["system_admin"],
+  [ROUTES.RolesPermissions]: ["system_admin"],
+  [ROUTES.SystemConfig]: ["system_admin"],
+  [ROUTES.Integrations]: ["system_admin"],
+  [ROUTES.Logs]: ["system_admin"],
+
+  // Service desk
+  [ROUTES.ServiceDesk]: ["employee", "hr", "project_manager", "admin", "system_admin", "executive"],
+  [ROUTES.AssetLog]: ["admin"],
+  [ROUTES.Expenses]: ["admin"],
+  [ROUTES.DeskReports]: ["admin"],
+};
 
 export const LEAVE_TYPES = [
   { id: "casual", label: "Casual Leave", color: "bg-blue-100 text-blue-800", icon: "Coffee", iconClass: "bg-blue-100 text-blue-600" },

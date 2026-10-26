@@ -13,6 +13,7 @@ import { useDeleteExpense, useDeskSettings, useExpenses } from '@/services/apis/
 import type { Expense } from '@/types';
 import { BudgetByCategorySection, BudgetsDialog, ExpenseDialog, ExpenseTableSection } from './sections';
 import { monthName } from './sections/expenses-meta';
+import { getExpensesInfo } from './sections/expenses-info';
 
 export default function Expenses() {
   const { user } = useAuth();
@@ -38,6 +39,7 @@ export default function Expenses() {
           icon={Receipt}
           title="Office Expenses"
           description="What the office spends, against each category's monthly budget"
+          info={getExpensesInfo(canConfigureDesk(user))}
           actions={
             <>
               <select

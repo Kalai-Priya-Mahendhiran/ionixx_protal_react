@@ -20,6 +20,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (userData: User, token: string) => void;
   logout: () => void;
+  // True right after signing out in this tab, so the login screen doesn't remember the page they were on
+  signedOut: boolean;
   // Refreshes the signed-in person's details (e.g. after they rename themselves in Profile)
   updateUser: (changes: Partial<Pick<User, "name" | "designation" | "department" | "avatar">>) => void;
   loading: boolean;
@@ -71,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [signedOut, setSignedOut] = useState(false);
   const [loading, setLoading] = useState(true);
   const storage = new Storage();
 
@@ -99,6 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const login = (userData: User, authToken: string) => {
     setUser(userData);
     setToken(authToken);
+    setSignedOut(false);
     storage.setItem("token", authToken);
     storage.setItem("user", userData);
     writeLastSession({ token: authToken, user: userData });
@@ -120,9 +124,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     if (readLastSession()?.token === token) writeLastSession(null);
     setUser(null);
     setToken(null);
+    // Set in the same update as the sign-out, so ProtectedRoute sends them to /login without remembering this page
+    // (otherwise the next sign-in, maybe by someone else, lands back on it instead of the Dashboard)
+    setSignedOut(true);
     storage.clearStorage();
     toast.success("Logged out successfully!");
-    // ProtectedRoute observes isAuthenticated and will redirect to /login.
   };
 
   const value: AuthContextType = {
@@ -131,6 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     isAuthenticated: !!token && !!user,
     login,
     logout,
+    signedOut,
     updateUser,
     loading,
   };

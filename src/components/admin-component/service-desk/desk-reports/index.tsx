@@ -11,6 +11,7 @@ import { formatDuration } from '@/lib/sla';
 import { cn } from '@/lib/utils';
 import { useDeskSettings, useExpenses, useRequests } from '@/services/apis/service-desk/use-service-desk';
 import { OfficeSpendSection, RaisedResolvedSection, RequestsByCategorySection, ResolutionTimeSection, SlaBreachesSection } from './sections';
+import { getDeskReportsInfo } from './sections/desk-reports-info';
 
 const PERIODS = [
   { days: 30, label: 'Last 30 days' },
@@ -50,6 +51,7 @@ export default function DeskReports() {
           icon={PieChart}
           title="Desk Reports"
           description="Requests by category, resolution times, SLA breaches and office spend"
+          info={getDeskReportsInfo(desksHandledBy(user).map((desk) => desk.team), PERIODS.map((period) => period.label))}
           actions={
             <div role="group" aria-label="Period" className="inline-flex rounded-lg border border-white/30 bg-white/10 p-0.5">
               {PERIODS.map((period) => (

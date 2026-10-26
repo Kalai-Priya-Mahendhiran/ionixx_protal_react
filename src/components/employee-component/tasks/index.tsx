@@ -47,6 +47,7 @@ import {
   type TaskLayout,
 } from './sections';
 import { TASK_VIEW_META } from './sections/task-config';
+import { getTasksInfo } from './sections/tasks-info';
 import { taskPath } from './sections/task-link';
 import { getFilterOptions } from './sections/filter-options';
 import { ExecutiveDashboard } from './sections/executive-dashboard';
@@ -251,6 +252,7 @@ function TasksPage({ user }: { user: PermissionUser }) {
           icon={VIEW_ICONS[view]}
           title={title}
           description={description}
+          info={getTasksInfo({ view, sections, canCreate, readOnly })}
           badge={
             readOnly && (
               <span className={headerBadgeClass}>

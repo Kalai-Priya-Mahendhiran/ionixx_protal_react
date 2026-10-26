@@ -9,6 +9,7 @@ import type { UserRole } from "@/lib/mock-users";
 import { useUserAccounts } from "@/services/apis/users/use-user-access";
 import type { AccountStatus } from "@/types";
 import { InviteDialog, UserDrawerSection, UsersTableSection } from "./sections";
+import { USER_MANAGEMENT_INFO } from "./sections/user-management-info";
 
 export default function UserManagement() {
   const { user } = useAuth();
@@ -41,6 +42,7 @@ export default function UserManagement() {
         <PageHeader
           icon={Users2}
           title="User Management"
+          info={USER_MANAGEMENT_INFO}
           description="Accounts, roles, page access and project access"
           actions={
             <Button onClick={() => setInviting(true)} className={headerPrimaryButtonClass}>

@@ -4,6 +4,7 @@ import { BarChart3, Download } from 'lucide-react';
 import MainLayout from '@/components/layout/main-layout';
 import { PageHeader, headerSecondaryButtonClass } from '@/components/ui/page-header';
 import { REPORT_TYPES } from './sections/reports-meta';
+import { REPORTS_INFO } from './sections/reports-info';
 import {
   AttendanceReportSection,
   DateRangeFilterSection,
@@ -49,6 +50,7 @@ export default function Reports() {
           icon={BarChart3}
           title="Reports"
           description="Generate and export comprehensive reports"
+          info={REPORTS_INFO}
           actions={
             <>
               <Button variant="outline" className={headerSecondaryButtonClass} onClick={() => handleExport('pdf')}>

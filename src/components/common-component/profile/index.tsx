@@ -33,6 +33,8 @@ import {
   BankSection,
   ConsentSection
 } from './sections';
+import { getProfileInfo } from './sections/profile-info';
+import { InfoPopover } from '@/components/common-component/info';
 
 type SectionId = 'personal' | 'education' | 'employment' | 'bank' | 'consent';
 
@@ -194,10 +196,13 @@ export default function Profile() {
                   )}
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold leading-tight text-white">
-                    {form.watch('firstName')} {form.watch('middleName')} {form.watch('lastName')}
-                    {preferredName && <span className="ml-2 text-lg font-normal text-white/80">({preferredName})</span>}
-                  </h1>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-bold leading-tight text-white">
+                      {form.watch('firstName')} {form.watch('middleName')} {form.watch('lastName')}
+                      {preferredName && <span className="ml-2 text-lg font-normal text-white/80">({preferredName})</span>}
+                    </h1>
+                    <InfoPopover content={getProfileInfo(navigationItems.map((item) => item.label))} />
+                  </div>
                   <p className="text-sm text-white/90">
                     <span className="font-medium">{user?.designation}</span>
                     {user?.department && <span className="text-white/80"> · {user.department}</span>}

@@ -9,8 +9,7 @@ import {
   LogOut,
   ChevronRight
 } from "lucide-react";
-import { ROUTES } from "@/lib/constants";
-import { MODULE_CATALOG } from "@/lib/modules";
+import { MODULE_CATALOG, ROUTES } from "@/lib/constants";
 import { quickActionLink, quickActionsFor } from "@/lib/quick-actions";
 import { useLocation, useNavigate } from "react-router-dom";
 import { NotificationsPanel } from "./notifications-panel";
@@ -31,40 +30,12 @@ interface HeaderProps {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const unreadCount = useUnreadNotificationCount();
 
-  // Function to get current page name based on pathname
+  // The page name comes from the menu list in constants.ts. Sub-pages such as /tasks/IXP-102 show their page's
+  // name, and the longest match wins, so /service-desk/assets is Asset Log rather than Service Desk.
   const getCurrentPageName = (): string => {
-    // Sub-pages such as /tasks/IXP-102 show their section name
-    const section = `/${pathname.split("/")[1] ?? ""}`;
-    switch (section) {
-      case ROUTES.Dashboard:
-        return 'Dashboard';
-      case ROUTES.Profile:
-        return 'Profile';
-      case ROUTES.Attendance:
-        return 'Attendance';
-      case ROUTES.TimeTracker:
-        return 'Time Tracker';
-      case ROUTES.Leave:
-        return 'Leave Tracker';
-      case ROUTES.Tasks:
-        return 'Tasks';
-      case ROUTES.Files:
-        return 'Files';
-      case ROUTES.Organization:
-        return 'Organization';
-      case ROUTES.Reports:
-        return 'Reports';
-      case ROUTES.ServiceDesk: {
-        const page = pathname.split('/')[2];
-        if (page === 'assets') return 'Asset Log';
-        if (page === 'expenses') return 'Expenses';
-        if (page === 'reports') return 'Desk Reports';
-        return user?.role === 'admin' ? 'Service Desk' : 'My Requests';
-      }
-      default:
-        // Any other page uses its name from the page list (e.g. User Management)
-        return MODULE_CATALOG.find((module) => module.path === section)?.label ?? 'Dashboard';
-    }
+    const page = MODULE_CATALOG.filter((module) => pathname === module.path || pathname.startsWith(`${module.path}/`)).sort((a, b) => b.path.length - a.path.length)[0];
+    if (page?.path === ROUTES.ServiceDesk) return user?.role === 'admin' ? 'Service Desk' : 'My Requests';
+    return page?.label ?? 'Dashboard';
   };
 
   // Refs for dropdown containers

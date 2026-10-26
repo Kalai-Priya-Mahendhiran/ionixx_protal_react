@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, headerPrimaryButtonClass } from "@/components/ui/page-header";
 import { AuditLogSection, DocumentsSection, EmployeeStatusSection, UploadDocumentDialog } from "./sections";
 import { seedAuditLogs, seedDocuments, seedEmployeeCompliance } from "./sections/compliance-data";
+import { COMPLIANCE_INFO } from "./sections/compliance-info";
 import type { AuditLog, CardFilter, ComplianceDocument, EmployeeCompliance, NewComplianceDocument, Tab } from "./sections/compliance-meta";
 
 export default function Compliance() {
@@ -119,6 +120,7 @@ export default function Compliance() {
         <PageHeader
           icon={ShieldCheck}
           title="Compliance"
+          info={COMPLIANCE_INFO}
           description={`${stats.documents} documents · ${stats.compliant} compliant employees · ${stats.pending} action items`}
           actions={
             <>

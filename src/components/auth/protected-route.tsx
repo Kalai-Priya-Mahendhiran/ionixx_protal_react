@@ -23,7 +23,7 @@ function SignOutDeactivated() {
 }
 
 export default function ProtectedRoute({ children, module }: ProtectedRouteProps) {
-  const { isAuthenticated, loading, user } = useAuth();
+  const { isAuthenticated, loading, user, signedOut } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -35,7 +35,8 @@ export default function ProtectedRoute({ children, module }: ProtectedRouteProps
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+    // Remember the page only for a link opened while signed out; after Sign out the next sign-in starts at the Dashboard
+    return <Navigate to="/login" replace state={signedOut ? undefined : { from: location }} />;
   }
 
   if (user && !isUserActive(user.id)) return <SignOutDeactivated />;

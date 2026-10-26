@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { chainTo, directReports, getDepartments, type OrgPerson } from '@/lib/org-chart';
 import { useOrgPeople } from '@/services/apis/users/use-org-chart';
 import { DepartmentsTab, DirectoryTab, OrgChartTab, PersonSheet } from './sections';
+import { ORGANIZATION_INFO } from './sections/organization-info';
 import { PageTabs } from '@/components/common-component/tabs';
 
 type OrgTab = 'chart' | 'departments' | 'directory';
@@ -73,7 +74,7 @@ export default function Organization() {
   return (
     <MainLayout>
       <div className="mx-auto max-w-7xl space-y-6">
-        <PageHeader icon={Building} title="Organization" description="Who reports to whom, departments and everyone's contact details" />
+        <PageHeader icon={Building} title="Organization" description="Who reports to whom, departments and everyone's contact details" info={ORGANIZATION_INFO} />
 
         <StatGrid>
           <StatCard icon={Users} label="People" value={people.length} tone="indigo" onClick={() => openTab('directory')} />

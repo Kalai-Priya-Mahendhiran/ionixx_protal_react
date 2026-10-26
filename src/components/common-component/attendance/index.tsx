@@ -9,6 +9,7 @@ import { todayAsDateInput } from '@/lib/utils';
 import { useMyAttendanceMonth } from '@/services/apis/attendance/use-attendance';
 import { HISTORY_DAYS, attendancePercent } from '@/services/apis/attendance/attendance-service';
 import { CalendarViewSection, CheckInOutSection, RecentAttendanceSection } from './sections';
+import { ATTENDANCE_INFO } from './sections/attendance-info';
 
 export default function Attendance() {
   const { user } = useAuth();
@@ -32,7 +33,7 @@ export default function Attendance() {
   return (
     <MainLayout>
       <div className="mx-auto max-w-7xl space-y-8">
-        <PageHeader icon={CalendarCheck} title="Attendance" description="Track your daily attendance and working hours" />
+        <PageHeader icon={CalendarCheck} title="Attendance" description="Track your daily attendance and working hours" info={ATTENDANCE_INFO} />
 
         <StatGrid>
           <StatCard icon={CheckCircle} label="Present Days" value={count('present') + count('wfh')} tone="green" hint={count('wfh') ? `${count('wfh')} WFH` : undefined} loading={isLoading} />

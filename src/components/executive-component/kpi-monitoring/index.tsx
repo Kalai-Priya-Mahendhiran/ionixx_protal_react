@@ -18,6 +18,7 @@ import {
   KpiDashboardSection,
   KpiDrilldownDialog,
 } from "./sections";
+import { KPI_MONITORING_INFO } from "./sections/kpi-monitoring-info";
 
 export default function KpiMonitoring() {
   const [category, setCategory] = useState<Category>("all");
@@ -53,6 +54,7 @@ export default function KpiMonitoring() {
         <PageHeader
           icon={Gauge}
           title="KPI Monitoring"
+          info={KPI_MONITORING_INFO}
           description="Track workforce KPIs — attrition, productivity, and more"
           actions={
             <>

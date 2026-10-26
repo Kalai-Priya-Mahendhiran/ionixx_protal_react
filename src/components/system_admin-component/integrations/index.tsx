@@ -14,6 +14,7 @@ import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import type { IntegrationFormValues } from "@/lib/form-schemas/system";
 import { AddIntegrationDialog, IntegrationDrawerSection, IntegrationsGridSection } from "./sections";
 import { seedIntegrations, type Category, type Integration, type IntegrationStatus } from "./sections/integrations-meta";
+import { INTEGRATIONS_INFO } from "./sections/integrations-info";
 
 export default function Integrations() {
   const [integrations, setIntegrations] = useState<Integration[]>(seedIntegrations);
@@ -105,6 +106,7 @@ export default function Integrations() {
         <PageHeader
           icon={Plug}
           title="Integrations"
+          info={INTEGRATIONS_INFO}
           description={
             <>
               {stats.connected}/{stats.total} connected ·{" "}

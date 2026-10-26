@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useDeskSettings, useRequests } from '@/services/apis/service-desk/use-service-desk';
 import { requestPath } from './sections/desk-links';
 import { MyRequestsSection, QueueSection, RaiseRequestDialog, SlaSettingsDialog } from './sections';
+import { getServiceDeskInfo } from './sections/service-desk-info';
 import { PageTabs } from '@/components/common-component/tabs';
 
 /*
@@ -43,6 +44,7 @@ function ServiceDeskPage({ user }: { user: PermissionUser }) {
         <PageHeader
           icon={LifeBuoy}
           title={isDesk ? 'Service Desk' : 'My Requests'}
+          info={getServiceDeskInfo(isDesk)}
           description={
             isDesk
               ? `${myDesks.map((desk) => desk.team).join(' and ')} queue · ${myDesks.map((desk) => desk.summary.toLowerCase()).join('; ')}`

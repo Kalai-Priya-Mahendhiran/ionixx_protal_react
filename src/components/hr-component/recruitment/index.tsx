@@ -22,6 +22,7 @@ import { PageHeader, headerPrimaryButtonClass } from "@/components/ui/page-heade
 import { CANDIDATE_STAGE_ORDER, CANDIDATE_STAGE_LABELS } from "@/lib/constants";
 import { CandidatesSection, InterviewsSection, PostJobDialog, PostingsSection } from "./sections";
 import { seedCandidates, seedInterviews, seedPostings } from "./sections/recruitment-data";
+import { RECRUITMENT_INFO } from "./sections/recruitment-info";
 import type { Candidate, CardFilter, Interview, JobPosting, NewJobPosting, Stage, Tab } from "./sections/recruitment-meta";
 
 export default function Recruitment() {
@@ -120,6 +121,7 @@ export default function Recruitment() {
         <PageHeader
           icon={Briefcase}
           title="Recruitment"
+          info={RECRUITMENT_INFO}
           description={`${stats.open} open roles · ${stats.candidates} candidates · ${stats.interviews} interviews scheduled`}
           actions={
             <>

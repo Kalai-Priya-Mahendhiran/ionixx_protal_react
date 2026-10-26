@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { InfoPopover, type InfoContent } from '@/components/common-component/info';
 import { cn } from '@/lib/utils';
 
 /*
@@ -8,7 +9,8 @@ import { cn } from '@/lib/utils';
  *   <PageHeader icon={CalendarDays} title="Leave Tracker" description="Manage your leave requests and track your leave balance" />
  *
  * Buttons go in `actions` and should use the two header button styles below so they read on the gradient;
- * a small status pill (e.g. "Read only") goes in `badge`.
+ * a small status pill (e.g. "Read only") goes in `badge`. What the screen is for goes in `info` (an InfoContent), shown by InfoPopover as an ⓘ
+ * next to the title.
  */
 
 // The gradient surface itself, for headers with their own layout (e.g. the Profile card); add an inner `relative` wrapper
@@ -29,10 +31,12 @@ interface PageHeaderProps {
   description?: ReactNode;
   actions?: ReactNode;
   badge?: ReactNode;
+  // About this screen: its purpose and what you can do here
+  info?: InfoContent;
   className?: string;
 }
 
-export function PageHeader({ icon: Icon, title, description, actions, badge, className }: PageHeaderProps) {
+export function PageHeader({ icon: Icon, title, description, actions, badge, info, className }: PageHeaderProps) {
   return (
     <div className={cn(pageHeaderSurfaceClass, 'px-6 py-4', className)}>
       <PageHeaderShade />
@@ -44,6 +48,7 @@ export function PageHeader({ icon: Icon, title, description, actions, badge, cla
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-2xl font-bold">{title}</h1>
+              {info && <InfoPopover content={info} />}
               {badge}
             </div>
             {description && <p className="mt-0.5 text-sm text-white/90">{description}</p>}

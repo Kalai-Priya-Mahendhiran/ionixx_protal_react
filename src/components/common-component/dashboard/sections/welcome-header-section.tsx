@@ -4,6 +4,8 @@ import { useAttendance } from '@/context/attendance-context';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Moon } from 'lucide-react';
+import { InfoPopover } from '@/components/common-component/info';
+import { DASHBOARD_INFO } from './dashboard-info';
 import { formatTime, getGreeting, getGreetingIcon, getIcon, GREETING_ICON_COLORS } from '@/lib/constants';
 
 export function WelcomeHeaderSection() {
@@ -35,6 +37,7 @@ export function WelcomeHeaderSection() {
               <div className="flex items-center space-x-2">
                 <GreetingIcon className={`h-5 w-5 ${GREETING_ICON_COLORS[greetingIconName]}`} />
                 <h1 className="text-2xl font-bold">{getGreeting(currentTime)}, {user?.name || 'User'}!</h1>
+                <InfoPopover content={DASHBOARD_INFO} />
               </div>
               <p className="text-sm text-white/90 mt-0.5">
                 {user?.designation} • {user?.department} • {currentTime.toLocaleDateString('en-US', {

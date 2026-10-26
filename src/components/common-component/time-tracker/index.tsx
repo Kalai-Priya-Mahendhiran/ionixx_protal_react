@@ -22,6 +22,7 @@ import type { TimeEntryFormValues, TimeTrackerTaskFormRow, TimeTrackerTaskFormVa
 import type { NewTimeEntry } from './sections/timer-and-entries-section';
 import type { TimeEntry } from '@/types';
 import { useCreateFromLink } from '@/hooks/use-create-from-link';
+import { TIME_TRACKER_INFO } from './sections/time-tracker-info';
 
 export default function TimeTracker() {
   // The daily task log is kept by the service, so it survives navigation
@@ -78,7 +79,7 @@ export default function TimeTracker() {
     <MainLayout>
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <PageHeader icon={Timer} title="Time Tracker" description="Track time spent on projects and tasks" />
+        <PageHeader icon={Timer} title="Time Tracker" description="Track time spent on projects and tasks" info={TIME_TRACKER_INFO} />
 
         {/* Time Tracking Stats */}
         <TimeTrackingStatsSection

@@ -3,15 +3,26 @@ import {
   ArrowUp,
   Bookmark,
   Bug,
+  CalendarRange,
+  CheckCheck,
   CheckSquare,
   ChevronsUp,
+  ClipboardList,
+  Columns3,
   Equal,
+  FolderKanban,
+  Gauge,
+  GitBranch,
+  History,
+  LayoutTemplate,
   ListTree,
+  ShieldCheck,
+  Tags,
   Users,
   Zap,
   type LucideIcon,
 } from 'lucide-react';
-import type { TaskView } from '@/lib/permissions/task-permissions';
+import type { TaskSection, TaskView } from '@/lib/permissions/task-permissions';
 import { getPriorityLabel, getTypeLabel } from '@/lib/workflow';
 import type { TaskPriority, TaskType } from '@/types';
 
@@ -56,4 +67,20 @@ export const TASK_VIEW_META: Record<TaskView, { title: string; description: stri
   'all-projects': { title: 'All Projects', description: 'Every task across projects and departments' },
   settings: { title: 'Task Settings', description: 'Workflow, fields, permissions, automation and the audit log' },
   'exec-dashboard': { title: 'Task Overview', description: 'Read-only view of progress across projects' },
+};
+
+// Tool tabs on the Tasks page
+export const TASK_SECTION_META: Record<TaskSection, { label: string; icon: LucideIcon }> = {
+  board: { label: 'Board', icon: Columns3 },
+  workload: { label: 'Workload', icon: Gauge },
+  sprints: { label: 'Backlog & Sprints', icon: CalendarRange },
+  approvals: { label: 'Approvals', icon: CheckCheck },
+  projects: { label: 'Projects', icon: FolderKanban },
+  checklists: { label: 'Checklists', icon: ClipboardList },
+  templates: { label: 'Templates', icon: LayoutTemplate },
+  workflow: { label: 'Workflow', icon: GitBranch },
+  fields: { label: 'Types & Labels', icon: Tags },
+  permissions: { label: 'Permissions', icon: ShieldCheck },
+  automation: { label: 'Automation', icon: Zap },
+  audit: { label: 'Audit log', icon: History },
 };

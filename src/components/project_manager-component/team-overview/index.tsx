@@ -14,6 +14,7 @@ import type { TeamMember } from "@/lib/team-data";
 import { useOrgPeople } from "@/services/apis/users/use-org-chart";
 import { ProfileDrawer, TeamMembersSection } from "./sections";
 import { toMember } from "./sections/team-overview-meta";
+import { TEAM_OVERVIEW_INFO } from "./sections/team-overview-info";
 
 export default function TeamOverview() {
   const { user } = useAuth();
@@ -62,6 +63,7 @@ export default function TeamOverview() {
         <PageHeader
           icon={Users}
           title="Team Overview"
+          info={TEAM_OVERVIEW_INFO}
           description={`${stats.total} team members · ${stats.active} in office · ${stats.remote} remote · ${stats.onLeave} on leave · ${stats.notIn} not checked in`}
         />
 

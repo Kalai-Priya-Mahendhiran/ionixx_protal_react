@@ -15,6 +15,7 @@ import type { AddEmployeeInput } from "@/services/apis/employees/employee-servic
 import { useAddEmployee, useEmployees, useSetEmployeeActive } from "@/services/apis/employees/use-employees";
 import { AddEmployeeDialog, EmployeeDirectorySection, EmployeeDrawer } from "./sections";
 import type { Employee, EmploymentStatus } from "./sections/employee-utils";
+import { EMPLOYEE_MANAGEMENT_INFO } from "./sections/employee-management-info";
 
 export default function EmployeeManagement() {
   // The shared directory: people added in User Management show up here, and people added here show up there
@@ -76,6 +77,7 @@ export default function EmployeeManagement() {
         <PageHeader
           icon={UserCog}
           title="Employee Management"
+          info={EMPLOYEE_MANAGEMENT_INFO}
           description={`${stats.total} employees · ${stats.active} active · ${stats.onLeave} on leave`}
           actions={
             <>

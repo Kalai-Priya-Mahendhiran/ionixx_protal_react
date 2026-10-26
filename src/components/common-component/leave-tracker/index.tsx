@@ -16,6 +16,7 @@ import {
   LeaveHistorySection,
   LeaveBalanceSection
 } from './sections';
+import { LEAVE_TRACKER_INFO } from './sections/leave-tracker-info';
 
 // The office's country from a location like "Chennai, IN", so the calendar opens on that office's holidays
 const COUNTRY_BY_CODE: Record<string, LeaveCountry> = { IN: 'india', CA: 'canada', US: 'united-states' };
@@ -45,7 +46,7 @@ export default function Leave() {
     <MainLayout>
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <PageHeader icon={CalendarDays} title="Leave Tracker" description="Manage your leave requests and track your leave balance" />
+        <PageHeader icon={CalendarDays} title="Leave Tracker" description="Manage your leave requests and track your leave balance" info={LEAVE_TRACKER_INFO} />
 
         {/* Leave Balance */}
         <LeaveBalanceSection requests={requests} />

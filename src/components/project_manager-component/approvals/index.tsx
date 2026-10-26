@@ -2,11 +2,14 @@ import { useState } from "react";
 import { AlertCircle, CheckCheck, CheckCircle2, XCircle } from "lucide-react";
 import MainLayout from "@/components/layout/main-layout";
 import { PageHeader } from "@/components/ui/page-header";
+import { useAuth } from "@/context/auth-context";
+import { isPayrollApprover } from "@/lib/approvers";
 import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import type { ApprovalStatus } from "@/services/apis/approvals/approval-queue";
 import { useApprovalQueue, useDecideApprovals } from "@/services/apis/approvals/use-approvals";
 import { DecisionDialog, RequestQueueSection } from "./sections";
 import { STATUSES, type PendingDecision } from "./sections/approvals-meta";
+import { getApprovalsInfo } from "./sections/approvals-info";
 
 /*
  * Requests waiting on the signed-in person: leave, work from home, time off, claims, tax proofs… from every registered source.
@@ -14,6 +17,7 @@ import { STATUSES, type PendingDecision } from "./sections/approvals-meta";
  */
 
 export default function Approvals() {
+  const { user } = useAuth();
   const { data: items = [], isLoading } = useApprovalQueue();
   const decide = useDecideApprovals();
   const [activeTab, setActiveTab] = useState<ApprovalStatus>("pending");
@@ -40,7 +44,7 @@ export default function Approvals() {
   return (
     <MainLayout>
       <div className="max-w-6xl mx-auto space-y-6">
-        <PageHeader icon={CheckCheck} title="Approvals" description={`${counts.pending} pending · ${counts.approved} approved · ${counts.rejected} rejected`} />
+        <PageHeader icon={CheckCheck} title="Approvals" info={getApprovalsInfo(!!user && isPayrollApprover(user))} description={`${counts.pending} pending · ${counts.approved} approved · ${counts.rejected} rejected`} />
 
         <StatGrid>
           {/* The cards are the same filter as the tabs below (the queue has no "All" view) */}

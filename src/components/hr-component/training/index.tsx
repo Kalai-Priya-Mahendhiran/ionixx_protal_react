@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, headerPrimaryButtonClass } from "@/components/ui/page-header";
 import { AssignLearnersDialog, AssignmentsSection, CoursesSection, CreateCourseDialog } from "./sections";
 import { seedAssignments, seedCourses } from "./sections/training-data";
+import { TRAINING_INFO } from "./sections/training-info";
 import type { Assignment, Course, NewCourse, Tab } from "./sections/training-meta";
 
 export default function Training() {
@@ -104,6 +105,7 @@ export default function Training() {
         <PageHeader
           icon={GraduationCap}
           title="Training"
+          info={TRAINING_INFO}
           description={`${stats.activeCourses} active courses · ${stats.totalLearners} learners · ${stats.completionRate}% completion`}
           actions={
             <>

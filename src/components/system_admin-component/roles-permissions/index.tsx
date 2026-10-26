@@ -6,6 +6,7 @@ import { PermissionsSettingsSection } from "@/components/employee-component/task
 import { useTaskSettings } from "@/services/apis/settings/use-task-settings";
 import { PageTabs } from "@/components/common-component/tabs";
 import { DefaultPagesSection } from "./sections";
+import { ROLES_PERMISSIONS_INFO } from "./sections/roles-permissions-info";
 
 type Tab = "permissions" | "pages";
 
@@ -20,6 +21,7 @@ export default function RolesPermissions() {
         <PageHeader
           icon={Lock}
           title="Roles & Permissions"
+          info={ROLES_PERMISSIONS_INFO}
           description="What each of the six roles can do, and which pages they see"
         />
 

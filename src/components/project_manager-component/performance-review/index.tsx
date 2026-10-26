@@ -3,10 +3,13 @@ import { Star } from "lucide-react";
 import MainLayout from "@/components/layout/main-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
+import { useAuth } from "@/context/auth-context";
 import { useReviewees, useShareFeedback, useSubmitRating } from "@/services/apis/performance/use-performance";
 import { GoalsSection, ReviewSummarySection, RevieweesSection, SubmitRatingSection } from "./sections";
+import { getPerformanceReviewInfo } from "./sections/performance-review-info";
 
 export default function PerformanceReview() {
+  const { user } = useAuth();
   // Your direct reports from the live org chart (HR sees everyone); ratings are kept by the service
   const { data: profiles = [], isLoading } = useReviewees();
   const submitRatingMutation = useSubmitRating();
@@ -54,6 +57,7 @@ export default function PerformanceReview() {
         <PageHeader
           icon={Star}
           title="Performance Review"
+          info={getPerformanceReviewInfo(user?.role === "hr")}
           description={`${summary.total} reviews · ${summary.submitted} submitted · ${summary.inReview} in review · ${summary.draft} draft`}
         />
 

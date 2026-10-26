@@ -1,7 +1,8 @@
 import { Check, Lock, Minus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ROLE_LABELS, type UserRole } from "@/lib/mock-users";
-import { CORE_MODULES, MODULE_CATALOG, RESTRICTED_MODULES, roleHasModule } from "@/lib/modules";
+import { MODULE_CATALOG } from "@/lib/constants";
+import { CORE_MODULES, RESTRICTED_MODULES, roleHasModule } from "@/lib/modules";
 
 const ROLES = Object.keys(ROLE_LABELS) as UserRole[];
 

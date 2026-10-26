@@ -19,6 +19,7 @@ import {
   type TabKey,
   type WorkflowRule,
 } from "./sections/system-config-meta";
+import { SYSTEM_CONFIG_INFO } from "./sections/system-config-info";
 
 export default function SystemConfig() {
   const [tab, setTab] = useState<TabKey>("modules");
@@ -112,6 +113,7 @@ export default function SystemConfig() {
         <PageHeader
           icon={Settings}
           title="System Configuration"
+          info={SYSTEM_CONFIG_INFO}
           description={
             <>
               {stats.enabledModules}/{stats.totalModules} modules ·{" "}

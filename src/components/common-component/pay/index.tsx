@@ -34,6 +34,7 @@ import {
   usePayTheme,
   type PayslipView,
 } from './sections';
+import { PAY_INFO } from './sections/pay-info';
 import { PageTabs } from '@/components/common-component/tabs';
 
 type PayTab = 'home' | 'reports' | 'tax-submission' | 'tax-simulator' | 'claims';
@@ -102,6 +103,7 @@ export default function Pay() {
           icon={Wallet}
           title="Pay & Tax"
           description="Your salary, income tax, tax-saving declarations and reimbursements"
+          info={PAY_INFO}
         />
 
         <PageTabs label="Pay and tax" tabs={TABS} value={tab} onChange={openTab} />

@@ -15,6 +15,7 @@ import type { AttendanceStatus, TeamAttendanceRow } from "@/services/apis/attend
 import { useResolveAttendance, useTeamAttendance } from "@/services/apis/attendance/use-attendance";
 import { ExceptionsSection, NoteDialog, TeamAttendanceSection } from "./sections";
 import { NEEDS_ATTENTION, type StatusFilter } from "./sections/attendance-monitoring-meta";
+import { ATTENDANCE_MONITORING_INFO } from "./sections/attendance-monitoring-info";
 
 export default function AttendanceMonitoring() {
   const [search, setSearch] = useState("");
@@ -78,6 +79,7 @@ export default function AttendanceMonitoring() {
         <PageHeader
           icon={ClipboardCheck}
           title="Attendance Monitoring"
+          info={ATTENDANCE_MONITORING_INFO}
           description={dateLabel}
           actions={
             <>

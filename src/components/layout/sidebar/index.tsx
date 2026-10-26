@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import type { SidebarItem } from "@/lib/mock-users";
+import type { SidebarItem } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
 import { useSidebarItems } from "@/services/apis/users/use-sidebar-items";

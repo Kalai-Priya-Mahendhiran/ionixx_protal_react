@@ -19,6 +19,7 @@ import {
   KeyInsightsSection,
   WorkforceTrendSection,
 } from "./sections";
+import { ANALYTICS_INFO } from "./sections/analytics-info";
 
 export default function Analytics() {
   const [period, setPeriod] = useState<Period>("6M");
@@ -64,6 +65,7 @@ export default function Analytics() {
         <PageHeader
           icon={LineChart}
           title="Analytics"
+          info={ANALYTICS_INFO}
           description="Workforce trends, forecasting, and department insights"
           actions={
             <>
