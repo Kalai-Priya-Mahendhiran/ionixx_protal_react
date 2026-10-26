@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import type { TaskRecord } from '@/components/employee-component/time-tracker/sections/task-form';
+import type { TaskRecord } from '@/components/common-component/time-tracker/sections/task-form';
 import { useAuth } from '@/context/auth-context';
 import { NON_PROJECT_TIME, PROJECTS } from '@/lib/sample-data/time-tracker-sample-data';
 import { useProjects } from '../tasks/use-tasks';

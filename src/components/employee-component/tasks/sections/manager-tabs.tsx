@@ -1,6 +1,6 @@
 import { CalendarRange, CheckCheck, ClipboardList, Columns3, FolderKanban, Gauge, GitBranch, History, LayoutTemplate, ShieldCheck, Tags, Zap, type LucideIcon } from 'lucide-react';
 import type { TaskSection } from '@/lib/permissions/task-permissions';
-import { PageTabs } from '@/components/ui/page-tabs';
+import { PageTabs } from '@/components/common-component/tabs';
 
 const SECTION_META: Record<TaskSection, { label: string; icon: LucideIcon }> = {
   board: { label: 'Board', icon: Columns3 },

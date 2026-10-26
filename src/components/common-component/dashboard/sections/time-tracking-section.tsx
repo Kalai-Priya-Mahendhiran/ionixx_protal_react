@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Play, Square } from 'lucide-react';
 import { formatTime, formatDuration, WORKING_HOURS } from '@/lib/constants';
-import { ATTENDANCE_STATUS_META } from '@/components/employee-component/attendance/sections/attendance-meta';
+import { ATTENDANCE_STATUS_META } from '@/components/common-component/attendance/sections/attendance-meta';
 
 export function TimeTrackingSection() {
   const { isCheckedIn, checkInTime, status, checkIn: handleCheckIn, checkOut: handleCheckOut } = useAttendance();

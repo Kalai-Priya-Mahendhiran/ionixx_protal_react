@@ -1,5 +1,5 @@
-import type { TaskRecord } from '@/components/employee-component/time-tracker/sections/task-form';
-import type { WeeklyTimeDistribution } from '@/components/employee-component/time-tracker/sections/weekly-time-chart-section';
+import type { TaskRecord } from '@/components/common-component/time-tracker/sections/task-form';
+import type { WeeklyTimeDistribution } from '@/components/common-component/time-tracker/sections/weekly-time-chart-section';
 import { toDateInput } from '@/lib/utils';
 import type { TimeEntry } from '@/types';
 

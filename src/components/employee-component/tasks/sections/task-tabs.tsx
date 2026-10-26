@@ -1,4 +1,4 @@
-import { PageTabs } from '@/components/ui/page-tabs';
+import { PageTabs } from '@/components/common-component/tabs';
 import { MY_TASKS_TABS, type MyTasksTab } from './task-utils';
 
 interface TaskTabsProps {

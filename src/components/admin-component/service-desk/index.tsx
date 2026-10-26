@@ -11,12 +11,9 @@ import { canConfigureDesk, canManageRequests, desksHandledBy } from '@/lib/permi
 import type { PermissionUser } from '@/lib/permissions/task-permissions';
 import { cn } from '@/lib/utils';
 import { useDeskSettings, useRequests } from '@/services/apis/service-desk/use-service-desk';
-import { requestPath } from './desk-links';
-import { MyRequestsSection } from './my-requests-section';
-import { QueueSection } from './queue-section';
-import { RaiseRequestDialog } from './raise-request-dialog';
-import { SlaSettingsDialog } from './sla-settings-dialog';
-import { PageTabs } from '@/components/ui/page-tabs';
+import { requestPath } from './sections/desk-links';
+import { MyRequestsSection, QueueSection, RaiseRequestDialog, SlaSettingsDialog } from './sections';
+import { PageTabs } from '@/components/common-component/tabs';
 
 /*
  * Service desk. Everyone raises requests with any team (Admin, System Admin…) and follows them in My Requests;

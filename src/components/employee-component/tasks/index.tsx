@@ -49,16 +49,16 @@ import {
 import { TASK_VIEW_META } from './sections/task-config';
 import { taskPath } from './sections/task-link';
 import { getFilterOptions } from './sections/filter-options';
-import { ExecutiveDashboard } from './reports/executive-dashboard';
+import { ExecutiveDashboard } from './sections/executive-dashboard';
 import { QuickFilters } from './sections/quick-filters';
 import { SavedFiltersMenu } from './sections/saved-filters-menu';
 import { SprintMenu } from './sections/sprint-menu';
 import { ShortcutsDialog, type ShortcutHelp } from './sections/shortcuts-dialog';
-import { AuditLogSection } from './settings/audit-log-section';
-import { AutomationSettingsSection } from './settings/automation-settings';
-import { FieldsSettingsSection } from './settings/fields-settings';
-import { PermissionsSettingsSection } from './settings/permissions-settings';
-import { WorkflowSettingsSection } from './settings/workflow-settings';
+import { AuditLogSection } from './sections/audit-log-section';
+import { AutomationSettingsSection } from './sections/automation-settings';
+import { FieldsSettingsSection } from './sections/fields-settings';
+import { PermissionsSettingsSection } from './sections/permissions-settings';
+import { WorkflowSettingsSection } from './sections/workflow-settings';
 import { useTaskSettings } from '@/services/apis/settings/use-task-settings';
 import { useCreateFromLink } from '@/hooks/use-create-from-link';
 import {

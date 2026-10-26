@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SegmentedTabs } from '@/components/common-component/tabs';
 import { Link, useLocation } from 'react-router-dom';
 import { AlertTriangle, ClipboardList, LogIn, LogOut, type LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,20 +35,15 @@ export function ChecklistsSection({ tasks, subtaskProgress, onBrowseTemplates }:
 
   return (
     <div className="space-y-4">
-      <div role="tablist" aria-label="Checklists" className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5">
-        {(['active', 'completed'] as const).map((value) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={filter === value}
-            onClick={() => setFilter(value)}
-            className={cn('rounded-md px-3 py-1.5 text-sm font-medium capitalize', filter === value ? 'bg-indigo-50 text-[#464EB8]' : 'text-gray-600 hover:text-gray-900')}
-          >
-            {value} <span className="text-xs text-gray-500">({counts[value]})</span>
-          </button>
-        ))}
-      </div>
+      <SegmentedTabs
+        label="Checklists"
+        tabs={[
+          { id: 'active', label: 'Active', count: counts.active },
+          { id: 'completed', label: 'Completed', count: counts.completed },
+        ]}
+        value={filter}
+        onChange={setFilter}
+      />
 
       {shown.length === 0 ? (
         <Card>

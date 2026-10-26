@@ -1,4 +1,4 @@
-import type { TaskRecord } from '@/components/employee-component/time-tracker/sections/task-form';
+import type { TaskRecord } from '@/components/common-component/time-tracker/sections/task-form';
 import { taskLogService } from '@/services/apis/time-tracker/task-log-service';
 import type { TimeEntry } from '@/types';
 import { productivity, weekStartOf, weeklyDistribution } from './time-tracker-stats';

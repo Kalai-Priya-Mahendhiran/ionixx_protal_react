@@ -1,4 +1,4 @@
-import type { TaskRecord } from '@/components/employee-component/time-tracker/sections/task-form';
+import type { TaskRecord } from '@/components/common-component/time-tracker/sections/task-form';
 import type { PermissionUser } from '@/lib/permissions/task-permissions';
 import { sampleTodaysTasks } from '@/lib/sample-data/time-tracker-sample-data';
 import { generateId } from '@/lib/utils';

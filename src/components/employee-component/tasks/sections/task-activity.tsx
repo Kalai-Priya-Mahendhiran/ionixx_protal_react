@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { SegmentedTabs } from '@/components/common-component/tabs';
 import { ArrowDownUp, Clock, ImagePlus, MessageSquare, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -510,23 +511,7 @@ export function TaskActivitySection({ task, mentionable, canComment }: { task: T
     <section className="space-y-4">
       <h2 className="text-base font-semibold text-gray-900">Activity</h2>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div role="tablist" aria-label="Activity" className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-          {TABS.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              aria-selected={tab === item.value}
-              onClick={() => setTab(item.value)}
-              className={cn(
-                'rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                tab === item.value ? 'bg-white text-[#464EB8] shadow-sm ring-1 ring-[#464EB8]/30' : 'text-gray-600 hover:text-gray-900',
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedTabs label="Activity" tabs={TABS.map((item) => ({ id: item.value, label: item.label }))} value={tab} onChange={setTab} />
         <button
           type="button"
           onClick={() => setNewestFirst((current) => !current)}

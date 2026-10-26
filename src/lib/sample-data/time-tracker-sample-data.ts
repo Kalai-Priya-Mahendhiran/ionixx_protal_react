@@ -1,5 +1,5 @@
 import type { TimeEntry } from '@/types';
-import type { TaskRecord } from '@/components/employee-component/time-tracker/sections/task-form';
+import type { TaskRecord } from '@/components/common-component/time-tracker/sections/task-form';
 import { toDateInput } from '@/lib/utils';
 
 // Task dates are relative to today so the default "last 7 days" view always has work in it

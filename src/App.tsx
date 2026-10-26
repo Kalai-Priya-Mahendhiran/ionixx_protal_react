@@ -6,24 +6,26 @@ import ForgotPassword from '@/components/auth-component/forgot-password';
 
 // Common (shared across roles)
 import Dashboard from '@/components/common-component/dashboard';
-import Profile from '@/components/employee-component/profile';
+import Profile from '@/components/common-component/profile';
 import Reports from '@/components/common-component/reports';
+import Attendance from '@/components/common-component/attendance';
+import TimeTracker from '@/components/common-component/time-tracker';
+import Leave from '@/components/common-component/leave-tracker';
+import Pay from '@/components/common-component/pay';
+import Files from '@/components/common-component/files';
+import Organization from '@/components/common-component/organization';
 
 // Employee (ESS)
-import Attendance from '@/components/employee-component/attendance';
-import TimeTracker from '@/components/employee-component/time-tracker';
-import Leave from '@/components/employee-component/leave-tracker';
-import Pay from '@/components/employee-component/pay';
 import Tasks from '@/components/employee-component/tasks';
-import ProjectSummary from '@/components/employee-component/tasks/reports/project-summary';
+import ProjectSummary from '@/components/employee-component/tasks/project-summary';
+import TaskDetail from '@/components/employee-component/tasks/task-detail';
+
+// Service desk
 import ServiceDesk from '@/components/admin-component/service-desk';
 import RequestDetail from '@/components/admin-component/service-desk/request-detail';
 import AssetLog from '@/components/admin-component/service-desk/asset-log';
 import Expenses from '@/components/admin-component/service-desk/expenses';
 import DeskReports from '@/components/admin-component/service-desk/desk-reports';
-import TaskDetail from '@/components/employee-component/tasks/task-detail';
-import Files from '@/components/employee-component/files';
-import Organization from '@/components/employee-component/organization';
 
 // Project Manager (MSS)
 import TeamOverview from '@/components/project_manager-component/team-overview';
